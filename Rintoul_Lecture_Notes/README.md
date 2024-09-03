@@ -1,1 +1,1 @@
-Lecture slides for Miranda's section are found here.
+Lecture slides and Rmarkdown handouts for Miranda's section are found here.
