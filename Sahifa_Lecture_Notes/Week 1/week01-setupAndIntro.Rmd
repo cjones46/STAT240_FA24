@@ -1,0 +1,323 @@
+---
+title: "STAT 240: Setup And Intro"
+author: "Cameron Jones"
+date: "Fall 2024"
+output: rmdformats::readthedown
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE)
+```
+
+## Supplementary Material
+
+* Material in this lecture is supplemented by Professor Bi Cheng Wu's [240 Course Notes, Chapters 1 and 2](https://bwu62.github.io/stat240-revamp/setup.html).  
+
+## Learning Outcomes
+
+* This lecture will teach you how to:
+    + Create and navigate the course directories
+    + Set recommended RStudio options to improve workflow
+    + Install and load a package
+    + Navigate and interact with RStudio
+    + Understand and manipulate R Markdown documents
+    + Knit an R Markdown document and open the associated html file
+    
+> The primary focus of this lecture is to guide each student through setting up local course directories and packages so that students may properly interact with course files, and to familiarize them with RStudio.
+
+## Setting up course directories
+
+---
+
+##### EXERCISE: Create course directories
+
+* Live demonstration of creating course directories
+
+* The [course GitHub](https://github.com/cjones46/STAT240_FA24) is a model for how directories should be created on your local computer!
+
+    + `STAT240/`: You can call this folder whatever you want, and put it wherever you want, but we will generally refer to it as "the home folder". Most call it "STAT240" or similar.
+    
+    + `STAT240/data/`: Within STAT240, create a folder called "data", **all lowercase**. This is where ALL data files (.csv, .tsv, .xlsx) will go for the duration of the course.
+    
+    + `STAT240/hw/`
+        - `STAT240/hw/hw01/`
+        - `STAT240/hw/hw02/` ... more to be created as the semester continues
+        
+    + `STAT240/discussion/`
+        - `STAT240/discussion/ds01/`... more to be created as the semester continues
+        
+    + `STAT240/lecture/`
+      - `STAT240/lecture/week01-intro/`
+      - `STAT240/lecture/week02-ggplot2/`... more to be created as the semester continues on 
+
+* From the [course GitHub](https://github.com/cjones46/STAT240_FA24), navigate to `Sahifa_Lecture_Notes/week01-intro`.
+
+* **Download** `week01-setupAndIntro.Rmd` into the folder on your computer `STAT240/lecture/week01-intro`.
+
+* **Open** that file, which should open in RStudio.
+   
+---
+
+## RStudio Introduction
+
+* There should be four panels open in RStudio; two on the left and two on the right. You can adjust the boundaries/size of all of them by moving your cursor over the boundary, then clicking and dragging.
+
+* If you can't see one or more of them, it's not gone, just minimized - use the `View` tab and click on "Move Focus to Source", or "Move Focus to Console", or "Move Focus to Help", or "Show Environment" until it appears.
+
+* We will now explore the four different panels of RStudio!
+
+### The Console
+
+* The console is where **R code is run and its output is printed**. You can write R code directly in the console, or you can write it in the source document, which we'll review soon.
+
+---
+
+##### EXERCISE: Practice using the console
+
+* Navigate to your console, which is usually in the bottom left panel of RStudio (Notice the "minimize" and "open" buttons.)
+    + If you can't find it, use `View > Move Focus to Console`. RStudio can be overwhelming visually, the `View` options are your friend.
+  
+* Click within the console (your cursor should start blinking, next to the `>` symbol), and type `2+2`, then hit enter.
+
+* You should see `[1] 4`. Congratulations, you've run some code!
+    - The `[1]` is just a visual helper, for when our output eventually gets complex and spans many lines or numbers. It will always be there and it is not part of the computation.
+
+*Note: If you type an incomplete expression into the console, such as `2+` or `(2+2`, the console will wait for you to "finish" the expression, even after you hit enter. You can tell it is waiting for more input because `>` on the left will change to `+`. Hit `esc` in the top left of your keyboard to reset.*
+
+* Now try running `x <- 2`. (*You can also run `x = 2`, this is equivalent.*)
+
+* Now try running just `x`. You should see `[1] 2`.
+
+---
+
+### The Environment
+
+* What just happened there was called **creating a variable**. We'll review this more in depth soon, but we created an object with a name; that name is `x`.
+    - Just like "Cameron Jones" is a name for a specific person, `x` is now a name for a specific data object.
+    - Any time we refer to `x`, it is like we are referring to the number two.
+
+* Eventually, we will be working with many variables at once, and we need a place to keep track of what their names and values are.
+
+* The **Environment** in the top right (use `View` > `Show Environment` if you can't see it) keeps track of all your variables and their values.
+
+* You should see `x` with the value `2` stored there right now.
+
+* Try running `y = sqrt(9)` in your console. Notice that `y` now appears in your environment with the value `3`.
+
+### The Files/Plots/Packages/Help/Viewer Tab
+
+* What was that `sqrt()` thing that we just used? You may have put together that `sqrt` stands for "square root", but how would we find that out if we didn't know?
+
+* `sqrt()` is an example of a function; an instruction which, generally, takes in some information, does something useful with it, and gives you back the result.
+
+* To find out how functions work, you can always run `?function name`. Try running `?sqrt`. This should bring up the help page for "Miscellaneous Mathematical Functions".
+
+* There are other tabs of this bottom right panel as well; Files, Plots, Packages, Viewer, and Presentation. We'll learn more about some of these tabs as the semester goes on.
+  
+### R Markdown Source Documents
+
+* The last panel we have to discuss is the one you're reading this in right now, which is by default in the top left of RStudio, is the **Source** markdown and code editor.
+
+* R Markdown documents are edited directly in this tab. Indicated by the file extension ```.Rmd```, R Markdown documents have three distinct parts:
+
+    1. The YAML section (a preamble to specify basic information like author, date, and output type); in this document, lines 1 through 8. The YAML section is always at the beginning and generally shouldn't be touched.
+The rest of the document is a mix of:
+    2. Markdown language (simple plain text, like this that you're reading right now, with words and some control over formatting)
+    3. R code chunks (sections of R code with arguments to set options about execution and what to display in the knitted document)
+
+#### YAML
+
+- The YAML section is at the start of the file. It begins and ends with three dashes, `---` alone on a line.
+- You can adjust many things about a document through its YAML section, we will just use it to specify things like title, author, date, and the type of output we want the document to produce.
+- Cameron's lecture files will use the following output type:
+    
+````
+---
+output: rmdformats::readthedown
+---
+````
+- This controls the color scheme, text size and formatting, and creates the outline. We will always set this for you. Everything else in the course will use the less pretty but more functional:
+````
+---
+output: html_document
+---
+````
+
+#### Markdown Language
+
+* Markdown is plain text like this text you're reading right now, with some control over simple formatting. It allows you to convey formatting concepts solely through the symbols on a keyboard.
+
+* A few useful formatting basics:
+    + Use hashtags `# header text` to create headers. Don't forget the **space**!
+        - A single `#` will create a very large header
+        - The more hashtags there are (`####`, for example), the smaller the header will be.
+
+- Put a single asterisk on both sides of text to make it render in *italics* in the knitted file.
+- Put two asterisks on both sides of text to make it render as **bold** in the knitted file.
+
+- See the [R Markdown cheatsheet](https://www.rstudio.com/wp-content/uploads/2015/02/rmarkdown-cheatsheet.pdf) for more details.
+    
+#### R chunks
+
+* Code chunks contain CODE, rather than plain language.
+
+- A chunk of R code within an R Markdown file begins with three single back ticks followed by an open brace, the letter `r`, an optional space and name for the code chunk, and then optional arguments for knitting separated by commas before an end brace.
+
+* RStudio intelligently colors code chunks and its contents differently from markdown language so you can tell what you're working in.
+
+* The chunk ends with three single back ticks alone on a line.
+    + You can also use `Code > Insert Chunk`, or the keyboard shortcut `Ctrl+Alt+I` (Windows) or `Command+Option+I` (Mac).
+
+* **Leave a blank line before and after each code chunk.** This will prevent formatting and coding issues.
+
+* As an example, with this .Rmd file open in RStudio on your own computer, take a look at the following chunk. 
+    + Notice how it has a different color background than this "markdown" text; by default, a light gray opposed to white.
+    + Try running the code:
+        - Click the green "play" button in the top right corner of the chunk, OR,
+        - Click your cursor within the chunk, then click "Run" near the top right of this whole panel, and then select "Run Current Chunk", OR,
+        - With your cursor within the chunk, press `Ctrl` (`Command` if you have a Mac), `Shift`, and `Enter` at the same time.
+
+```{r}
+# This is a "comment"; preceded by #
+
+# It allows you to write plain text within code chunks, helpful for adding explanations to larger code chunks.
+
+# The next line of code (notice it has no # before it and it is a different color) runs a command, getwd(), which stands for "get working directory", which should be the location of this file.
+
+getwd()
+
+# This chunk should output the location of this file into your console, which should be "<some other folders>/STAT240/lecture/week01-intro".
+```
+    
+> If this line does NOT show you the location of this file, click on `Session > Set Working Directory > To Source File Location` and try again.
+
+---
+
+* We are now done with our brief intro to RStudio!
+
+* There are so many things that can be done with RStudio; we encourage you to explore on your own or refer to the Supplementary Material at the top of this lecture file.
+    
+## Packages
+
+* A strength of R is that users can create their own collection of commands and data, publish them to the internet, and allow others to download them. These user-written, public collections are called "packages".
+
+* We will use a number of user-written packages for this course; in fact, the first third of this course centers around `tidyverse`, a collection of user-written packages which work together to make data manipulation and visualization easier than they would be with the base commands that come with R.
+
+* You only need to get the package from the internet once; think of this like going to the hardware store, buying the tool, and putting it in your toolbox.
+
+* However, when you open RStudio, your "toolbox" is still closed. You have hundreds of packages ("tools") in there, but you'll only need to use a few at any given time.
+
+* Instead of always emptying the entire toolbox, R saves a ton of power by leaving it to you to take tools out of the toolbox.
+
+---
+
+##### EXERCISE: Install course packages
+
+* You will need to **install** `tidyverse`, the main package we will use constantly throughout the course, along with a couple others.
+  
+    + Run `install.packages("tidyverse")` in your console. 
+    + You will be bombarded with a **lot** of colorful text, much of it red, that is just confirming the installation is going through.
+    
+If you get a message like `package 'tidyverse' successfully unpacked` and/or `The downloaded binary packages are in: <location>`, you have successfully installed tidyverse!
+    
+* If Rstudio asks you whether to “use a personal library”, choose yes.
+* If Rstudio asks you whether to “install from source”, first try choosing no which should work for most people. If that fails, try repeating step 1, but this time choose yes.    
+* If Rstudio asks you whether you want to compile, it is best to answer no.
+
+---
+
+#### Taking it out of the toolbox with library()
+
+* Now that we have installed `tidyverse`, we can demonstrate how to take it out of the toolbox.
+
+* One of the functions (like `sqrt()`) that comes with `tidyverse` is called `mutate`. Try accessing its help page by running `?mutate`.
+
+* You should get a message "No documentation for 'mutate' in specified packages and libraries."
+
+* That's because `tidyverse` is still locked in our toolbox!
+
+* To take it out, try running `library(tidyverse)`.
+
+* If you get output that looks like this, you've successfully taken tidyverse out of the toolbox.
+
+```
+── Attaching core tidyverse packages ──────────────────────────────────────────────────────────────── tidyverse 2.0.0 ──
+✔ dplyr     1.1.4     ✔ readr     2.1.4
+✔ forcats   1.0.0     ✔ stringr   1.5.0
+✔ ggplot2   3.4.4     ✔ tibble    3.2.1
+✔ lubridate 1.9.3     ✔ tidyr     1.3.0
+✔ purrr     1.0.2     
+── Conflicts ────────────────────────────────────────────────────────────────────────────────── tidyverse_conflicts() ──
+✖ dplyr::filter() masks stats::filter()
+✖ dplyr::lag()    masks stats::lag()
+ℹ Use the conflicted package to force all conflicts to become errors
+Warning messages:
+1: package ‘tidyverse’ was built under R version 4.2.3 
+2: package ‘ggplot2’ was built under R version 4.2.3 
+3: package ‘tibble’ was built under R version 4.2.3 
+4: package ‘tidyr’ was built under R version 4.2.3 
+5: package ‘readr’ was built under R version 4.2.3 
+6: package ‘purrr’ was built under R version 4.2.3 
+7: package ‘dplyr’ was built under R version 4.2.3 
+8: package ‘stringr’ was built under R version 4.2.2 
+9: package ‘forcats’ was built under R version 4.2.3 
+10: package ‘lubridate’ was built under R version 4.2.3 
+```
+
+* `tidyverse` is now out of your toolbox and available to use for as long as you keep this RStudio session open.
+
+* Try `?mutate` again; you should see its help file.
+
+---
+
+* We'll use many packages throughout the course, but there are a couple others we can tackle right now:
+
+* **Install** the package `rmarkdown`, using `install.packages("rmarkdown")`.
+
+* To be able to recreate Cameron's lecture notes, you'll need to **install** the package `rmdformats`, using `install.packages("rmdformats")`.
+  
+---
+
+## Knitting
+
+* The point of R Markdown documents is to combine code and text in a visually appealing way.
+    - The raw `.Rmd` file contains the "instructions" to make a "pretty" `.html` file.
+    - The process of converting the R Markdown document into a well-formatted `.html` file is called "Knitting", and RStudio does this all for you.
+    
+    - These lecture notes, and the syllabus for this class were made by knitting an R Markdown document!
+
+* Clicking the "Knit" button (with the blue ball of yarn icon), above the source code panel will produce a well-formatted html file based on the contents of your .Rmd file.
+
+* You can do this as often or as infrequently as you want; changes to your .Rmd will not automatically update in the knitted html file.
+
+* When this report is created, it will "start from scratch", ignoring any previous code you have run, and run your code chunks in order, top to bottom. (It will also run the code within a chunk from top to bottom.)
+    + This is why we load libraries at the TOP of the file; so we can use their commands in the rest of the file.
+
+> A common mistake for beginniners is to knit a file with code that depends on something else which has not happened yet - like referencing data before you have read it, or variables you have not yet created.
+
+```{r}
+a = 4
+a + 5 # Runs just fine; references a, which we just created. The flow of running code is top to bottom.
+```
+
+```{r, error = TRUE}
+b + 8 # This line will return an error. Even though we can see the line b = 3 right there, we just tried to use b before we created it.
+
+b = 3 # Too late!
+```
+
+---
+
+##### EXERCISE: Knit this file
+
+* Click "Knit" on this .Rmd file.
+
+* In your files, navigate to the folder this `.Rmd` is in; should be `STAT240/lecture/week01-intro`
+
+* Find and open the newly created `.html` file.
+
+* Marvel at the incredible file we were able to create just using our keyboard in an RMarkdown document!
+
+---
