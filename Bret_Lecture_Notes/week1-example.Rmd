@@ -1,0 +1,52 @@
+---
+output: html_document
+---
+
+```{r setup, include=FALSE}
+## load libraries and set options in this chunk
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, error = TRUE)
+```
+
+# This is a level 1 header
+
+### The is a level 3 header
+
+A bullet list:
+
+- first item
+- second item
+- third item
+
+A numbered list:
+
+1. first
+2. second
+4. third (notice how it automagically renumbers when you knit)
+
+You can make text in *italics* by surrounding with single asterisks or in **bold** by surrounding with double asterisks.
+
+Note, you ** cannot put spaces ** at the edges of what you wosh to format. If you do, the asterisks are just printed normally.
+
+```{r}
+# The hash makes comments inside of R chunks and headers outside of R chunks
+
+2+2
+
+# output appears in a separate box after you knit
+```
+
+## Create some variables
+
+```{r}
+a = 2
+a + 2
+
+a + b
+
+b = c(2,3)
+
+a + b
+
+a*b
+```
+
