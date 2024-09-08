@@ -1,0 +1,390 @@
+---
+title: 'Section 3: Data Types and Structures'
+author: "Student's Name Here"
+date: "2024-09-08"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, error = TRUE)
+```
+
+## Variables
+
+```{r}
+# Initialize with <- or =, but <- is standard R style
+x <- 4
+my_favorite_number <- 8
+
+# This does not change the value of either x or my_favorite_number
+x + my_favorite_number
+```
+
+Capitalization matters!
+
+```{r}
+x
+
+X
+```
+
+```{r}
+# This is an illegal variable name
+1a <- 3
+```
+
+
+### Numeric objects
+
+```{r}
+class(myFavoriteNumber)
+
+class(pi)
+```
+
+### Character objects
+
+```{r}
+my_name <- "Miranda"
+
+class(my_name)
+```
+
+Characters don't obey numeric or logical operators.
+
+```{r}
+easy_equation <- "2 + 2"
+false_statement <- "5 < 2"
+
+easy_equation
+false_statement
+```
+
+Some operations do not work with characters.
+
+```{r}
+char_year <- "2024"
+num_year <- 2024
+
+char_year + 10
+num_year + 10
+```
+
+
+### Logical objects
+
+The main objects are `TRUE` and `FALSE`, which we have seen before.
+
+```{r}
+# Is three greater than two? Yes, so return TRUE.
+3 > 2
+
+# Is two greater than three? No, so return FALSE.
+2 > 3
+```
+
+
+## Operators
+
+Mathematical operators let us compute a numeric result with numeric objects.
+
+```{r}
+3 + 4
+5 - 8
+
+2 * 9.5
+6.8 / 2
+
+my_favorite_number ^ 2
+my_favorite_number ** 2
+```
+
+
+### Logical operators
+
+Logical operators perform a comparison.
+
+```{r}
+my_height <- 60
+
+my_height < 72
+
+my_height < 60
+```
+
+```{r}
+my_height <= 72
+my_height >= 60
+```
+
+Use `==` and `!=` to check an exact equality.
+
+```{r}
+my_height == 66
+my_height != 66
+```
+
+The value of `my_height` does not change.
+
+The operators `&` and `|` also perform a comparison.  Instead of comparing numbers, they compare logical statements.
+
+```{r}
+# is my_height greater than 72 AND my_height + 6 less than 70?
+# one of these fails, so the whole "and" condition fails.
+(my_height > 72) & (my_height + 6 < 70)
+
+# is my_height greater than 72 OR my_height + 6 less than 70?
+# one of these succeeds, so the whole "or" condition succeeds.
+(my_height > 72) | (my_height + 6 < 70)
+```
+
+
+```{r}
+TRUE & FALSE
+TRUE & TRUE
+
+TRUE | TRUE
+TRUE | FALSE
+FALSE | FALSE
+```
+
+
+### Missing values
+
+`NA` is the notation for a missing value.
+
+```{r}
+nothing <- NA
+nothing + 2
+```
+
+To check for a missing value, use `is.na`.
+
+```{r}
+# Incorrect (R can't interpret this statement):
+nothing == NA
+
+# Correct
+is.na(nothing)
+```
+
+Trying to comopare anything to `NA` returns `NA`.
+
+```{r}
+my_height == NA
+```
+
+
+## Functions
+
+```{r}
+# To use the sqrt() function, input a numeric value
+sqrt(16)
+
+# We need the correct number of arguments
+sqrt()
+sqrt(9, 16)
+```
+
+One of these statements returns an error.  Which one?
+
+```{r}
+sqrt(-3)
+
+sqrt("banana")
+```
+
+We can also save the results of a function into a variable.
+
+```{r}
+# Calculate and store the value
+sum_10 <- sum(1, 2, 3, 4, 5, 6, 7, 8, 9, 10) 
+
+# Print it out
+sum_10
+```
+
+## Vectors and dataframes
+
+A vector is a sequence of the same type of object.  Access an item by index with `[]`.
+
+```{r}
+favorite_foods <- c("noodles", "lamb stew", "corn on the cob")
+prime_numbers <- c(2, 3, 5, 7, 11)
+
+# Notice how these variables are storing the entire sequence.
+favorite_foods
+prime_numbers
+
+favorite_foods[2]
+prime_numbers[1]
+```
+
+If you try to combine different types, R will try to force the objects to be the same type.
+
+```{r}
+three_things = c(2, TRUE, "banana")
+
+three_things
+
+class(three_things)
+```
+
+### Numeric vector shortcuts
+
+We often want to make a numeric sequence following a specific pattern.  Use `:` to get consecutive numbers and `seq` to get a sequence.
+
+```{r}
+1:10
+sum(1:10)
+```
+
+```{r}
+seq(from = 0, to = 10, by = 2)
+
+seq(14, 49, 7)
+```
+
+Some functions have default arguments.  The default for `seq` is to start from 1.
+
+```{r}
+seq(to = 5, by = 2)
+```
+
+Not all arguments have a default value. If you fail to provide an argument which doesn’t have a default, you will get an error.
+
+```{r}
+mean(1:10)
+
+some_nums <- c(8, 10, NA)
+mean(some_nums)
+
+mean(some_nums, na.rm = TRUE)
+
+# This will give us an error.  Whare are we finding the mean of?
+mean(na.rm = TRUE)
+```
+
+### Vector operations
+
+Any operation on a vector or multiple vectors will be done individually to the first element of each, then the second element of each, and so on.  We do not need to make a loop to do this type of operation.
+
+```{r}
+prime_numbers
+
+prime_numbers + 13
+
+# Use c() to add a new element
+c(prime_numbers, 13)
+```
+
+This also works for logical operators.
+
+```{r}
+prime_numbers == 2
+
+sum(prime_numbers == 2)
+```
+
+We can also use `%in%` to look for a specific item.
+
+```{r}
+2 %in% prime_numbers
+1 %in% prime_numbers
+```
+
+We can also do element-wise operations over two vectors.
+
+```{r}
+onetwothree <- 1:3
+fourfivesix <- 4:6
+
+onetwothree + fourfivesix
+
+fourfivesix - onetwothree
+
+onetwothree * fourfivesix
+```
+
+We have to be careful if the vectors are different sizes!
+
+```{r}
+fourfive <- 4:5
+
+onetwothree + fourfive
+```
+
+### Common vector functions
+
+```{r}
+prime_numbers <- c(2, 3, 5, 7, 11)
+
+log(prime_numbers)
+
+min(prime_numbers)
+max(prime_numbers)
+
+mean(prime_numbers)
+sum(prime_numbers)
+
+median(prime_numbers)
+```
+
+Try to experiment with vectors!
+
+
+### Dataframes
+
+Dataframes are a way to organize multiple vectors.  They're the usual tool for representing real life data.  We can build them with the `tibble` function from tidyverse.
+
+```{r}
+# "letters" is a built in R vector with the 26 lowercase letters
+letters
+
+library(tidyverse) # Need to do this to get tibble to run
+
+alphabet <- tibble(char = letters,
+                   pos = 1:26,
+                   is_vowel = letters %in% c("a", "e", "i", "o", "u"))
+alphabet
+```
+
+Each row represents an individual letter.  We can subset a dataframe by index with the syntax `[,]`.  We can find a row by its name with `$`.
+
+```{r}
+# Value of 7th row, 1st column
+alphabet[7, 1]
+
+# Ninth row only
+alphabet[9, ]
+
+# Third column only
+alphabet[ , 3]
+
+alphabet$is_vowel
+```
+
+### Real life example
+
+Run the following chunk, which takes data from the Stat 240 course notes.  Make sure you have the tidyverse library loaded.
+
+```{r}
+eruptions_recent <- read_csv(
+  "https://bwu62.github.io/stat240-revamp/data/eruptions_recent.csv",
+  show_col_types = FALSE
+)
+
+view(eruptions_recent)
+```
+
+Make a new chunk and explore the data with the functions `head`, `glimpse`, `colnames`, `dim`, `nrow`, `ncol`.
+
+
+
+
+
+
+
+
+
+
