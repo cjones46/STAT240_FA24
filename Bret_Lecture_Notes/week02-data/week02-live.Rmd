@@ -1,0 +1,21 @@
+---
+output: html_document
+---
+
+```{r setup, include=FALSE}
+## load libraries and set options in this chunk
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, error = TRUE)
+```
+
+```{r}
+myFavoriteNumber = 12
+
+myFavoriteNumber + 2
+
+# The previous chunk did not STORE the output "myFavoriteNumber + 2" anywhere, so it gets "dumped" out to the console.
+
+# The value of myFavoriteNumber has not changed.
+
+myFavoriteNumber
+```
+
