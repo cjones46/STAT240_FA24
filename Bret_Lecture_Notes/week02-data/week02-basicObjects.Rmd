@@ -1,0 +1,632 @@
+---
+title: "STAT 240: Data Types and Structures"
+author: "Bret Larget"
+date: "Fall 2024"
+output: rmdformats::readthedown
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE)
+library(tidyverse)
+```
+
+# Overview
+
+## Learning Outcomes
+
+* This lecture will teach you how to:
+    + Create and work with simple variables
+    + Use basic functions and their arguments
+    + Create and work with simple vectors
+    + Create and work with simple dataframes
+
+## Preliminaries
+
+* This file should be in `STAT240/lecture/week02-basicObjects`.
+
+## Supplementary Material
+
+* The material in this lecture is supplemented by [Chapters 2, 3, and 4 of Professor Bi Cheng Wu's online 240 course notes.](https://bwu62.github.io/stat240-revamp/index.html)
+
+
+# Variables
+
+> Variables are a named object which "contains" some value, vector, dataframe, or other information.
+
+> You can create a new variable with the expression `newVariableName = ...`, where `...` is the information you want the variable to store.
+
+* You may use `<-` or `=`; I was taught to use `=` but many others were taught to use `<-`. For all intents and purposes, they are the same.
+
+* If you want to edit the contents of an existing variable, you use that exact same code, `variableName = ...`, to overwrite its existing contents.
+
+* You can see all the variables you have created and their values by checking your `Environment`; use `View > Show Environment` if you cannot find it.
+
+```{r}
+myFavoriteNumber = 12
+```
+
+* Notice: This chunk does not print anything; the expression was stored within a variable.
+
+* Now, in expressions which use `myFavoriteNumber`, 12 will be substituted wherever you put that name.
+
+```{r}
+myFavoriteNumber + 2
+```
+
+* Notice that last code chunk does NOT have the `newVariableName = ...` form. The expression evaluates to 14, but this is not captured anywhere, so it just becomes output. The value of `myFavoriteNumber` is still 12.
+
+```{r}
+# The previous chunk did not STORE the output "myFavoriteNumber + 2" anywhere, so it gets "dumped" out to the console.
+
+# The value of myFavoriteNumber has not changed.
+
+myFavoriteNumber
+```
+
+## Variable Names
+
+* Variable names can be made up of lower case letters, `a-z`, upper case letters `A-Z`, digits `0-9`, and the symbols period `.` and under score `_`.
+    + R is case sensitive, so the names `a` and `A` are different.
+    + A valid name cannot begin with a number.
+    + It is also recommended to avoid the period `.` in variable names, since this has special meaning in some cases.
+    
+```{r, error = TRUE}
+## trying to use an illegal name causes an error
+1a = 10
+```
+
+*Note: RMarkdown will usually stop knitting when it encounters an error. However, there is a chunk option `error = TRUE` applied to this chunk, which tells RMarkdown to keep going. This is useful for instructional purposes.*
+
+## Variable Types
+
+* There are many different types of objects in R, too many to cover in this class.
+
+* We will cover the three main types and a couple others through the semester.
+
+> The three most common types of variables are numeric, character ("string"), and logical.
+
+### Numeric Objects
+
+* Numeric objects are numbers.
+
+* Numeric objects can technically be broken down into more subtle types, like `integer`, `double`, `float`, and `long`, but these distinctions will not matter to us this semester, and all refer to numeric objects.
+
+* We can see what "type" an object is with the function `class()`.
+
+```{r}
+class(myFavoriteNumber)
+class(pi) # pi is built into R; we didn't have to create it.
+class(2) # Notice that 2, a numeric object, shows up as a certain color in RStudio which will be different than other types. By default, it is blue.
+```
+
+### Character Objects
+
+* Character objects, also called "string" objects, cannot be interpreted as numbers, and are instead interpreted as letters.
+
+* Character objects are indicated by surrounding quotation marks, `"like this"`.
+
+```{r}
+myName = "Bret"
+
+class(myName)
+```
+
+* Character objects do not have to contain meaningful words or even letters; all that matters is that R does not see any of the characters within as having "special meaning".
+
+* For example, the string "2" does not have any numerical meaning, and we can't use it mathematically.
+
+```{r}
+# Because of the quotation marks, 2 + 2 is not being evaluated to 4.
+# R sees "2 + 2" as just like any other word, with no inherent meaning to it, like "banana".
+
+anEasyEquation = "2 + 2"
+
+anEasyEquation
+```
+
+* Some actions, like addition, can only be done to certain type objects. This is why it is important to know what type of object you're dealing with.
+
+```{r, error = TRUE}
+characterYear = "2024"
+characterYear + 10
+
+numericYear = 2024
+numericYear + 10
+```
+
+### Logical Objects
+
+* The two main logical objects are `TRUE` and `FALSE`.
+
+* There is also a third, `NA`, which we will discuss soon.
+
+* They are often the result of a logical operator (see immediately below).
+
+```{r}
+# Is three greater than two? Yes, it is, so return TRUE.
+3 > 2
+
+# Is two greater than three? No, it isn't, so return FALSE.
+2 > 3
+```
+
+# Operators
+
+> Operators are basic symbols like `+` and `>` which represent simple mathematical or logical actions.
+
+* The mathematical operators take two numerical objects and output the numerical result.
+
+```{r}
+# The simple math operators; addition, subtraction, multiplication, and division
+myFavoriteNumber + 2
+myFavoriteNumber - 2
+myFavoriteNumber * 2
+myFavoriteNumber / 2
+
+# Two different ways to compute myFavoriteNumber to the power of 2
+myFavoriteNumber**2
+myFavoriteNumber^2
+```
+
+* Logical operators take two objects, compare them somehow, and return `TRUE` or `FALSE`.
+
+* The following logical operators take in two numeric objects as input.
+
+```{r}
+# Greater than
+myFavoriteNumber > 10
+myFavoriteNumber > 12
+
+# Greater than OR equal to
+myFavoriteNumber >= 10
+myFavoriteNumber >= 12
+
+# Less than
+myFavoriteNumber < 10
+myFavoriteNumber < 12
+
+# Less than OR equal to
+myFavoriteNumber <= 10
+myFavoriteNumber < 10
+```
+
+* The logical operators "and" and "or", written as `&` and `|` respectively, require two logical objects on either side.
+    + `|` is likely near the top right of your keyboard, underneath backspace.
+
+* `&` will return `TRUE` if the two logical arguments BOTH are `TRUE`, and `FALSE` otherwise.
+* `|` will return `TRUE` if EITHER of the two logical arguments are `TRUE`. It only returns `FALSE` when both arguments are `FALSE`.
+
+```{r}
+TRUE & FALSE
+
+# TRUE and FALSE can both be written as T or F, but I personally find this harder to read. Personal choice!
+T | F
+```
+
+```{r}
+# is myFavoriteNumber greater than 10 AND myFavoriteNumber + 2 less than 13?
+# one of these fails, so the whole "and" condition fails.
+(myFavoriteNumber > 10) & (myFavoriteNumber + 2 < 13)
+
+# is myFavoriteNumber greater than 10 OR myFavoriteNumber + 2 less than 13?
+# one of these succeeds, so the whole "or" condition succeeds.
+(myFavoriteNumber > 10) | (myFavoriteNumber + 2 < 13)
+
+# Those parentheses were not necessary; just for visual aid.
+```
+
+* A logical operator which requires special care is the double equals `==`, to check if two numerical objects have the same value.
+    + `!=` is used for "NOT equal to".
+
+* Checking for equality is not done with `=`, because that is reserved for variable creation.
+
+```{r}
+# Check for equality, the correct way
+myFavoriteNumber == 12
+myFavoriteNumber == 13
+
+# Check for inequality
+myFavoriteNumber != 12
+myFavoriteNumber != 13
+```
+
+```{r}
+# The INCORRECT way to check if the value of myFavoriteNumber is equal to 13. This is replacing its value with 13, not checking if it is equal. Notice that it did not print a TRUE or FALSE, like you would expect if you correctly checked for equality!
+myFavoriteNumber = 13
+
+# It's not 12 anymore!
+myFavoriteNumber 
+```
+
+### Missing Values: NA
+
+> `NA` is R's notation for an empty space, or "missing".
+
+* Note that is different than 0, and even different than `NaN`, which means "not a number", like the square root of a negative number.
+
+* `NA` values CANNOT be used with standard operators.
+
+```{r}
+nothing = NA
+nothing + 2
+```
+
+* Checking if a variable holds the value `NA` is done with `is.na(variableName)`, NOT what might be your first thought, `variableName == NA`. This is because `==` is a standard operator, and you can't check equality with `NA` and anything else.
+
+```{r}
+nothing == NA # Incorrect; if you are in R Markdown, try hovering over the yellow caution sign to the left of this line!
+is.na(nothing)
+
+# Creating a new variable called "something", which takes on the value of whatever myFavoriteNumber is.
+# This is a totally distinct copy that has nothing to do with myFavoriteNumber going forward, they do not reference each other.
+something = myFavoriteNumber
+something == NA # Still wrong!
+is.na(something)
+```
+
+# Functions
+
+> Functions are a set of instructions. They often allow or require the user to give some input*, and then do something useful with that input, and often give you something useful back.
+
+*Note: Most, but not all functions require you to give input. For example, `getwd()` requires no input.*
+
+* You can create your own functions in R, but this is outside the scope of the course; all functions will be provided to you in this course, your objective is to use them.
+
+* Functions take the form `functionName(argument1, argument2, ...)`.
+    + Note that there is **no space** between `functionName` and the parentheses which capture the user input.
+    + Note that **commas** separate the different arguments.
+
+```{r}
+# For example: the "square root" function returns the square root of the number you give it.
+sqrt(16)
+```
+
+* The inputs you give to a function are called *arguments*. For the function to work correctly, you have to give it the appropriate type of argument(s).
+
+* If you don't, the function will print out an error. Many error messages are helpful, including those below - but error messages may get more complex as we move on through the semester.
+
+```{r, error = TRUE}
+sqrt()
+sqrt(9, 10)
+sqrt("banana")
+```
+
+* If you don't capture the result of a function, its result will be printed out. However, you can capture the result in a variable name using the form we saw in the above section.
+
+```{r}
+firstTenSum = sum(1, 2, 3, 4, 5, 6, 7, 8, 9, 10) # Calculate and store the value
+
+firstTenSum # Print it out. This is just an expression which is not being stored anywhere; think it just like we wrote down the number 55. Since it didn't get stored anywhere, it gets dumped out to the console.
+```
+
+# Vectors
+
+> A vector is a ordered sequence of objects.
+
+* Our primary interest in this course is dataframes - more complex tables of rows and columns.
+    + These dataframes are comprised of vectors (each column is a vector)
+    + Vectors are also often useful on their own.
+    
+* Every object in a vector has to be the same type - e.g. numeric, character, or logical.
+
+* The main, manual way to create a vector is using the `c()` function, standing for "combine", which takes the objects you list and combining them into one vector.
+
+```{r}
+myFavoriteFoods = c("apple pie", "mac and peas", "short rib")
+primeNumbers = c(2, 3, 5, 7, 11)
+
+# Notice how these variables are storing the entire sequence.
+myFavoriteFoods
+primeNumbers
+```
+
+* If you try to make a vector of different type objects, it will "force" them all to become the same type; usually string.
+
+```{r}
+differentTypes = c(2, TRUE, "banana")
+
+differentTypes
+
+class(differentTypes)
+```
+
+* You can access individual elements within a vector with `vectorName[#]`, where `#` is a number or vector of numbers representing the numeric position(s) within the vector (*starting at 1*) of the element(s) you want to extract. We will rarely do this in this class. 
+
+```{r}
+myFavoriteFoods[2]
+```
+
+* Shortcuts exist for common cases of creating a numeric vector.
+
+## Numeric Sequences
+
+* When creating a numeric sequence, the `seq` function is a shortcut to not have to type out every single number you want.
+
+* Its main arguments (still have that help page up from earlier?) are `from`, `to`, and `by`, in that order.
+
+```{r}
+# From 0, to 10, by 2
+seq(0, 10, 2)
+
+# We didn't store this anywhere, so it goes to the console!
+```
+
+## Named and Default Arguments
+
+* The `seq` help page raises a bunch of new questions.
+    + Do we have to memorize the order of all these arguments?
+    + The help page lists way more arguments than we used, why is that?
+    
+* The answers, in order, are:
+    + **No**, you don't have to memorize the order, because we can use **named arguments**.
+    + Functions typically have way more arguments than you will ever really care about, like `seq`. Instead of making you learn all of them, these niche arguments have **default values** that they will take on if you don't do anything with them.
+
+* Named arguments are helpful because they allow you to use a function without memorizing its argument order, or in the case where a function has many arguments, it allows you to only specify the ones you want.
+
+```{r}
+# Don't want to memorize the order? Use their names, which will override the order!
+seq(to = 10, by = 2, from = 0) # Notice these aren't in the order provided; no problem!
+```
+
+* Default arguments tell the function what value an argument should take if the user does not say. 
+
+```{r}
+# In the help file, the default for "from" is 1. This is what it will be if we don't tell seq() what 'from' should be. 
+seq(by = 50, to = 101)
+```
+
+* Not all arguments have a default value, and if you fail to provide an argument which doesn't have a default, you will get an error.
+
+```{r, error = TRUE}
+someNumbers = c(8, 10, NA)
+mean(someNumbers, na.rm = TRUE) # Here, someNumbers is the "x" argument to mean() because it is first. "x" does not have a default value, it is the thing we want to take the mean of.
+
+mean(na.rm = TRUE) # This is effectively asking: "What do you want me to take the mean of?"
+
+```
+
+## Back to Numeric Sequences
+
+* An even *shorter* shortcut exists for the common case where you want "by" to be 1.
+
+* The code `x:y`, where `x` and `y` are two numbers, will generate a sequence from `x` to `y` incrementing by 1's.
+    + This is using `seq()` with the argument `by = 1` behind the scenes.
+    + This saves the impatient programmer up to TEN keystrokes! Even more free time to spend learning more R!
+    + The real reason that this exists is to make your code more readable. `0:50` is easier to write understand than `seq(0, 50, 1)`.
+
+```{r}
+# The [1] in the output indicates that the following number (0) is the first in the sequence. Any new lines the sequence stretches to will also have this helpful counter.
+0:50
+
+15:myFavoriteNumber # Extended use: backward sequences, and variable use. Remember how we changed myFavoriteNumber to 13 in the Variables section?
+```
+
+## Vector Operations and Arithmetic
+
+* In many computer languages, you need loops to work over vectors (or arrays) of value
+* In R, most of the language is *vectorized*, so you do not need explicit loops.
+    + Many students who have Java or Python backgrounds instinctively write `for` loops in R.
+    + We highly discourage this: you can make your life SO much easier by just using the vectorized functions.
+    
+* Any operation on a vector or multiple vectors will be done INDIVIDUALLY to the first element of each, then the second element of each, and so on.
+
+### Vector Operations
+
+```{r}
+## two small example vectors
+oneTwoThree = 1:3
+fourFiveSix = 4:6
+```
+
+* Notice that each of these operations is returning **a vector of the same length as the one we put in**.
+
+* If `oneTwoThree` was instead 20 elements long, each of these would have returned a vector of 20 elements.
+
+```{r}
+# Adds five to EACH element individually! 1+5, then 2+5, then 3+5.
+oneTwoThree + 5
+
+# Wanted to add a new element to "oneTwoThree" instead? Use c() again!
+c(oneTwoThree, 5)
+```
+
+```{r}
+# Checks if each element is equal to 2; 1==2, then 2==2, then 3==2.
+oneTwoThree == 2
+```
+
+* The above sequence is many people's first instinct to check if `oneTwoThree` somewhere contains the element `2`. This will indirectly get you the result; there is a `TRUE` somewhere in the output, but often we just wanted a single `TRUE` or `FALSE` telling me if it's there or not.
+    * If we had 10,000 elements, I wouldn't want to comb through all of them looking for a `TRUE`.
+
+* In reality, this is done with the operator `%in%` - more specifically, `elementToCheck %in% vectorOfElements`.
+
+* Even though it's not one of the "common" math symbols you might be familiar with, `%in%` still has the same basic structure as something like `+` or `*`; you have an object on both sides, and it returns to you a single object (`+` or `*` return a single number; `%in%` returns a single logical object, `TRUE` or `FALSE`).
+
+```{r}
+2 %in% oneTwoThree
+
+5 %in% oneTwoThree
+```
+
+### Vector Arithmetic
+
+* When we do arithmetic with two or more vectors, this also is done "element-wise". The operation, whatever it is, be it addition or multiplication or something else, is done using the first elements of each vector; then again on the second elements, and so on.
+
+* This will return a vector of the same length as the individual vectors!
+
+```{r}
+## addition by element (no for-loop needed!)
+oneTwoThree + fourFiveSix
+
+## subtraction by element
+fourFiveSix - oneTwoThree
+
+## multiplication by element
+oneTwoThree*fourFiveSix
+```
+
+#### Incompatible sizes
+
+* R allows vector arithmetic with incompatibly-sized vectors, but will give you a warning (different than an error!).
+* The shorter vector is duplicated and then cut off as needed to make it the same length as the longer one
+
+```{r}
+fourFive = 4:5
+
+## Adding c(1,2,3) and c(4,5); one is longer, so shorter one is duplicated until it is long enough
+## fourFive is changed to c(4,5,4,5), and then cut down to c(4,5,4). 
+## a warning is given since this is usually not what you meant to do.
+oneTwoThree + fourFive
+```
+
+## Common Vector Functions
+
+* It is important to understand if a function is going to return a vector or a single number back. For example, these functions and many of the operators above return a "same-length" vector back, with an operation done on each element individually.
+
+```{r}
+sqrt(oneTwoThree)
+
+log(oneTwoThree)
+```
+
+* Other functions summarize a vector of numbers into a single value.
+
+```{r}
+a = seq(7, 42, by = 7)
+
+## sum
+sum(a)
+
+## mean
+mean(a)
+
+## standard deviation
+sd(a)
+
+## length
+length(a)
+
+## maximum
+max(a)
+
+## minimum
+min(a)
+
+## median
+median(a)
+```
+
+---
+
+##### EXERCISE: Put It All Together
+
+* Find the sum of all the odd numbers between 1 and 99.
+
+*Hint: Don't list them all out, use `seq`!*
+
+```{r}
+# Live Coding
+```
+
+---
+
+# Dataframes
+
+> Dataframes are a single object that can store multiple vectors as COLUMNS. Ideally, this leads to a useful structure of ROWS representing all the information about some particular thing.
+
+* You can construct dataframes by hand using `tibble(columnName1 = vector1, columnName 2 = vector2, ...)`.
+
+*Note: a "tibble" is the same thing as a "dataframe", I will use those words interchangeably. The base R command `data.frame` works in the same exact way, but has some annoying features that `tibble` addresses In fact, much of the `tidyverse` package is motivated by improving annoying features of base R.*
+
+```{r}
+# "letters" is a built in R vector with the 26 lowercase letters
+letters
+
+# "letters" is a vector of length 26, 1:26 is a vector of length 26, and "letters %in% c("a", "e", "i", "o", "u")" is a vector with the same length as letters (26)!
+# Make each one vertical and put them next to each other!
+
+alphabet = tibble(char = letters, pos = 1:26, isItAVowel = letters %in% c("a", "e", "i", "o", "u"))
+alphabet
+
+# Only ten rows will print by default. This is a strength of `tibble`s over base R's `data.frame`s; a base R dataframe would have printed the whole thing, even if it had thousands of rows.
+```
+
+* Think of this as just three vectors, vertically, next to each other; one called `char` and one called `pos` and one called `isItAVowel`.
+
+* However, we have a new useful structure that now exists; the correspondence between *rows*!
+
+* In dataframes, *columns* usually represent a useful field of information (also confusingly referred to as "variables", I'll try to avoid this), and *rows* represent some coherent set of information about one particular thing.
+    - In `alphabet`, one row represents all the information we have about a specific letter.
+
+## Dataframe Subsections
+
+* Like vectors, we can navigate into dataframes manually, but we will almost never ask you to do this.
+
+* If you want the single entry at row number `r` and column number `c`, you can obtain it with `dataFrameName[r, c]`.
+
+```{r}
+# Seventh row, first column
+alphabet[7, 1]
+```
+
+* If you leave the row number or column number blank in the above example, it will return ALL rows or columns, respectively.
+
+```{r}
+# Ninth row only, column was left blank so return all columns
+alphabet[9, ]
+
+# Row was left blank so return all rows, third column only
+alphabet[ , 3]
+```
+
+* If you want to extract a column as a vector, rather than a one-column dataframe, use the `$` operator as shown below.
+
+```{r}
+# Compare this output with the above output; notice how they are displayed differently. That's because alphabet[, 3] is a one-column dataframe, and alphabet$isItAVowel
+alphabet$isItAVowel
+```
+
+## External Dataframes
+
+* We've arrived at the whole goal of this lecture series!
+
+> "Real life data" is stored as dataframes. If we can take that real life data, from wherever it is, like an external website or a file on your computer, and read it into a dataframe in R, we can do meaningful things with it!
+
+* We will teach you how to do this on your own very soon. For now, we will give you code that takes data from an external place and stores it in a dataframe in R.
+
+---
+
+##### EXERCISE: Familiarizing Yourself With A Dataframe
+
+* `alphabet` was relatively small. Let's look at a larger dataframe with information about volcano eruptions.
+  + *Make sure you have run library(tidyverse) at the top of this file first, or it will say function `read_csv` not found.*
+
+* Run the following chunk, which takes data from the Stat 240 course notes (see: Supplementary Material)  and reads it into an R object called `eruptions_recent`. You should see it appear in your environment.
+
+```{r}
+eruptions_recent <- read_csv(
+  "https://bwu62.github.io/stat240-revamp/data/eruptions_recent.csv",
+  show_col_types = FALSE
+)
+```
+
+* Each **column** is a vector of information. The way they are ordered means that each **row** represents all the information about one specific volcano eruption.
+
+* Run `View(eruptions_recent)` in your console. This will bring up a separate window with the whole dataframe.
+
+* Run `head(eruptions_recent)` in your console. This will print the first 6 rows of the dataframe.
+
+* Run `glimpse(eruptions_recent)` in your console.
+
+* Reflect; which of the above three commands do you like best for familiarizing yourself with the `eruptions_recent` dataframe? Which of the above three do you like best for understanding the TYPE of each column?
+
+* Run `colnames(eruptions_recent)` in your console.
+
+* Run `dim(eruptions_recent)` in your console. `dim` here stands for "dimensions", giving you the number of rows and columns in the dataframe. It returns a *vector* with length 2.
+
+* Run `nrow(eruptions_recent)` and `ncol(eruptions_recent)` in your console; they are the same numbers from `dim`, but as single numbers.
+
+---
+
+
+
