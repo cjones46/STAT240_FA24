@@ -1,0 +1,53 @@
+---
+title: "Discussion 1"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+# We will usually provide a chunk like this for you.
+# This is setting "global chunk options"; "global" meaning applying to every chunk in the rest of the document.
+#   echo = TRUE causes every chunk to appear in the knitted file.
+#   warning = FALSE causes warning messages (different than errors) to NOT appear in the knitted file.
+#   message = FALSE causes other messages (like those from loading packages) to NOT appear in the knitted file.
+
+# Notice include = FALSE as a chunk option at the top of this chunk in line 6. This means that neither this chunk nor its output will appear in the knitted file.
+
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+```
+
+# Preliminaries
+
+- This file should be in `STAT240/discussion/ds01`.
+
+# Problem 1
+
+**What is the date for Exam 1 of this course? Is it take-home or in-person?**
+
+> Replace this text with your response to problem 1.
+
+# Problem 2
+
+**What is the date for Exam 2 of this course? Is it take-home or in-person?**
+
+> Replace this text with your response to problem 2.
+
+# Problem 3
+
+**Use the following R chunk to compute three squared plus five.**
+
+You may find [Section 2.3.2 of the textbook helpful.](https://bwu62.github.io/stat240-revamp/rstudio-intro.html#r-math)
+
+```{r}
+# Write your code in here!
+
+```
+
+Please ensure that the answer is appearing in the knitted file correctly. Do not just write 14.
+
+# Submission
+
+When you have answered the above questions, please knit this file and submit **BOTH** the R Markdown file (.Rmd) and the knitted html file (.html).
+
+We will ask for both files for every assignment in this course.
+
+We will grade directly from the .html file, so make sure you are satisfied with how it looks before you submit. We ask for your .Rmd as a backup in case your .html file has errors in it. 
