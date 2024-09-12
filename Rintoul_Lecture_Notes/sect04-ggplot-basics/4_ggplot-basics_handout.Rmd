@@ -1,0 +1,154 @@
+---
+title: "Section 4: ggplot2 Basics"
+author: "Student's Name Here"
+date: "2024-09-11"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, error = TRUE)
+```
+
+```{r}
+library(tidyverse)
+```
+
+
+## Mendota data
+
+Use the code below to load in the Lake Mendota freeze data.  The .csv file must be in your `data` folder.
+
+```{r}
+## This assumes that:
+### STAT240/data/ contains the data file
+### STAT240/lecture/sect04-ggplot-basics/ is your working directory.
+### If this gives you "Error: could not find file ... in working directory ...", go to Session > Set Working Directory > To Source File Location, and try again.
+### If that doesn't work, then you downloaded one or both files to the wrong place, or they have the wrong name - make sure they don't have a " (1)" or "-1" at the end of their names, which can happen when you download multiple times.
+
+mendota <- read_csv("../../data/lake-mendota-winters-2023.csv")
+```
+
+Now explore the data.
+
+```{r}
+glimpse(mendota)
+```
+
+
+## Grammar of graphics
+
+```{r}
+# Basic empty canvas
+ggplot()
+
+# We defined the mapping - where is the plot?
+ggplot(mendota, aes(x = year1, y = duration))
+```
+
+To actually build the plot, we need to specify a geom and add it to the plot.
+
+```{r}
+ggplot(mendota, aes(x = year1, y = duration)) +
+  geom_point()
+
+ggplot(mendota, aes(x = year1, y = duration)) +
+  geom_line()
+
+ggplot(mendota, aes(x = year1, y = duration)) +
+  geom_line() +
+  geom_point()
+```
+
+## Customization
+
+We can customize several aspects of our plot.
+
+```{r}
+ggplot(mendota, aes(x = year1, y = duration)) +
+  geom_point(size = 5, color = "red")
+
+ggplot(mendota, aes(x = year1, y = duration)) +
+  geom_point(shape = 8, alpha = 0.5)
+```
+
+
+Let's add a third variable into our mapping.
+
+```{r}
+ggplot(mendota, aes(x = year1, y = duration, col = intervals)) +
+  geom_point()
+```
+
+We want to be treating this as a categorical variable, not a continuous one.  Categorical variables in R are called "factors".
+
+```{r}
+ggplot(mendota, aes(
+    x = year1, 
+    y = duration, 
+    color = as.factor(intervals)
+    ) # this parentheses ends the aes() call
+  ) + # this parentheses ends the ggplot() call
+  geom_point()
+
+
+ggplot(mendota, aes(
+    x = year1, 
+    y = duration, 
+    color = as.factor(intervals)
+    ) 
+  ) + 
+  geom_point(size = 5)
+```
+
+Consider a basic ggplot with both a point and a line layer.
+
+```{r}
+ggplot(mendota, aes(x = year1, y = duration)) + 
+  geom_point() +
+  geom_line()
+```
+
+Change the aesthetics inside `geom_point` and `geom_line` to distinguish the two layers.
+
+## Variable aesthetics
+
+In the following plot, the aesthetic of `intervals` applies to both the lines and the dots.
+
+```{r}
+ggplot(mendota, aes(x = year1, y = duration, color = intervals)) +
+  geom_line(size = 1.5) +
+  geom_point(size = 2)
+```
+
+If we only want the dots to be colored, we have to specify the color mapping within `geom_point` rather than the original `ggplot`.
+
+```{r}
+ggplot(mendota, aes(x = year1, y = duration) ) + 
+  geom_line(size = 1.5) + 
+  geom_point(mapping = aes(color = intervals), size = 2) 
+```
+
+What's wrong with the following plots?  How can we fix them?
+
+```{r}
+# Read and interpret the error messages from these two plots
+ggplot(mendota) +
+  geom_point(aes(color = intervals))
+
+ggplot(mendota, aes(x = year1, y = duration)) +
+  geom_point(color = intervals)
+```
+
+```{r}
+# Why are these points not huge? Why is there a legend for "size"?
+ggplot(mendota, aes(x = year1, y = duration)) +
+  geom_point(aes(color = intervals, size = 1000))
+
+# This just produces a gridded canvas with no points. Why?
+ggplot(mendota, aes(x = year1, y = duration, color = intervals))
+  geom_point()
+```
+
+
+
+
