@@ -5,6 +5,8 @@ output: html_document
 ```{r setup, include=FALSE}
 ## load libraries and set options in this chunk
 knitr::opts_chunk$set(echo = TRUE, message = FALSE, error = TRUE)
+
+library(tidyverse)
 ```
 
 ```{r}
@@ -187,4 +189,130 @@ firstTenSum = sum(1, 2, 3, 4, 5, 6, 7, 8, 9, 10) # Calculate and store the value
 
 firstTenSum # Print it out. This is just an expression which is not being stored anywhere; think it just like we wrote down the number 55. Since it didn't get stored anywhere, it gets dumped out to the console.
 ```
+
+### Vectors
+
+```{r}
+myFavoriteFoods = c("apple pie", "mac and peas", "short rib")
+primeNumbers = c(2, 3, 5, 7, 11)
+
+differentTypes = c(2, TRUE, "banana")
+```
+
+#### square brackets
+
+[] == "such that"
+
+```{r}
+myFavoriteFoods[2]
+
+myFavoriteFoods[2:3]
+
+myFavoriteFoods[myFavoriteFoods == "apple pie"]
+
+myFavoriteFoods[myFavoriteFoods > "b"]
+```
+
+### Numerical sequences
+
+seq()
+
+```{r}
+seq(0, 10, 2)
+
+seq(to = 10, by = 2, from = 0)
+
+seq(0,100, by = 5)
+
+seq()
+
+sum( seq(1, 100, 1) )
+```
+
+#### Arguments
+
+```{r}
+someNumbers = c(8, 10, NA)
+mean(someNumbers, na.rm = TRUE) 
+
+mean(someNumbers)
+mean(someNumbers, na.rm = TRUE)
+```
+
+#### Back to sequences
+
+```{r}
+1:100
+
+seq(1, 100)
+```
+
+### Arithmetic
+
+```{r}
+oneTwoThree = 1:3
+fourFiveSix = 4:6
+```
+
+```{r}
+oneTwoThree + 5
+
+c(oneTwoThree, 5)
+
+c(oneTwoThree, 10:20, seq(-1,-10,-3))
+
+oneTwoThree == 2
+
+oneTwoThree
+2 %in% oneTwoThree
+
+-1 %in% seq(0,100,5)
+
+c(-1, 0) %in% seq(0, 100, 5)
+```
+
+```{r}
+oneTwoThree + fourFiveSix
+oneTwoThree * fourFiveSix
+```
+
+### different sizes
+
+```{r}
+fourFive = 4:5
+
+oneTwoThree + fourFive
+```
+
+```{r}
+a = seq(7, 42, by = 7)
+a
+```
+
+### Exercise
+
+```{r}
+b = seq(1, 99, 2)
+sum(b)
+
+sum( seq(1, 99, 2) )
+```
+
+### Data frames
+
+```{r}
+letters
+
+
+```
+
+```{r}
+alphabet = tibble(char = letters, pos = 1:26, isItAVowel = letters %in% c("a", "e", "i", "o", "u"))
+```
+
+
+```{r}
+letters %in% c("a", "e", "i", "o", "u")
+```
+
 
