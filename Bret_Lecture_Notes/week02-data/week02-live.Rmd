@@ -19,3 +19,172 @@ myFavoriteNumber + 2
 myFavoriteNumber
 ```
 
+```{r}
+##1a = 10
+a1 = 10
+a_1 = 10
+
+`1a` = 10
+```
+
+### Data Types
+
+#### Numeric
+
+```{r}
+class(myFavoriteNumber)
+
+class(pi)
+
+pi
+```
+
+#### Character
+
+```{r}
+myName = "Bret"
+
+class(myName)
+
+anEasyEquation = "2 + 2"
+
+an_example_with_quotes = '"Here is a string with quotes"'
+
+an_example_with_quotes
+
+characterYear = "2024"
+##characterYear + 10
+
+characterYear_numeric = as.numeric(characterYear)
+characterYear_numeric
+characterYear_numeric + 10
+
+##as.character()
+##as.logical()
+```
+
+#### Logical
+
+```{r}
+3 > 2
+"abc" > "def"
+```
+
+### Operators
+
+#### Arithmetic
+
+```{r}
+a = 5
+b = 3
+d = -1
+
+a + 5
+
+a - b
+
+a*d
+
+3^5
+
+b^a
+
+a/b
+
+sqrt(a)
+
+log(a)
+
+log10(a)
+
+exp(a)
+
+log(a, 2)
+```
+
+#### Logical Operators
+
+```{r}
+a
+b
+a > 2
+a > 5
+a >= 5
+
+#a => 5   an error
+
+a == b  ## `==` means "is equal to"
+
+#a = b ### this would change the value of a
+      ### from 5 to b's current value, 3
+
+a != b ### `!=` mean "not equal to"
+```
+
+#### And and Or
+
+```{r}
+## and
+TRUE & TRUE
+TRUE & FALSE
+FALSE & TRUE
+FALSE & FALSE
+
+## or (inclusive or)
+TRUE | TRUE
+TRUE | FALSE
+FALSE | TRUE
+FALSE | FALSE
+
+myFavoriteNumber
+
+(myFavoriteNumber > 10) | (myFavoriteNumber + 2 < 13)
+
+!TRUE
+
+!FALSE
+
+!(10 > 12)
+```
+
+### The NA value
+
+```{r}
+missing = NA
+missing
+
+class(missing)
+
+class(NA_real_)
+
+missing + 10
+
+missing > 100
+
+NA == 10
+
+NA == NA
+
+is.na(NA)
+
+is.na(missing)
+```
+
+### Functions
+
+```{r}
+getwd()
+
+sqrt(16)
+
+#sqrt(16, 3) ## this is an error
+
+sqrt( c(16,3) )
+```
+
+```{r}
+firstTenSum = sum(1, 2, 3, 4, 5, 6, 7, 8, 9, 10) # Calculate and store the value
+
+firstTenSum # Print it out. This is just an expression which is not being stored anywhere; think it just like we wrote down the number 55. Since it didn't get stored anywhere, it gets dumped out to the console.
+```
+
