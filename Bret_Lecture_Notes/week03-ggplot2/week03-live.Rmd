@@ -1,0 +1,63 @@
+---
+output: html_document
+---
+
+```{r setup, include = FALSE}
+##   when the tidyverse library is loaded, messages are generated that we do not want to include in the knitted document
+## setting the chunk argument include = FALSE means this chunk is executed, but the text in the chunk and any output do not appear in the knitted document
+
+## The following command sets some options for this R Markdown file
+  ##   echo = TRUE means that the code in R chunks will appear in the knitted document
+  ##   message = FALSE and warning = FALSE mean that messages and warnings do not appear in the final document
+  ##   error = TRUE means the document will continue to knit in the presence of errors while knitting
+  ##   fig.height = 3 means figures are 3 inches tall unless otherwise specified
+knitr::opts_chunk$set(echo = TRUE, message = FALSE,
+                      warning = FALSE,
+                      error = TRUE, fig.height = 3,
+                      fig.width = 4)
+
+library(tidyverse)
+```
+
+
+### Read the data
+
+```{r}
+mendota = read_csv("../../data/lake-mendota-winters-2024.csv")
+```
+
+### Small example
+
+```{r}
+mendota_small = tail(mendota)
+```
+
+### Make a graph in steps
+
+```{r}
+ggplot()
+
+ggplot(data = mendota_small,
+       mapping = aes(x = year1, y = duration)) 
+
+ggplot(data = mendota_small,
+       mapping = aes(x = year1, y = duration)) +
+  geom_line()
+```
+
+
+```{r}
+ggplot(data = mendota_small,
+       mapping = aes(x = year1, y = duration)) +
+  geom_line() + 
+  geom_point(color = "red")
+```
+
+```{r}
+ggplot(data = mendota,
+       mapping = aes(x = year1, y = duration)) +
+  geom_line() + 
+  geom_point(color = "red") +
+  geom_smooth(se = FALSE)
+```
+
