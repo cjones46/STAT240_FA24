@@ -128,7 +128,7 @@ Using those two vectors, determine which characters have missing information (ha
 # Write your code here!
 ```
 
-*The resulting vector should have five `TRUE`s.*
+*The resulting vector should have six `TRUE`s - one in the middle and five at the end.*
 
 # Problem 6
 
