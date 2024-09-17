@@ -1,0 +1,532 @@
+---
+title: "Section 5: More ggplot2"
+author: "Student's Name Here"
+date: "2024-09-11"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, error = TRUE)
+```
+
+```{r}
+library(tidyverse)
+```
+
+
+## Mendota data
+
+Use the code below to load in the 2024 Lake Mendota freeze data.  The .csv file must be in your `data` folder.
+
+```{r}
+## This assumes that:
+### STAT240/data/ contains the data file
+### STAT240/lecture/sect04-ggplot-basics/ is your working directory.
+### If this gives you "Error: could not find file ... in working directory ...", go to Session > Set Working Directory > To Source File Location, and try again.
+### If that doesn't work, then you downloaded one or both files to the wrong place, or they have the wrong name - make sure they don't have a " (1)" or "-1" at the end of their names, which can happen when you download multiple times.
+
+mendota <- read_csv("../../data/lake-mendota-winters-2023.csv")
+```
+
+Now explore the data.
+
+```{r}
+glimpse(mendota)
+```
+
+
+## More geoms
+
+`geom_smooth` gives us a good idea of the general trend in a scatterplot.
+
+```{r}
+ggplot(data = mendota, mapping = aes(x = year1, y = duration) ) +
+  geom_point()
+
+ggplot(data = mendota, mapping = aes(x = year1, y = duration) ) +
+  geom_point() +
+  geom_smooth()
+```
+
+The gray ribbon represents a confidence interval, and can be omitted.  We can also use different methods to obtain a line.
+
+```{r}
+ggplot(data = mendota, mapping = aes(x = year1, y = duration) ) +
+  geom_point() +
+  geom_smooth(se = FALSE)
+
+ggplot(data = mendota, mapping = aes(x = year1, y = duration) ) +
+  geom_point() +
+  geom_smooth(se = FALSE, method = "lm")
+```
+
+
+Histograms, density plots, and box plots are useful for visualizing a single variable.
+
+```{r}
+ggplot(mendota, aes(x = duration)) + 
+  geom_histogram()
+
+# Can customize the look
+ggplot(mendota, aes(x = duration)) + 
+  geom_histogram(
+    color = "steelblue4",
+    fill = "skyblue1"
+  )
+```
+
+We can use `binwidth, bins, center`, and `boundary` to custoimze the bins.  These two plots have the same output:
+
+```{r}
+ggplot(mendota, aes(x = duration)) + 
+  geom_histogram(
+    binwidth = 5,
+    boundary = 70,
+    color = "steelblue4",
+    fill = "skyblue1"
+  ) +
+  
+  # This is just labelling the x-axis to make it clearer where the bins are. 
+  # We'll discuss this in more depth later.
+  scale_x_continuous(breaks = seq(30, 160, by = 10))
+
+ggplot(mendota, aes(x = duration)) + 
+  geom_histogram(
+    binwidth = 5,
+    center = 72.5,
+    color = "steelblue4",
+    fill = "skyblue1"
+  ) +
+  scale_x_continuous(breaks = seq(30, 160, by = 10))
+```
+
+Try to get a good balance - not too many and not too few bins!
+
+```{r}
+ggplot(mendota, aes(x = duration)) +
+  geom_histogram(
+    bins = 100,
+    color = "steelblue4",
+    fill = "skyblue1")
+
+ggplot(mendota, aes(x = duration)) +
+  geom_histogram(
+    bins = 5,
+    color = "steelblue4",
+    fill = "skyblue1")
+```
+
+
+Density plots are a "smooth" version of a histogram.
+
+```{r}
+ggplot(mendota, aes(duration)) +
+  geom_density(
+    # Notice the same border-inside coloring scheme with color vs. fill
+    color = "red4",
+    fill = "red", # Default is totally clear, no fill color
+    size = 2
+  )
+
+# Overlaying both plots
+ggplot(mendota, aes(duration)) +
+  geom_histogram(
+    aes(y = after_stat(density)), # This line shrinks the histogram's height to be on the same scale as geom_density; out of scope of this course, no need to worry about it
+    color = "steelblue4",
+    fill = "skyblue1"
+  ) +
+  geom_density(
+    color = "red4",
+    fill = "red1",
+    alpha = 0.3, # Transparency... the density plot is "on top"
+    size = 2
+  )
+```
+
+
+Boxplots visualize the quartiles of our data.
+
+```{r}
+ggplot(mendota, aes(x = duration)) +
+  geom_boxplot()
+```
+
+Let's make a categorical variable for century.
+
+```{r}
+# You'll learn more about this code next week!
+mendota <- mendota %>% 
+  mutate(century = as.character(floor(year1/100)+1),
+         century = case_when(
+           century == "19" ~ "19th",
+           century == "20" ~ "20th",
+           century == "21" ~ "21st"
+         ))
+```
+
+Now let's re-create the one-variable plots, but color by century.
+
+```{r}
+ggplot(mendota, aes(x = duration)) +
+  geom_histogram()
+
+ggplot(mendota, aes(x= duration)) +
+  geom_density()
+
+ggplot(mendota, aes(x = duration)) +
+  geom_boxplot()
+```
+
+
+Let's see how we can annotate plots with lines and text.
+
+```{r}
+meanDuration <- mean(mendota$duration)
+
+ggplot(mendota, aes(duration)) +
+  geom_histogram(
+    color = "steelblue4",
+    fill = "skyblue1"
+  ) +
+  geom_vline(xintercept = meanDuration,
+             size = 2) 
+
+ggplot(mendota, aes(duration)) +
+  geom_histogram(
+    color = "steelblue4",
+    fill = "skyblue1"
+  ) +
+  geom_vline(xintercept = meanDuration,
+             size = 1.5) +
+  geom_text(aes(x = 78, y = 20,
+                label = "Mean Freeze Duration"),
+                stat = "unique")
+```
+
+We can also add multiple lines to a plot.
+
+```{r}
+useful_values <- meanDuration +
+  c(-3, -2, -1, 1, 2, 3) * sd(mendota$duration)
+
+useful_values
+
+ggplot(mendota, aes(duration)) +
+  geom_histogram(
+    color = "steelblue4",
+    fill = "skyblue1"
+  ) +
+  geom_vline(xintercept = useful_values,
+             size = 1.5) 
+```
+
+
+Here's an example of using lines to identify and visualize outliers.
+
+```{r}
+iqr <- IQR(mendota$duration)
+first_q <- quantile(mendota$duration, 0.25)
+third_q <- quantile(mendota$duration, 0.75)
+
+ggplot(mendota, aes(x = year1, y = duration)) +
+  geom_point() +
+  geom_hline(
+    yintercept = c(first_q - 1.5*iqr, third_q + 1.5*iqr)
+    )
+```
+
+
+## Bar graphs
+
+Bar graphs depict a single categorical variable.  `geom_bar` counts the number of instances in a dataset.
+
+```{r}
+ggplot(mendota, aes(century)) +
+  geom_bar(
+    color = "steelblue4",
+    fill = "skyblue1"
+  )
+```
+
+With `geom_col`, you specify the heights of the bars yourself.  It is more flexible than `geom_bar` but more difficult to use.
+
+Let's make a new version of the Lake Mendota data, that has only three rows (one for each century).
+
+```{r}
+# We'll learn more about this code next week!
+mendota_summarized <- mendota %>% 
+  group_by(century) %>% 
+  summarize(numYears = n(), avgDuration = mean(duration))
+  
+mendota_summarized
+```
+
+Now, we can use `geom_col` with a y-aesthetic.
+
+```{r}
+# This code recreates the geom_bar graph
+ggplot(mendota_summarized, aes(century, numYears)) +
+  geom_col(
+    color = "steelblue4",
+    fill = "skyblue1"
+  )
+
+# But we can make other plots as well
+ggplot(mendota_summarized, aes(century, avgDuration)) +
+  geom_col(
+    color = "steelblue4",
+    fill = "skyblue1"
+  )
+```
+
+
+## More customization
+
+### Scales
+
+We can define more useful scales that override the ggplot defaults.
+
+```{r}
+# Notice ggplot's default x-axis choices
+ggplot(mendota, aes(duration)) +
+  geom_histogram(
+    color = "steelblue4",
+    fill = "skyblue1"
+  )
+
+
+ggplot(mendota, aes(duration)) +
+  geom_histogram(
+    color = "steelblue4",
+    fill = "skyblue1"
+  ) +
+  scale_x_continuous(
+    breaks = c(30, 90, 150),
+    labels = c("1 month", "3 months", "5 months"),
+    limits = c(15, 165),
+    minor_breaks = NULL, # This specifies not to draw any vertical axis lines between the labeled points
+  )
+```
+
+```{r}
+ggplot(mendota, aes(duration)) +
+  geom_histogram(
+    color = "steelblue4",
+    fill = "skyblue1"
+  ) +
+  scale_x_continuous(
+    breaks = c(30, 90, 150),
+    labels = c("1 month", "3 months", "5 months"),
+    limits = c(-100, 300),
+    minor_breaks = NULL
+  ) +
+  # Can you figure out what this addition is doing to the y-axis?
+  scale_y_continuous(
+    expand = expansion(mult = c(0,0.1)),
+    limits = c(-10, 100)
+  )
+```
+
+### Color Schemes
+
+The default color scheme can be difficult to distinguish for certain types of color blindness.
+
+```{r}
+ggplot(mendota, aes(x= duration, fill = century)) +
+  geom_density(alpha = 0.3)
+```
+
+We can use `viridis` palettes for either the fill or the color aesthetic.
+
+```{r}
+ggplot(mendota, aes(x= duration, fill = century)) +
+  geom_density(alpha = 0.3) +
+  scale_fill_viridis_d()
+
+ggplot(mendota, aes(x= duration, fill = century)) +
+  geom_density(alpha = 0.3) +
+  scale_fill_viridis_d(option = "inferno")
+```
+
+We can also make our own custom color scheme.
+
+```{r}
+ggplot(mendota, aes(x= duration, fill = century)) +
+  geom_density(alpha = 0.3) +
+  scale_fill_manual(
+    values = c("19th" = "dodgerblue",
+               "20th" = "peachpuff",
+               "21st" = "mediumorchid")
+    )
+```
+
+
+### Labels
+
+The `labs` function can be used to label any part of the plot.
+
+```{r}
+density_plot <- ggplot(mendota, aes(x= duration, fill = century)) +
+  labs(
+    title = "Distribution of Freeze Duration by Century",
+    subtitle = "Lake Mendota, 1855-2023",
+    caption = "STAT 240",
+    
+    x = "Duration (in days)",
+    y = "Density",
+    fill = "Century"
+  ) +
+  geom_density(alpha = 0.3) +
+  scale_fill_manual(
+    values = c("19th" = "dodgerblue",
+               "20th" = "peachpuff", 
+              "21st" = "mediumorchid")
+    )
+
+density_plot
+```
+
+```{r}
+# What is the difference between these two plots?
+
+ggplot(mendota, aes(x= duration, fill = century)) +
+  labs(
+    title = "Distribution of Freeze Duration by Century",
+    subtitle = " ",
+    caption = "STAT 240",
+    
+    x = "Duration (in days)",
+    y = "Density",
+    fill = "Century"
+  ) +
+  geom_density(alpha = 0.3) +
+  scale_fill_manual(
+    values = c("19th" = "dodgerblue",
+               "20th" = "peachpuff", 
+              "21st" = "mediumorchid")
+    )
+
+ggplot(mendota, aes(x= duration, fill = century)) +
+  labs(
+    title = "Distribution of Freeze Duration by Century",
+    subtitle = NULL,
+    caption = "STAT 240",
+    
+    x = "Duration (in days)",
+    y = "Density",
+    fill = "Century"
+  ) +
+  geom_density(alpha = 0.3) +
+  scale_fill_manual(
+    values = c("19th" = "dodgerblue",
+               "20th" = "peachpuff", 
+              "21st" = "mediumorchid")
+    )
+```
+
+
+### Themes
+
+Themes change the background and overall look.
+
+```{r}
+density_plot +
+  theme_minimal()
+
+density_plot +
+  theme_classic()
+
+density_plot +
+  theme(text = element_text(family = "Times New Roman", size = 16))
+```
+
+Let's try recreating a plot.
+
+```{r}
+teams <- c("Wolves", "Aston Villa", "Liverpool", "Tottenham", "Man City")
+ESPN <- tibble(team = factor(teams, levels = teams),
+       points = c(2.0, 2.0, 2.2, 2.4, 2.5))
+
+ESPN
+
+ggplot(ESPN)
+```
+
+
+
+## Faceting
+
+Sometimes, it is easier to view variables as separate graphs rather than as aesthetics.
+
+```{r}
+ggplot(mendota, aes(x= duration, fill = century)) +
+  geom_density(alpha = 0.3)
+
+ggplot(mendota, aes(x = duration)) +
+  geom_density() +
+  facet_wrap(facets = vars(century))
+```
+
+`facet_grid` lets us facet based on two variables.
+
+```{r}
+ggplot(mendota, aes(x = duration)) +
+  geom_density() +
+  facet_grid(rows = vars(decade), cols = vars(century))
+
+ggplot(mendota, aes(x = duration, fill = century)) +
+  geom_density() +
+  facet_grid(rows = vars(decade))
+```
+
+Let's make a column for whether a year is a leap year.
+
+```{r}
+mendota <- mendota %>% 
+  mutate(leap_year = year1 %% 4 == 0)
+
+mendota %>%
+  select(year1, leap_year) %>% 
+  head()
+```
+
+Leap years occur every century, so we can facet by both century and leap year.
+
+```{r}
+ggplot(mendota, aes(x = duration)) +
+  geom_density() +
+  facet_grid(rows = vars(century), cols = vars(leap_year))
+
+# This plot is much harder to read:
+ggplot(mendota, aes(x = duration, fill = century, linetype = leap_year)) +
+  geom_density(alpha = 0.5, size = 1)
+```
+
+
+## Try it yourself!
+
+The `economics` dataset automatically comes with the `ggplot` package.
+
+```{r}
+glimpse(economics)
+
+economics <- economics %>%
+  mutate(unemp_rate = unemploy / pop)
+
+ggplot(economics, aes(x = date, y = unemp_rate)) +
+  geom_line()
+```
+
+Make a graph of your own, and post it to the discussion thread in Canvas!
+
+
+
+
+
+
+
+
+
+
+
+
