@@ -1,7 +1,7 @@
 ---
 title: "STAT 240: ggplot2"
 author: "Cameron Jones"
-date: "Spring 2024"
+date: "Fall 2024"
 output: rmdformats::readthedown
 ---
 
@@ -35,6 +35,10 @@ library(tidyverse)
 
 1. Download the file `week03-ggplot2.Rmd` into the `week03-ggplot2` sub-folder.
 2. Download the file `lake-mendota-winters-2023.csv` into the `COURSE/data/` folder.
+
+## Supplementary Material
+
+This material is supplemented by [Chapter 6 of Professor Bi Cheng Wu's online Stat 240 Course Notes.](https://bwu62.github.io/stat240-revamp/data-visualization.html)
 
 ## Lake Mendota Dataset
 
