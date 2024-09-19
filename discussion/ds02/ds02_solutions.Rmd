@@ -1,0 +1,181 @@
+---
+title: "Discussion 2"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+library(tidyverse)
+```
+
+# Preliminaries
+
+- This file should be in `STAT240/discussion/ds02`.
+- You should download `lake-monona-winters-2024.csv` to `STAT240/data`.
+
+- This assignment should be completed in informal **small groups**.
+
+- You are responsible for your **own individual assignment**. Next week, we will start group submissions.
+
+# Problem 1
+
+This problem is meant to check that you can correctly download and read in data files.
+
+**Download** `lake-monona-winters-2024.csv` into `STAT240/data` if you have not already, then **run the chunk below**. 
+
+If it prints out the first six rows of the monona data, everything is working!
+
+If you get "Error: could not find file...", read the comments below.
+If you get "Error: function read_csv not found", run `library(tidyverse)` and try again. It is in the chunk above or run it in your console.
+
+```{r}
+## This assumes that:
+### STAT240/data/ contains the data file
+### STAT240/discussion/ds02/ is your working directory.
+### If this gives you "Error: could not find file ... in working directory ...", go to Session > Set Working Directory > To Source File Location, and try again.
+### If that doesn't work, then you downloaded one or both files to the wrong place, or they have the wrong name - make sure they don't have a " (1)" or "-1" at the end of their names, which can happen when you download multiple times.
+monona = read_csv("../../data/lake-monona-winters-2024.csv")
+
+# This command should print out the first six rows of the monona winters dataset, starting with 1855-1856.
+head(monona)
+```
+
+The rest of the problems in this discussion do not reference `monona`, so that you can continue to participate if you can't get it working. However, this is a critically important part of the class, so have your groupmates or TA try to help you first, or consult the course staff to help you fix it after discussion.
+
+# Problem 2
+
+**Explain** why the third element of the output of the chunk below is 16 to someone who has never used R before. Use your own words and avoid technical vocabulary like "vector".
+
+In particular, detail what each of the two objects on each side of the plus sign are, and in what way their elements are combined.
+
+```{r}
+1:10 + 11:20
+```
+
+> 1:10 represents the sequence 1, 2, 3, ... 10, and similarly for 11:20 representing 11, 12, 13, ..., 20. These sequences are combined by adding the first element of each (1 + 11 = 12), then the second of each (2 + 12 = 14), the third of each (3 + 13 = 16), and so on, until 10 + 20 = 30.
+
+# Problem 3
+
+a) **Explain** why the result of `mean(logicalValues)` below is `NA`.
+b) **Explain** what numerical values `TRUE` and `FALSE` represent when doing arithmetic.
+c) **Explain** what the `na.rm = TRUE` argument is doing. Are the values stored within `logicalValues` affected permanently?
+
+```{r}
+logicalValues = c(TRUE, TRUE, FALSE, NA, FALSE, TRUE)
+
+mean(logicalValues)
+mean(logicalValues, na.rm = TRUE)
+```
+
+> There is at least one NA value in logicalValues, which turns the whole computation to NA.
+
+> TRUE represents 1 and FALSE represents 0 in arithmetic.
+
+> na.rm = TRUE means to "ignore" the NA value when computing the mean. The values of logicalValues are not affected permanently, it still has the NA in it, it is just ignored for the computation.
+
+# Problem 4
+
+**Create** a new dataframe called using the `tibble` command. Let this dataframe be **printed as output**, do not save it in a variable.
+
+The **rows** of this dataframe will represent the people in your small group you are doing this assignment with.
+
+The **columns** will represent information about those people.
+
+In particular, you should have three columns:
+
+* `name`, character values, your groupmates' names.
+
+* `favoriteNumber`, numeric values, the favorite number of each groupmate. (*If a groupmate cannot think of a favorite number, you can enter `NA`!*)
+
+* `singleDigit`, a logical value indicating whether each groupmate's favorite number is a single digit. Use a logical expression based on `favoriteNumber`, do not manually enter trues and falses.
+
+Here's an example of this output:
+
+```
+  name    favoriteNumber singleDigit
+  <chr>            <dbl> <lgl>      
+1 Cameron             12 FALSE      
+2 Bret               240 FALSE      
+3 Miranda              8 TRUE       
+4 Sahifa              NA NA 
+```
+
+```{r}
+# Write your code here!
+tibble(
+  name = c("Cameron", "Bret", "Miranda", "Sahifa"),
+  favoriteNumber = c(12, 240, 8, NA),
+  singleDigit = favoriteNumber < 10
+)
+```
+
+# Problem 5
+
+This problem uses the `starwars` dataframe contained within `tidyverse`.
+
+*Note that you must have loaded the package with `library(tidyverse)` to be able to access `starwars`.*
+
+**Before reading on, briefly look at the `starwars` dataset.**
+
+```{r}
+starwars
+```
+
+---
+
+**Extract** the column `height` as a vector, using the `$` operator. **Save** this in a new variable called `sw_heights`. You can find an example of the `$` operator in [Section 4.3.2 of the online notes](https://bwu62.github.io/stat240-revamp/data-frames.html#subsetting-data-frames).
+
+**Extract** the column `mass` as a vector, using the `$` operator. **Save** this in a new variable called `sw_mass`.
+
+Using those two vectors, determine which characters have missing information (have the value `NA`) for BOTH height **and** mass. Answer this question by **creating** a new vector of logical values, with `TRUE` representing characters who are missing both, and `FALSE` for all other characters. Let this logical vector **print as output**.
+
+*Hint: Remember `is.na()`!*
+
+```{r}
+# Write your code here!
+sw_heights = starwars$height
+sw_mass = starwars$mass
+
+is.na(sw_heights) & is.na(sw_mass)
+```
+
+*The resulting vector should have six `TRUE`s; one in the middle and five at the end.*
+
+# Problem 6
+
+**Describe** what this code's output means "in context"; that is, talking about information about Star Wars characters, rather than technical terms about rows and columns. For example, you could write "The average mass of the Star Wars characters is 28" if you think that is what this code is calculating.
+
+*Hint: What type of object is `is.na(sw_mass)`? Try running just that code in the console, and consider problem 2!*
+
+```{r, error = TRUE}
+# sw_mass should be created in the previous problem.
+sum(is.na(sw_mass))
+```
+
+> There are 28 Star Wars characters in this dataframe whose mass is missing/unknown.
+
+# Problem 7
+
+**Compute** a new vector of each Star Wars character's "body-mass index", or BMI. Let this vector be **printed as output**, do not save it.
+
+To compute a character's BMI, take their mass in kilograms and divide it by their squared height in meters. `sw_mass` is already in kilograms, but `sw_heights` is in centimeters. 1 meter equals 100 centimeters.
+
+*More information on BMI can be found [here](https://www.cdc.gov/nccdphp/dnpao/growthcharts/training/bmiage/page5_1.html).*
+
+The first BMI in the vector, Luke Skywalker's, should be about 26. (*Make sure your BMI's are on the right scale; they shouldn't all be less than 1 or greater than 100!*)
+
+```{r}
+# Write your code here!
+sw_mass / (sw_heights/100)^2
+```
+
+# Problem 8
+
+One of the BMI's you calculated in the previous problem should be about 443. Is this an error? **Investigate** that row some more, and google this character's name if you don't recognize it.
+
+```{r}
+starwars[16, ]
+```
+
+> That's no error - it's Jabba the Hutt!
+
