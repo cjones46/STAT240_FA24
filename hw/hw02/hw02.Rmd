@@ -10,7 +10,7 @@ library(tidyverse)
 
 # Preliminaries
 
-- This file should be in `STAT240/homework/hw02` on your local computer. If you want the barplot from problem 2to render in the knitted file, download `exampleBarplot.png` to that folder as well.
+- This file should be in `STAT240/hw/hw02` on your local computer. If you want the barplot from problem 2to render in the knitted file, download `exampleBarplot.png` to that folder as well.
 - You should also download `lake-monona-winters-2024.csv` and `lake-mendota-winters-2024.csv` to `STAT240/data` on your local computer.
 
 While you should create your answers in the .Rmd file, homework problems are better formatted and therefore easier to read in the .html file. We recommended frequently knitting and switching between the two as you read and solve problems.
