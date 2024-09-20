@@ -1,0 +1,160 @@
+---
+title: "Homework 2"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message=FALSE, error = TRUE)
+library(tidyverse)
+```
+
+# Preliminaries
+
+- This file should be in `STAT240/homework/hw02` on your local computer. If you want the barplot from problem 2to render in the knitted file, download `exampleBarplot.png` to that folder as well.
+- You should also download `lake-monona-winters-2024.csv` and `lake-mendota-winters-2024.csv` to `STAT240/data` on your local computer.
+
+While you should create your answers in the .Rmd file, homework problems are better formatted and therefore easier to read in the .html file. We recommended frequently knitting and switching between the two as you read and solve problems.
+
+```{r read-data, echo = FALSE}
+monona = read_csv("../../data/lake-monona-winters-2024.csv") %>% 
+  mutate(ff_cat = case_match(
+    ff_cat,
+    "X" ~ "Jan 1-15",
+    .default = ff_cat
+  ), 
+  ff_cat = reorder(ff_cat, ff_x))
+```
+
+# Problem 1
+
+**Create a histogram** of the `duration` of Lake Monona's closures due to ice. (That is, using the `monona` dataframe created above.)
+
+Incorporate the following customizations:
+
+- **Bars should span neat intervals of ten**; [40, 50], [50, 60], and so on. Make sure they start and end on multiples of 10.
+
+- **Change the outline and inside color** of the bars to some custom combination that you think looks good together.
+
+```{r}
+# Your code here
+```
+
+# Problem 2
+
+Your friend is trying to produce this plot of frequency counts for the variable `ff_cat`, which captures the date of first freeze in two week periods.
+
+![*Check the knitted .html file or the exampleBarplot.png file itself. For the image to render in your knitted file, download exampleBarplot.png next to this .Rmd.*](exampleBarplot.png)
+
+Your friend's attempt below is producing an error.
+
+```{r, error = TRUE}
+# Fix your friend's error!
+ggplot(monona, aes(x = ff_cat)) +
+  geom_col()
+```
+
+**Fix** your friend's error by editing the above chunk (or create another one).
+
+Then, below, **explain** why the original code was wrong and why the fixed code works.
+
+> Replace this text with your response.
+
+# Problem 3
+
+Code in the next chunk makes a scatter plot that shows how the variable `duration` changes with time (using `year1`).
+
+```{r}
+# This chunk is provided for you - do not edit
+ggplot(monona, aes(x = year1, y = duration)) +
+  geom_point(alpha = 0.2) +
+  geom_smooth(method = "lm", se=FALSE) +
+  labs(
+    title = "Lake Monona Winter Closure Durations Over Time",
+    subtitle = "Trend Line Shown in Blue"
+  )
+```
+
+**a)** What does the argument `method = "lm"` change on the plot?
+
+> Replace this text with your response.
+
+**b)** What does the argument `se = FALSE` change on the plot?
+
+> Replace this text with your response.
+
+# Problem 4
+
+This problem refers to the graph created in problem 3 above. Its goal is to display to the viewer that, on average, the duration Lake Monona closes due to ice is decreasing over time.
+
+**a)** In a typical year around 1875, how long would Lake Monona close due to ice? (No code needed - your best guess based on the plot will suffice.) 
+
+> Replace this text with your response.
+
+**b)** In a typical year around 2000, how long would Lake Monona close due to ice?
+
+> Replace this text with your response.
+
+**c)** Consider encountering this graph in a published news paper. Name one specific thing this graph does well to accomplish its goal, and what specific part of the code is responsible for it.
+
+> Replace this text with your response.
+
+**d)** In the same context as c), name one specific thing that could be improved about this graph, and describe what code you would add/edit to make it happen. (No need to formally write and run the code, just a description.)
+
+> Replace this text with your response.
+
+# Problem 5
+
+The below chunk (which is hidden in the knitted file) reads in `lake-mendota-winters-2024.csv` into a new object called `mendota`.
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE}
+mendota = read_csv("../../data/lake-mendota-winters-2024.csv")
+```
+
+**Create** a single plot of `duration` versus `year1` (as in problem 3) which has **two smooth curved lines**; a red line for Lake Mendota and a blue line for Lake Monona.
+
+You should accomplish this with one call to `ggplot()` and then two calls to `geom_smooth()`, with one using the `monona` data and one using the `mendota` data.
+
+```{r}
+# Your code here
+```
+
+# Problem 6
+
+The below chunk creates a new dataframe called `combined`, which contains freeze durations for both Lake Mendota AND Lake Monona.
+
+```{r}
+# We will learn how this code works next week!
+combined = bind_rows(monona %>% mutate(lake = "Monona"), mendota %>% mutate(lake = "Mendota")) %>% 
+  arrange(desc(year1)) %>% 
+  select(lake, year1, duration)
+
+# Take a look at the first six rows; notice we have TWO rows for each year now, one for each lake!
+head(combined)
+```
+
+**Create** a similar plot to the result of problem 5, with `duration` on the y axis, `year1` on the x axis, and two smooth lines, one for each lake. This time, use the `combined` dataset and a single call to `geom_smooth`.
+
+*Hint: You want to `color` the lines by `lake`!*
+
+```{r}
+# Your code here
+```
+
+# Problem 7
+
+**Create** a plot which uses **faceting** to separate the trendline of `duration` vs. `year1` (like the previous two questions) into two different panels; one panel for Lake Mendota, one panel for Lake Monona.
+
+```{r}
+# Your code here
+```
+
+# Problem 8
+
+Compare the resulting graphs from problems 5, 6, and 7.
+
+Consider trying to determine in what time period Lake Mendota was freezing, on average, longer than Lake Monona.
+
+**Which of the three graphs** do you prefer for this determination and why?
+
+> Replace this text with your response
+
