@@ -1,0 +1,626 @@
+---
+title: "Section 6: dplyr"
+author: "Student's Name Here"
+date: "2024-09-11"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, error = TRUE)
+```
+
+```{r}
+library(tidyverse)
+
+# Uncomment the line below to install the package (only need to do this once)
+#install.packages("magrittr") 
+
+library(magrittr)
+```
+
+
+## The pipe
+
+The pipe passes the object on the left to the function on the right.
+(Ctrl + Shift + M) or (Command + Shift + M)
+
+```{r}
+subtract(5, 2) # 5 - 2 = 3
+
+5 %>% subtract(2) # This is 5 - 2 = 3, not 2 - 5 = -3
+```
+
+It makes thisngs much more readable when we have multiple nested functions.
+
+```{r}
+divide_by(raise_to_power(multiply_by(subtract(5, 2), 4), 2), 12)
+
+5 %>% 
+  subtract(2) %>% 
+  multiply_by(4) %>% 
+  raise_to_power(2) %>% 
+  divide_by(12)
+```
+
+Try recreating the following code with the pipe:
+
+```{r}
+sqrt(add(divide_by(30, 10), 6))
+```
+
+
+## dplyr basics
+
+Let's read in the data for this section.
+
+```{r}
+grocery_prices <- read_csv("../../data/grocery-prices.csv")
+grocery_list <- read_csv("../../data/grocery-list.csv")
+
+# We'll learn about left_join later in the "Join Commands" section!
+produce <- grocery_list %>% 
+  left_join(grocery_prices, by = "item") 
+
+grocery_prices
+grocery_list
+produce
+```
+
+### Column editors
+
+`mutate` lets us add a new column to the dataframe.  We can define its value in terms of other columns.
+
+```{r}
+# Notice we're overwriting ther value of produce
+produce <- produce %>% 
+    mutate(cost = price * quantity,
+           sales_tax = 0.05 * cost)
+
+produce
+```
+
+
+`select` reduces the df to the columns we specify.
+
+```{r}
+produce %>%
+  select(cost, sales_tax)
+
+# Can also remove specific columns
+produce %>% 
+  select(-item, -type)
+```
+
+
+`relocate` moves columns without adding or removing any.  By default, it takes columns and moves them to the *left*.
+
+```{r}
+produce
+
+produce %>% 
+  relocate(price, quantity, cost, sales_tax)
+```
+
+Or, we can move columns to specific places.
+
+```{r}
+produce %>% 
+  relocate(item, type, .after = price)
+```
+
+
+`rename` changes the column names.
+Write `new_name = old_name`.
+
+```{r}
+produce
+
+produce %>% 
+  rename(pricePerUnit = price,
+         totalCost = cost)
+```
+
+### Row editors
+
+`arrange` lets us order the rows while keeping the columns unchanged.  It sorts rows from smallest to largest.
+
+```{r}
+produce %>% 
+  arrange(cost)
+```
+
+If we want to go from largest to smallest, use `desc`.
+
+```{r}
+produce %>%
+  arrange(desc(item))
+
+# Advanced note that you don't have to know: R considers
+# uppercase as "greater" than lowercase IF IT IS THE SAME LETTER.
+# Otherwise, it ignores case.
+# So, "B" > "b", but "A" < "b".
+```
+
+You can also provide further variables to break ties in the first one, if desired. If not, the order in the original dataframe will break the tie.
+
+
+The `filter` command chooses specific rows based on a condition.  In R, conditions evaluate to `TRUE` or `FALSE`.
+
+```{r}
+produce
+
+produce$type 
+
+produce$type == "fruit" # Keep the rows where this evaluates to "TRUE"
+```
+
+Let's keep only the rows corresponding to fruit.
+
+```{r}
+produce %>% 
+  filter(type == "fruit")
+```
+
+We can set more complicated conditions with `&` (AND) and `|` (OR).
+
+```{r}
+# Only look at rows where the cost is between 2 and 5
+produce %>% 
+  filter(cost > 2 & cost < 5)
+
+# Look at rows where the cost is less than 2 OR above 5
+produce %>% 
+  filter(cost < 2 | cost > 5)
+```
+
+`drop_na` removes any rows with missing values.  In the `starwars` dataset, we have `NA` for the hair color of droids.
+
+```{r}
+# C-3PO and R2-D2 and R5-D4's hair_color are NA.
+starwars
+
+# Normally, there are 87 characters
+nrow(starwars)
+```
+
+Now let's get rid of those rows.
+
+```{r}
+# Goodbye to those rows! Now we skip right from Luke to Darth Vader.
+starwars %>% 
+  drop_na(hair_color)
+
+# After removing rows with NA, 82 rows are left
+starwars %>% 
+  drop_na(hair_color) %>% 
+  nrow()
+```
+
+By default, `drop.na` looks for missing values in ALL columns.
+
+```{r}
+example <- tibble(
+  col1 = c(NA, 2, 3, 4),
+  col2 = c(1, NA, 3, 4),
+  col3 = c(1, 2, NA, 4),
+  col4 = c(1, 2, 3, 4)
+)
+
+example
+
+example %>% drop_na()
+```
+
+If we only want to drop NA values from a single column, specify the column name or use `filter`.
+
+```{r}
+example %>% drop_na(col1)
+
+example %>% 
+  filter(!is.na(col1))
+
+starwars %>% 
+  filter(!is.na(hair_color))
+```
+
+
+### Try it out
+
+Pretend your boss is looking at your computer at the produce dataframe with you and making the following requests. Write code to respond to your boss’s requests.
+
+"Show me just the fruits."
+
+```{r}
+
+```
+
+
+"Can you put whether it’s a fruit or vegetable at the beginning?"
+
+```{r}
+
+```
+
+
+“I only care about the food name and the total cost, can you get rid of everything else?”
+
+```{r}
+
+```
+
+
+“Can you put the foods in alphabetical order so apple is first?”
+
+```{r}
+
+```
+
+
+“Can you give each food a sale price that’s half off the normal price?”
+
+```{r}
+
+```
+
+
+### summarize
+
+`summarize` reduces columns to a single number with a "reducing function".
+
+Let's think about how R does operations with vectors.  Some operations return the same number of elements as the original vector.
+
+```{r}
+prime_numbers <- c(2, 3, 5, 7, 11)
+fibonacci_numbers <- c(0, 1, 1, 2, 3)
+
+prime_numbers + fibonacci_numbers
+
+prime_numbers^2
+```
+
+Other operations reduce a vector to a single number.
+
+```{r}
+sum(prime_numbers)
+
+max(fibonacci_numbers)
+
+mean(prime_numbers)
+```
+
+When using `summarize`, we apply a reducing function to a column (or columns) in our data set.
+
+```{r}
+produce %>% 
+  summarize(totalCost = sum(cost),
+            totalTax = sum(sales_tax))
+```
+
+Notice that we have lost all of our original columns, and just have the summary values.  We can also do this by extracting a column directly:
+
+```{r}
+sum(produce$cost)
+
+sum(produce$sales_tax)
+```
+
+`summarize`, and several other commands, become much more powerful when combined with other commands.
+
+
+## Combining commands
+
+### grouop_by
+
+`group_by` is a powerful command that changes the *grouping* structure of a df.  On its own, it does not change any rows or columns:
+
+```{r}
+produce %>% 
+  group_by(type)
+```
+
+What if we want to find the average price of fruits and vegetables?  So far, we have a "naive" approach:
+
+```{r}
+produce %>% 
+  filter(type == "fruit") %>% 
+  summarize(totalCost = sum(cost))
+
+produce %>% 
+  filter(type == "vegetable") %>% 
+  summarize(totalCost = sum(cost))
+```
+
+This is not practical when there is a large number of categories.  Notice how we are doing the same operation to both fruits and vegetables.  `group_by` lets us automate that.
+
+```{r}
+produce %>% 
+  group_by(type) %>%
+  summarize(averagePrice = mean(price))
+
+produce %>% 
+  group_by(type) %>% 
+  summarize(averagePrice = mean(price),
+            lowestCost = min(cost),
+            highestCost = max(cost))
+```
+
+Notice that the grouping information disappears after we run `summarize`.
+
+### Helpful summary functions
+
+We can use `slice_min` to get some of the lowest values, and `slice_max` to get some of the highest values.
+
+```{r}
+produce %>% 
+  slice_min(price, n = 3)
+
+produce %>% 
+  slice_max(price, n = 3)
+```
+
+We can also do this following a grouping operation.
+
+```{r}
+cheapest <- produce %>%
+  group_by(type) %>% 
+  slice_min(price, n = 3)
+
+cheapest 
+```
+
+The functions `n` and `count` can be used to count the number of rows.  `n` is used within `summarize`.
+
+```{r}
+produce %>% 
+  group_by(type) %>%
+  summarize(numItems = n(), averagePrice = mean(price))
+```
+
+We can use `count` without having to run `group_by`.  But `count` is not able to do any other summaries.
+
+```{r}
+produce %>% 
+  count(type)
+```
+
+
+### Applications of group_by
+
+We use `mutate` to create a new column, usually based on the values of other columns.
+
+```{r}
+produce %>% 
+  mutate(newColumn = 5) %>% 
+  relocate(newColumn)
+
+produce %>% 
+  mutate(totalCost = sum(cost)) %>% 
+  relocate(totalCost)
+```
+
+When we use `group_by`, each row gets assigned a number based on group.  For example, we can label the total cost of fruits and vegetables separately.
+
+```{r}
+produce %>% 
+  group_by(type) %>% 
+  mutate(totalGroupCost = sum(cost)) %>% 
+  relocate(totalGroupCost)
+```
+
+Which fruits and vegetables account for the highest percentage of their group's cost?
+
+```{r}
+produce %>% 
+  group_by(type) %>% 
+  mutate(totalGroupCost = sum(cost),
+         percOfGroupCost = cost/totalGroupCost) %>% 
+  relocate(cost, totalGroupCost, percOfGroupCost) %>% 
+  arrange(type)
+```
+
+
+### Ungrouping
+
+We can remove a group instruction with `ungroup`.
+
+```{r}
+cheapest <- produce %>%
+  group_by(type) %>% 
+  slice_min(price, n = 3)
+
+cheapest
+```
+
+This object has a grouping property, by type.
+
+```{r}
+cheapest %>% 
+  summarize(totalCost = sum(cost))
+```
+
+If we want to get an overall summary, we need to ungroup.
+
+```{r}
+cheapest %>% 
+  ungroup() %>% 
+  summarize(totalCost = sum(cost))
+```
+
+
+### Will it group?
+
+Run each of the following chunks.  Then predict what will happen if you add in the `group_by` instruction.  Uncomment that line out then run the chunk again.  Was your prediction correct?
+
+```{r}
+produce %>% 
+  #group_by(type) %>% 
+  filter(cost > 2)
+```
+
+
+```{r}
+produce %>% 
+  #group_by(type) %>% 
+  mutate(numberOfItems = n()) %>% 
+  relocate(numberOfItems)
+```
+
+
+```{r}
+produce %>%
+  #group_by(type) %>% 
+  summarize(medianCost = median(cost)) %>% 
+  ungroup()
+```
+
+
+```{r}
+produce %>% 
+  #group_by(type) %>% 
+  slice_max(quantity, n = 2)
+```
+
+
+### case_when
+
+`case_when` lets us define column values based on a certain condition.
+
+```{r}
+# Every time we run this code, it will give a different order of rows
+
+students <- tibble(
+  name = c("A", "B", "C", "D", "E", "F"),
+  age = 17:22
+) %>% 
+  slice_sample(n = 6)
+
+students
+```
+
+Are the students legal adults yet?
+
+```{r}
+case_when(students$age >= 18 ~ "adult",
+          students$age < 18 ~ "child")
+
+students %>%
+  mutate(age_group = case_when(
+    students$age >= 18 ~ "adult",
+    students$age < 18 ~ "child"))
+```
+
+Maybe we want a more detailed column, `legal_status`.  This is what I want it to be:
+
+- "Cannot vote nor drink" if age is less than 18.
+- "Can vote, can't drink" if age is between 18 and 20.
+- "Can vote and drink" if age is greater than 20.
+
+```{r}
+students %>% 
+  mutate(legalStatus = case_when(
+  age >= 21 ~ "Can vote and drink",
+  age >= 18 & age <= 20 ~ "Can vote, can't drink",
+  age <= 17 ~ "Cannot vote nor drink"
+  ))
+```
+
+
+Let's look at a more complex example with the Star Wars data.  We can set `.default` to specify a default value if none of the conditions are met.
+
+```{r}
+starwars %>%
+  select(name:mass, gender, species) %>%
+  mutate(
+    type = case_when(
+      height >= 200 | mass >= 200 ~ "large",
+      species == "Droid" ~ "robot",
+      .default = "other"
+    )
+  ) %>% 
+  print(n = 22) # Why is IG-88 at the bottom "large" and not "robot"? Because the conditions evaluate in order!
+```
+
+
+## Lecture questions
+
+Let's spend some time in lecture working through some more complicated `dplyr` questions.  I encourage you to work together and talk with your neighbors!
+
+First, read in the weather data and take a few minutes to investigate the dataset.
+
+```{r}
+official <- read_csv("../../data/madison-weather-official-1869-2023.csv") %>% 
+  mutate(year = year(date),
+         month = month(date, label = TRUE),
+         day = day(date))
+```
+
+**Average Annual Temperature**
+
+Summarize the data to obtain the average temperature (`tavg`) per year. Then, make an effective plot of this data to show patterns over time and variation around the main pattern.  
+
+(Hints: 
+What do we do with the rows where `tavg` is missing? 
+Our current dataset is one row per date; we need to summarize that to one row per year.)
+
+```{r}
+
+```
+
+
+**Daily Temperature Records**
+
+For each of the 366 unique dates of the year, find the historical date which had the highest maximum temperature on that day of the year (e.g. What year was the hottest May 16?). There may be ties, which will lead to slightly more than 366 rows.
+
+(Hints:
+We will have to evaluate which row in `official` has the highest `tmax` within each combination of `month` and `day`.  We can do that with `group_by` leading into `slice_max`.
+)
+
+```{r}
+
+```
+
+
+**30-year Period**
+
+Meteorologists often determine weather norms by averaging over a 30-year period. Create a new variable which indicates what 30-year period a given day is part of; starting with 1871-1900, then 1901-1930, up to 1991-2020. You can exclude years before 1871 and after 2020.
+
+```{r}
+
+```
+
+
+**Temperature by Period**
+
+Then, with that 30-year-period variable you just created, calculate within each of the twelve months within each period (e.g. 1 row for all Januarys in 1871-1900, 1 row for all Februarys in 1871-1900… for each month, for each period) the average, maximum, and minimum of `tavg`.
+
+(Hints:
+Take a moment to make sure you understand what the question is asking for. We have 5 periods and there are twelve unique months in each period (e.g. January 1871 is lumped together with every other January from 1871 - 1900) so we will get 60 rows.
+We’ll also need to only keep those rows between 1871 and 2020.)
+
+```{r}
+
+```
+
+
+**Days with Precipitation**
+
+Make a summary table which shows the proportion of days which had any precipitation in each 30-year period + month combination.
+
+```{r}
+
+```
+
+
+With a separate panel (facet) for each month, create a column graph of the percentage of precipitation in each 30-year period.
+
+```{r}
+
+```
+
+
+
+
+
+
+
+
