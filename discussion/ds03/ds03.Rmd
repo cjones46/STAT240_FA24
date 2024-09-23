@@ -1,0 +1,161 @@
+---
+title: "Discussion 3"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+library(tidyverse)
+```
+
+# Preliminaries
+
+- This file should be in `STAT240/discussion/ds03`.
+- You should download `lake-monona-winters-2024.csv` to `STAT240/data` if you have not already. We asked you to download it for last week's discussion so you likely already have it.
+
+- This assignment should be completed in your **assigned Canvas groups**. Only one person has to submit on behalf of the group. You may submit whatever you have at the end of discussion section for full credit.
+
+# Present Group Members
+
+Please **write the names of the present group members** here.
+
+> Present Group Member 1
+
+> Present Group Member 2
+
+> Present Group Member 3
+
+> Present Group Member 4 (some groups only have 3)
+
+```{r, echo = FALSE, warning = FALSE, message = FALSE}
+
+# This chunk reads in the data and makes a couple fixes to data entry errors.
+
+monona = read_csv("../../data/lake-monona-winters-2024.csv") %>% 
+  mutate(ff_x = case_when(
+    ff_x == 0 ~ 199,
+    TRUE ~ ff_x
+  ),
+  ff_cat = case_when(
+    ff_cat == "X" ~ "Jan 1-15",
+    TRUE ~ ff_cat
+  ),
+  lt_x = ff_x + duration)
+```
+
+# Problem 1
+
+**Create a boxplot** of the `duration` of Lake Monona's closures due to ice. (That is, using the `monona` dataframe read in by the chunk above.)
+
+Incorporate the following customizations:
+
+**Change the outside and inside colors** to a color scheme you think looks good together.
+
+**Add descriptive labels to the axes** and a **title for the plot**.
+
+```{r}
+# Write your code here
+```
+
+# Problem 2
+
+Copy and paste your code from Problem 1, and **add a theme as a layer on top of your Problem 1 code**. You can see a complete list of pre-set themes with `?theme_dark()`. **Try out different themes** and pick one you like the best.
+
+```{r}
+# Write your code here
+```
+
+# Problem 3
+
+**Create a scatter plot** with `geom_point()` with `ff_x` on the x-axis and `duration` on the y-axis. 
+
+**Color** the points by `decade`. 
+
+*`ff_x` is the number of days past June 30th the lake first froze over. For example, if the lake first freezes over on December 31st, that's 183 days later. If the lake first freezes over on January 1st, that's 184 days later.* 
+
+*We also provide `lt_x`, a similar variable for the number of days past June 30th until the last thaw, which we'll use in a later problem.*
+
+```{r}
+# Write your code here
+```
+
+# Problem 4
+
+We expect that in years for which the lake freezes *later* (e.g. a HIGHER `ff_x`), it will freeze for a *lower* `duration`.
+
+**Copy and paste** your Problem 3 code, and **add a trend-line** with `geom_smooth` on top of the points. 
+
+Incorporate the following customizations for the trend-line:
+
+  Turn the **standard error ribbon off** with `se = FALSE`.
+
+  Make the line **dashed** with `linetype = "dashed"`.
+  
+  Make the line a **different color**.
+
+```{r}
+# Note: If you specified color = decade as a global aesthetic in the ggplot() call, you'll get a warning that geom_smooth() can't work with the color gradient.
+# Watch that warning go away if you put color = decade within a local aes within geom_point!
+
+# Write your code here
+```
+
+# Problem 5
+
+In the previous problem, the legend for `decade` should have shown up as a color gradient. What if we wanted a different color for each decade?
+
+**Copy and paste** your Problem 3 code (without the `geom_smooth`), but instead of setting the `color` aesthetic to `decade`, try setting it to `as_factor(decade)`.
+
+*Note: `as_factor()` is the slightly better tidyverse version of `as.factor()`, notice _ vs ., but they're basically the same for our purposes.*
+
+```{r}
+# Write your code here
+```
+
+**Is this new factor legend an improvement** on the previous color gradient legend? Why or why not?
+
+> Write your response here
+
+# Problem 6
+
+**Copy and paste** your Problem 3 code again. **Do not** use the Problem 4 or 5 code.
+
+**Add the layer** `scale_color_viridis_c()`.
+
+Within that function, experiment with the argument `option = "A"`, `option = "D"`, and other letters out to "H". **Choose the option that you think gives the most appropriate color scheme.**
+
+```{r}
+# Write your code here
+
+```
+
+# Problem 7
+
+This problem asks you to use a new layer function: `geom_ribbon()`.
+
+`geom_ribbon()` requires the aesthetics `x`, `ymin` and `ymax`, and will create a "ribbon" at each `x` stretching from `ymin` at the bottom to `ymax` at the top.
+
+**Create a ribbon plot** of each winter freeze versus year. `year1` should be on the x-axis, and the bottom of the ribbon (`ymin`) should be `ff_x`, and the top of the ribbon (`ymax`) should be `lt_x`.
+
+Optionally, this graph is pretty cool if you implement a color scheme that makes it look like ice.
+
+```{r}
+# Write your code here
+```
+
+# Problem 8
+
+By default, the previous graph chose to put y axis labels at 150, 200, 250, and 300. These stand for the dates November 27, January 16, March 7, and April 26 respectively.
+
+**Copy and paste** your Problem 7 code.
+
+**Add the appropriate `scale_*_continuous()` function** as a layer, with the option `labels = c("Nov 27", "Jan 16", "Mar 7", "Apr 26")`.
+
+**Finally**, add a horizontal line with `geom_hline()` at `yintercept = 183`, corresponding to where the year changes over.
+
+```{r}
+# Write your code here
+```
+
+
+
