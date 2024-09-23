@@ -111,10 +111,7 @@ divide_by(raise_to_power(multiply_by(subtract(5, 2), 4), 2), 12)
 sqrt(add(divide_by(30, 10), 6))
 
 # Recreate it with the pipe, with each function on its own line
-30 %>% 
-  divide_by(10) %>% 
-  add(6) %>% 
-  sqrt()
+
 ```
 
 > Technical takeaway: Using the pipe makes code easier to write and read.
