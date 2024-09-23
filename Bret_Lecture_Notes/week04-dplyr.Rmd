@@ -1,0 +1,948 @@
+---
+title: "STAT 240: dplyr"
+author: "Bret Larget"
+date: "Fall 2024"
+output: rmdformats::readthedown
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=TRUE,  message=FALSE, warning=FALSE,
+                      error = TRUE,
+                      fig.height = 4)
+library(tidyverse)
+library(magrittr)
+```
+
+
+# Overview
+
+## Learning Outcomes
+
+* These lectures will teach you how to:
+  - Use appropriate vocabulary to describe the form of data
+  - Execute basic manipulations on dataframes, such as rearranging and creating new columns
+  - Execute more complex manipulations of dataframes, such as summarizing and pivoting
+
+## Preliminaries
+
+1. Download the file `week04-dplyr.Rmd` into `STAT240/lecture/week04-dplyr`.
+2. Download the files `grocery-list.csv` and `grocery-prices.csv` and `madison-weather-official-1869-2023.csv` into the `STAT240/data/` folder.
+
+* You will need the `magrittr` package for one early example in this file; run `install.packages("magrittr")` in your console. 
+
+## Supplementary Material
+
+This material is supplemented by [Chapters 7 and 8 of Professor Bi Cheng Wu's online Stat 240 Course Notes](https://bwu62.github.io/stat240-revamp/data-transformation.html).
+
+# An Introduction to dplyr
+
+* In the `ggplot2` unit, data was given to you in a nice, convenient form, with all the information you need present and intuitively named.
+
+* Data from external sources almost always requires *cleaning* or *wrangling*; that is, it comes in a different form or with less information than you need, and you have to do some work to get it into a convenient form.
+
+* [dplyr](https://dplyr.tidyverse.org/) contains a wide range of functions to manipulate and transform dataframes.
+    + The [dplyr cheatsheet](https://raw.githubusercontent.com/rstudio/cheatsheets/master/data-transformation.pdf) is a useful summary of everything `dplyr` can do - we won't get through it all in this course.
+    
+## Principles of dplyr
+
+* Like `ggplot2`, `dplyr` is so powerful because **the intelligent combination of a small set of simple building blocks supports a wide range of actions**.
+
+* We are going to set the framework for this elegant combination system by looking at the pipe operator (`%>%`), then preview each building block on its own, and finally start combining these commands for more advanced results.
+
+## The Pipe
+
+* The pipe operator is written out as `%>%`.
+    + I encourage you to get in the habit of instead using the keyboard shortcut, `Ctrl` + `Shift` + `M` on Windows or `Command` + `Shift` + `M` on Mac; you'll be writing hundreds of pipes this semester!
+    
+> The pipe operator takes an object on the left and passes it into the function on the right as its FIRST argument.
+
+* Conceptually, this means `x %>% f()` is the same as `f(x)`, and crucially, `x %>% f(y, z)` is equivalent to `f(x, y, z)`, NOT `f(y, z, x)`.
+
+```{r}
+# These are doing exactly the same thing!
+subtract(5, 2) # 5 - 2 = 3
+5 %>% subtract(2) # This is 5 - 2 = 3, not 2 - 5 = -3
+```
+
+* Why would anyone create or use this operator? It seems a little silly... until you use it to chain functions together.
+
+* If you write `f(x) %>% g()`, this is the same as `g(f(x))`, where the result of `f(x)`  (could be another number, a vector, or eventually a dataframe) is passed in as the first argument to `g`. 
+
+* Similarly, `f(x) %>% g(y)` is equivalent to `g(f(x), y)`.
+
+* Extending one level further, `f(x) %>% g(y) %>% h(z)` is equivalent to `h(g(f(x), y), z)`; and you start to see the value of the pipe.
+
+* Applying this to the first example, say we wanted to use functions to start with 5, then subtract 2, then multiply the result by 4, then square the result, then divide the result by 12.
+
+* This leads to a very natural conceptualization of the pipe; **it works like the word "then"**.
+
+```{r}
+# Without the pipe
+divide_by(raise_to_power(multiply_by(subtract(5, 2), 4), 2), 12)
+
+# With the pipe
+5 %>% 
+  subtract(2) %>% 
+  multiply_by(4) %>% 
+  raise_to_power(2) %>% 
+  divide_by(12)
+```
+
+*Note: You would never actually use these functions in a real context, you would just use the simple mathematical operators `-`, `^`, et cetera. This is merely for example since we're covering the pipe before dplyr commands.*
+
+* In this sense, the pipe is not technically necessary. Anything you can do with it, you can do without it; but without the pipe, your code will be very difficult to read, even harder to write, and harder still to troubleshoot if it doesn't work.
+
+---
+
+##### EXERCISE: Basic Use of The Pipe
+
+* This exercise will give you experience writing with the pipe and tracing through how it works.
+
+* A reminder the keyboard shortcut for `%>%` is `Ctrl`+`Shift`+`M` on Windows or `Command`+`Shift`+`M` on Mac.
+
+* Work out exactly what the following code is doing, and recreate it with the pipe.
+
+* Recall that the `sqrt()` function takes only a single argument, and returns its (positive) square root.
+
+```{r}
+# What is this doing?
+sqrt(add(divide_by(30, 10), 6))
+
+# Recreate it with the pipe, with each function on its own line
+30 %>% 
+  divide_by(10) %>% 
+  add(6) %>% 
+  sqrt()
+```
+
+> Technical takeaway: Using the pipe makes code easier to write and read.
+
+> Philosophical takeaway: The pipe connects dplyr commands in the same conceptual way that + connects ggplot2 commands.
+
+---
+
+* Because each `dplyr` command takes a dataframe in as its first argument, and returns a dataframe, multiple commands can be run in a chain, each working from the output of the previous command.
+
+# The Basic dplyr Commands
+
+## The Big Picture 
+
+* Each `dplyr` command follows this basic set of three rules:
+
+> The first argument is the dataframe to manipulate.
+
+> The rest of the arguments detail how you want to manipulate that dataframe.
+
+> The result of the command is the edited dataframe; **which is often passed on as the first argument to the next function with the pipe** (see the first rule).
+
+* Because the result of each `dplyr` command can act as the first argument of another, they can be naturally chained together with the pipe.
+
+* We'll get to examples of this eventually, but we need to go over each individual building block command on its own.
+
+* There are dozens and dozens of `dplyr` commands that we will see over the course of the semester; this lecture will serve as an introduction to the most important subset.
+
+## Read in Data
+
+```{r}
+grocery_prices = read_csv("../../data/grocery-prices.csv")
+grocery_list = read_csv("../../data/grocery-list.csv")
+# We'll learn about left_join later in the "Join Commands" section!
+produce = grocery_list %>% 
+  left_join(grocery_prices, by = "item") 
+
+
+grocery_prices
+grocery_list
+produce
+```
+
+## The Column Editors
+
+> The following four commands, `mutate()`, `select()`, `relocate()` and `rename()`, act upon the COLUMNS of dataframes, leaving the number and order of rows alone.
+
+### mutate()
+
+> `mutate()` adds a new column or columns to the dataframe.
+
+- The secondary arguments to `mutate` (recall the first is the initial dataframe) are as many or as few expressions as you want, each of the form `newColumnName = expression`, separated by commas if there are multiple.
+
+- `expression` is often (but not always) based on other columns in the dataframe.
+
+```{r}
+# Notice; we're overwriting the value of "produce" here with a new dataframe; the original produce plus two new columns, because this line starts with produce = .
+# I do this on purpose because I want to use cost and sales_tax later.
+produce = produce %>% 
+    mutate(cost = price * quantity,
+           sales_tax = 0.05 * cost)
+
+produce
+```
+
+### select()
+
+> `select()` reduces the number of columns in the dataframe, by giving it a list of columns to keep or to remove.
+
+- In its most basic form, `select()` takes a list of columns (not in quotes) and will keep them in the dataframe, throwing out the rest.
+
+```{r}
+# Will KEEP cost and sales_tax only, removing the rest
+# Notice: Not overwriting produce here, because doing so would reduce produce to just these two columns and get rid of everything else.
+produce %>%
+  select(cost, sales_tax)
+```
+
+- You can also tell `select()` you instead wish to REMOVE the specified columns using the `-` sign before each name.
+
+```{r}
+produce %>% 
+  select(-item, -type)
+```
+
+### relocate()
+
+> `relocate()` moves columns around in a dataframe, not removing or adding any.
+
+- By default, `relocate()` takes a list of specified columns and brings them to the immediate left of the dataframe.
+
+```{r}
+produce %>% 
+  relocate(price, quantity, cost, sales_tax)
+```
+
+- You can also choose to move columns to other specific places using the `.before` or `.after` arguments.
+
+```{r}
+produce %>% 
+  relocate(item, type, .after = price)
+```
+
+### rename()
+
+> rename() changes the names of columns, using the syntax `new_name = old_name`.
+
+* The secondary arguments to `rename()` are as many or as few pairs of `new_name = old_name` as you want, separated by commas if multiple.
+
+```{r}
+produce %>% 
+  rename(pricePerUnit = price,
+         totalCost = cost)
+```
+
+
+## The Row Editors
+
+> The following two commands, `arrange()` and `filter()`, act upon the ROWS of dataframes, leaving the number and order of columns alone.
+
+### arrange()
+
+> `arrange()` reorders the rows by the value of some variable in the dataframe.
+
+- `arrange()` in its most basic form accepts a single variable which has values that can be compared (numerically, dates/times, alphabetically), and orders rows from smallest to largest based on their value that variable.
+
+```{r}
+produce %>% 
+  arrange(cost)
+```
+
+- If you want to go from largest to smallest, use the `desc()` helper function around the variable.
+
+```{r}
+# String variables can be compared alphabetically!
+
+# Think of words starting with 'a' as the number 1, and words starting with 'z' as the number 26. 
+
+produce %>%
+  arrange(desc(item))
+
+# Advanced note that you don't have to know: R considers uppercase as "greater" than lowercase IF IT IS THE SAME LETTER. Otherwise, it ignores case. So, "B" > "b", but "A" < "b".
+```
+
+* You can also provide further variables to break ties in the first one, if desired. If not, the order in the original dataframe will break the tie.
+
+### filter()
+
+> `filter()` keeps rows which satisfy a specified logical condition.
+
+- Recall that "logical conditions" are achieved with the logical operators, such as `<`, `>`, and `==`, among others.
+
+- They must evaluate to `TRUE` or `FALSE` on each row.
+
+```{r}
+# Keeps rows where the value of type in that row is equal to the literal word "fruit"
+
+produce$type == "fruit" # Keep the rows where this evaluates to "TRUE"
+
+produce %>% 
+  filter(type == "fruit")
+```
+
+- More complicated logical conditions can be achieved with the use of the symbols `&` (read as 'and') as well as `|` (read as 'or', top right of the keyboard)
+
+- For example, to keep just the rows where `cost` is between 2 and 5:
+
+```{r}
+# We connect these two logical conditions with "&" because we want to keep rows only where BOTH are satisfied.
+
+# For example, a row where cost is 1.5 satisfies the second condition, but not the first; we want to remove that.
+
+produce %>% 
+  filter(cost > 2 & cost < 5)
+```
+
+- To keep the rows where cost is OUTSIDE the 2 to 5 dollar range:
+
+```{r}
+# We connect these logical conditions with OR because we want to keep rows where EITHER is true. 
+
+# For example, a row where cost is 1.5 satisfies the first condition, but not the second. We want to keep it.
+produce %>% 
+  filter(cost < 2 | cost > 5)
+```
+
+### drop_na()
+
+> `drop_na(columnName1, columnName2, ...)` is a shortcut function which gets rid of rows which have `NA` for `columnName1` OR `columnName2` or any others listed. The same result can be achieved with a combination of `filter` and `is.na`, but this operation is so common a quicker and easier to read/write shortcut was written.
+
+```{r}
+# C-3PO and R2-D2 and R5-D4's hair_color are NA.
+starwars
+
+nrow(starwars)
+```
+
+```{r}
+# Goodbye to those rows! Now we skip right from Luke to Darth Vader.
+starwars %>% 
+  drop_na(hair_color)
+
+starwars %>% 
+  drop_na(hair_color) %>% 
+  nrow()
+```
+
+* Here's the same operation accomplished with `filter()`:
+
+```{r}
+starwars %>% 
+  filter(!is.na(hair_color))
+```
+
+* If you do not give `drop_na()` any column names, it will assume you want it to apply to ALL column names.
+
+```{r}
+example = tibble(
+  col1 = c(NA, 2, 3, 4),
+  col2 = c(1, NA, 3, 4),
+  col3 = c(1, 2, NA, 4),
+  col4 = c(1, 2, 3, 4)
+)
+
+example
+
+example %>% drop_na()
+```
+
+---
+
+##### EXERCISE: dplyr in Translation
+
+* Real conversations with non-coders will often not use the name of the verb; you will have to take their conversational speech and "translate" it into commands.
+
+* Pretend your boss is looking at your computer at the `produce` dataframe with you and making the following requests. **Write code** to respond to your boss's requests.
+
+* *"Show me just the fruits."*
+
+```{r}
+# Live Coding
+```
+
+
+* *"Can you put whether it's a fruit or vegetable at the beginning?"*
+
+```{r}
+# Live Coding
+```
+
+
+* *"I only care about the food name and the total cost, can you get rid of everything else?"*
+
+```{r}
+# Live Coding
+```
+
+
+* *"Can you put the foods in alphabetical order so apple is first?"*
+
+```{r}
+# Live Coding
+```
+
+
+* *"Can you give each food a sale price that's half off the normal price?"*
+
+```{r}
+# Live Coding
+```
+
+
+---
+
+## summarize()
+
+* `summarize()` is entirely different from the previous column and row editors, in that it will edit the content and number of both rows AND columns. 
+
+> `summarize()` computes "summary expressions" which each take a column or columns and reduce them to one number. 
+
+* Just like `mutate()`, summarize takes a list of arguments in the form `newColumnName = expression`.
+
+* However, the key difference is that `mutate()` creates a new column the same length as the existing ones. `summarize()` computes expressions which **reduce a column down to just one value**.
+
+* It is important to understand going into `summarize()` whether you want a single number of output or a column the same length as the input.
+
+* As a reminder, here are some examples of operators which will return vectors the SAME length as the input.
+
+```{r}
+primeNumbers = c(2, 3, 5, 7, 11)
+fibonacciNumbers = c(0, 1, 1, 2, 3)
+
+primeNumbers + fibonacciNumbers
+
+primeNumbers^2
+
+primeNumbers > fibonacciNumbers
+
+```
+
+* And here are some functions which take a vector of numbers and return a SINGLE number, no matter the length of the input.
+    + I often call these *reducing functions*, or *summarizing functions*.
+
+```{r}
+sum(primeNumbers)
+
+max(fibonacciNumbers)
+
+mean(primeNumbers)
+```
+
+* Back to `summarize()`; the `expression` on the right side of each pair must be a *reducing function* of an existing column or columns.
+
+```{r}
+produce %>% 
+  summarize(totalCost = sum(cost),
+            totalTax = sum(sales_tax))
+```
+
+* Notice some important results of `summarize()`:
+    - We have lost every existing column, and are left with ONLY the ones we created in `summarize()`
+    - We have lost all of the specific information of the dataframe, and now only have a summary of the original
+    
+* One might wonder why this command is helpful, because what we just did can also be achieved with:
+
+```{r}
+sum(produce$cost)
+sum(produce$sales_tax)
+```
+
+* `summarize()` in particular becomes much more useful when combined with `group_by`, which we are about to see.
+
+# group_by and Combining Dplyr Commands
+
+* `group_by` is unique in that it does not change ANY content of the dataframe; not the number, order, or content of rows, nor columns.
+
+> `group_by` serves as an instruction for future commands, to evaluate expressions within each group, rather than across the whole dataframe.
+
+* The only thing `group_by()` does is set the "grouping" property of the dataframe behind the scenes, not changing any of the content.
+
+* Notice the `Groups: type [2]` at the top of the following output. This is because there are two different values in the column `type`.
+
+```{r}
+produce %>% 
+  group_by(type)
+```
+
+* Let's say you wanted to find the average `price` of the fruits in the dataframe, and the average `price` of vegetables in the dataframe.
+
+* A naive, but reasonable, approach:
+
+```{r}
+produce %>% 
+  filter(type == "fruit") %>% 
+  summarize(totalCost = sum(cost))
+
+produce %>% 
+  filter(type == "vegetable") %>% 
+  summarize(totalCost = sum(cost))
+```
+
+* You can see how this would become tedious if you had more than two groups, or you wanted to calculate more than one thing. 
+
+* Furthermore, also notice that we are doing exactly the same operation; `summarize(averagePrice = mean(price))`; within each group. 
+
+* `group_by(g)` tells future commands that they should evaluate expressions within each group defined by `g`.
+    - So, `group_by(type)`, followed by a command with an expression, will compute that expression among all the `type == "fruit"` rows, and then separately among all the `type == "vegetable"` rows.
+
+```{r}
+produce %>% 
+  group_by(type) %>%
+  summarize(averagePrice = mean(price))
+```
+
+```{r}
+produce %>% 
+  group_by(type) %>% 
+  summarize(averagePrice = mean(price),
+            lowestCost = min(cost),
+            highestCost = max(cost))
+```
+
+* Each *reducing function* is being evaluated within each group, not across the whole dataframe, which was the behavior of `summarize()` without defined groups.
+
+* Notice that after `summarize()`, the grouping instruction has disappeared. It no longer makes sense to have groups defined, because we only have summary information.
+
+## n(), a helpful reducing function
+
+* In the `group_by() %>% summarize()` workflow, a common and helpful reducing function is `n()`.
+
+> `n()` returns the number of rows in each defined group.
+
+* It takes no arguments; it infers what you want to count by the presence of a previous `group_by`.
+
+```{r}
+produce %>% 
+  group_by(type) %>%
+  summarize(numItems = n(), averagePrice = mean(price))
+  
+```
+
+### count(), a shortcut for n()
+
+> `count(g)` is an optional shortcut for `group_by(g) %>% summarize(n = n())`.
+
+* The flow of `group_by(g) %>% summarize(numRows = n())` is such a common and useful operation that `tidyverse` established the shortcut command `count(g)`.
+
+* `count()` can make your code easier to read; but if you need to calculate other summaries as well, you'll need to use the full `summarize()`.
+
+```{r}
+# Produces the same counts (6 fruits, 4 vegetables) as n() above; increases readability, sacrifices some flexibility.
+
+produce %>% 
+  count(type)
+```
+
+## Extensions of group_by()
+
+* `summarize()` is not the only function which behaves differently with a grouped dataframe; any commands which do any evaluation will obey grouping.
+
+### Applications to mutate()
+
+* Recall that we can give `mutate()` a single number, and it will be extended to the length of the existing columns.
+
+```{r}
+produce %>% 
+  mutate(newColumn = 5) %>% 
+  relocate(newColumn)
+```
+
+* If we provide `mutate()` with a reducing function like `sum(price)` or `min(price)`; the output of that is a single number, so it is very similar to the above operation.
+
+```{r}
+produce %>% 
+  mutate(totalCost = sum(cost)) %>% 
+  relocate(totalCost)
+```
+
+* If we add a `group_by`, we can assign each row a single number; but that single number will be different depending on which group the row is in.
+
+```{r}
+produce %>% 
+  group_by(type) %>% 
+  mutate(totalGroupCost = sum(cost)) %>% 
+  relocate(totalGroupCost)
+```
+
+* This can be useful in determining what percentage of a group a certain row accounts for; you can append the *within-group* sum to each row with a grouping function and `sum` (the denominator of the fraction), and then calculate the *percentage* by dividing the individual row totals by that appended denominator.
+
+```{r}
+produce %>% 
+  group_by(type) %>% 
+  mutate(totalGroupCost = sum(cost),
+         percOfGroupCost = cost/totalGroupCost) %>% 
+  relocate(cost, totalGroupCost, percOfGroupCost) %>% 
+  arrange(type)
+  
+```
+
+### slice_min() and slice_max() 
+
+* A natural question to ask of this dataframe is "What are the most/least expensive item(s)?"
+    - A more general version of this question might be "Which rows have the lowest/highest values of a certain variable?"
+
+> `slice_min()` and `slice_max()` return a specified number of the bottom/top rows by some comparable variable.
+
+* The first argument following the dataframe should be a variable to compare by, or multiple if you want to break ties.
+
+* You must also specify the argument `n`, a certain number of rows to return.
+
+```{r}
+# What are the three most expensive per-unit items?
+
+# three: n = 3
+# most: slice_max, rather than slice_min
+# expensive per-unit: Referring to the highest values in the price column
+
+produce %>% 
+  slice_max(price, n = 3)
+```
+
+* The presence of `group_by()` means the `slice_*` commands will return the top/bottom `n` rows in each group, rather than across the whole dataframe.
+
+* What are the three cheapest items among fruits and among vegetables?
+
+```{r}
+# This will return the three cheapest fruits, AND the three cheapest vegetables separately
+cheapest = produce %>%
+  group_by(type) %>% 
+  slice_min(price, n = 3)
+
+cheapest 
+```
+
+* Note that slicing does not remove the grouping instruction, because we can still have multiple rows per group. 
+
+### ungroup()
+
+> `ungroup()` removes the grouping instruction put there by a previous `group_by()`.
+
+* For example, let's consider the output of the above chunk from the end of the slice section. It still has a grouping instruction on it.
+
+* If we wanted to calculate the total combined cost of the four items in that list, we could not just take the above code and put a `summarize()` after it, because it would obey the grouping instruction.
+
+```{r}
+cheapest %>% 
+  summarize(totalCost = sum(cost))
+```
+
+* Instead, we need to first take away the grouping instruction with `ungroup()` (no arguments).
+
+```{r}
+cheapest %>% 
+  ungroup() %>% 
+  summarize(totalCost = sum(cost))
+```
+
+---
+
+##### EXERCISE: Will it Group?
+
+* Each of the following code chunks contains some code, which has `group_by(type)` commented out.
+
+* For each of the following code chunks:
+    + **Run the chunk** with `group_by` commented out.
+    + **Predict** what, if anything, will change if you include `group_by`.
+    + **Uncomment** `group_by` by removing the hashtag ('#'), run the chunk, and reflect on if you were right!
+
+```{r}
+produce %>% 
+  #group_by(type) %>% 
+  filter(cost > 2)
+```
+
+```{r}
+produce %>% 
+  #group_by(type) %>% 
+  mutate(numberOfItems = n()) %>% 
+  relocate(numberOfItems)
+```
+
+
+```{r}
+produce %>%
+  #group_by(type) %>% 
+  summarize(medianCost = median(cost)) %>% 
+  ungroup()
+```
+
+```{r}
+produce %>% 
+  #group_by(type) %>% 
+  slice_max(quantity, n = 2)
+```
+
+> Technical takeaway: The presence of `group_by()` can drastically change the output of a dplyr workflow.
+
+> Philosophical takeaway: Separating your commands so there is one on each line makes it easier to debug, both by emphasizing the ORDER the commands are in and allowing you to comment out select ones. 
+
+## case_when()
+
+* You now have all the tools you need to perform basic manipulation of dataframes!
+
+* However, our repertoire of tools to transform columns and compute new ones has a gap in it. So far, we know the following tools that we can apply to columns:
+    - Use mathematical operators like `+`, `-`, `*`, `/`, and more
+    - Use logical operators, like `>`, `==`, `&`, and more
+    - Miscellaneous simple, one-to-one functions we've encountered like `sqrt()` and `toupper()`
+
+* Let's illustrate this gap in our knowledge with the following example.
+
+```{r}
+# Every time we run this code, it will give a different order of rows
+# This is meant to mimic real data where if you do things by hand, you'll often have to do them again and again and again when you get new data, whereas if you use a more flexible function, you won't have to.
+
+students = tibble(
+  name = c("A", "B", "C", "D", "E", "F"),
+  age = 17:22
+) %>% 
+  slice_sample(n = 6)
+
+students
+```
+
+* Say I want a new column in this dataframe called `legalStatus`. Here's what I want its values to be:
+
+    - `"Cannot vote nor drink"` if `age` is less than 18.
+    - `"Can vote, can't drink"` if `age` is between 18 and 20.
+    - `"Can vote and drink"` if `age` is greater than 20.
+
+* This type of operation, which involves multiple conditional statements to generate one column based on another, is **extremely common**, but with just our current tools we can't do this automatically.
+    - You could do it by hand for six - but imagine you're working for UW and you have 40,000 records... or you're working for the Census Bureau and you have 300 million records. We need a flexible function for situations like this.
+    
+> `case_when()` creates a new vector based on **specific cases** of the values in an existing vector. (It is often used to create new columns in dataframes.)
+
+* The name for this command comes from how you might describe what it is doing; "In this case, do this. Or, in this case, do this... so on and so forth."
+
+* First, the simple vector operation, not in the context of a dataframe:
+
+```{r}
+case_when(
+  students$age >= 21 ~ "Can vote and drink",
+  students$age >= 18 & students$age <= 20 ~ "Can vote, can't drink",
+  students$age <= 17 ~ "Cannot vote nor drink"
+  )
+```
+
+* To create a new column with these values, simply use `mutate(newColumn = case_when(...))` to line that new vector up next to the existing ones.
+
+```{r}
+students %>% 
+  mutate(legalStatus = case_when(
+  age >= 21 ~ "Can vote and drink",
+  age >= 18 & age <= 20 ~ "Can vote, can't drink",
+  age <= 17 ~ "Cannot vote nor drink"
+  ))
+```
+
+##### Complex Example
+
+* Slightly adapted from the help page for `case_when()`:
+
+```{r}
+starwars %>%
+  select(name:mass, gender, species) %>%
+  mutate(
+    type = case_when(
+      height >= 200 | mass >= 200 ~ "large",
+      species == "Droid" ~ "robot",
+      .default = "other" # .default controls what value to take on when none of the listed conditions are met, like for Luke Skywalker
+    )
+  ) %>% 
+  print(n = 22) # Why is IG-88 at the bottom "large" and not "robot"? Because the conditions evaluate in order!
+```
+
+
+# Lecture Questions
+
+- In this lecture, we will pose a number of questions upon a new dataset and then work interactively to solve as many as we can.
+
+- These questions are intended to be somewhat complex.
+
+## Read in Data
+
+```{r}
+## read in the data
+official = read_csv("../../data/madison-weather-official-1869-2023.csv") %>% 
+  mutate(year = year(date),
+         month = month(date, label = TRUE),
+         day = day(date))
+```
+
+* Take a moment in lecture to browse through the dataset. More information about the columns can be found at Professor Bret Larget's (outdated) Course Notes and Case Studies [here](https://bookdown.org/bret_larget/stat-240-case-studies/madison-weather.html#variables).
+
+## Annual Average Temperature
+
+> Summarize the data to obtain the average temperature (`tavg`) per year. Then, make an effective plot of this data to show patterns over time and variation around the main pattern.
+
+- There were 14 dates with missing `tavg`... what to do about those?
+
+- Our current dataset is one row per `date`; we need to summarize that "up" to one row per `year`.
+
+- Then use last week's concepts to graph the data.
+
+```{r}
+# Live Coding
+```
+
+```{r}
+# Year should be on the x axis, average temperature in that year should be on the y axis. Include points, a connecting line, and a curved trend line. Include proper labels.
+
+```
+
+## Daily Temperature Records
+
+> For each of the 366 unique dates of the year, find the historical date which had the highest maximum temperature on that day of the year. There may be ties, which will lead to slightly more than 366 rows.
+
+- We will have to evaluate which row in `official` has the highest `tmax` within each combination of `month` and `day`.
+
+- We can do that with `group_by`, leading into `slice_max`. 
+
+```{r}
+# Live Coding
+```
+
+## 30-year Period
+
+> Meteorologists often determine weather norms by averaging over a 30-year period. Create a new variable which indicates what 30-year period a given day is part of; starting with 1871-1900, then 1901-1930, up to 1991-2020. You can exclude years before 1871 and after 2020.
+
+```{r}
+# Live Coding
+```
+
+## Temperature by Period
+
+> Then, with that 30-year-period variable you just created, calculate within each of the twelve months within each period (e.g. 1 row for all Januarys in 1871-1900, 1 row for all Februarys in 1871-1900... for each month, for each period) the average, maximum, and minimum of `tavg`.
+
+- Take a moment to make sure you understand what the question is asking for. We have 5 periods and there are twelve unique months in each period (e.g. January 1871 is lumped together with every other January from 1871 - 1900) so we will get 60 rows.
+
+- We'll also need to only keep those rows between 1871 and 2020.
+
+```{r}
+# Live Coding
+```
+
+## Days with Precipitation
+
+> Make a summary table which shows the proportion of days which had any precipitation in each 30-year period + month combination.
+
+```{r}
+# Live Coding
+```
+
+> With a separate panel (facet) for each month, create a column graph of the percentage of precipitation in each 30-year period.
+
+```{r}
+# Live Coding
+```
+
+## Solutions
+
+### Annual Average Temperature
+
+> Summarize the data to obtain the average temperature (`tavg`) per year. Then, make an effective plot of this data to show patterns over time and variation around the main pattern.
+
+```{r}
+# Remove dates with missing tavg
+# Summarize to the level of year
+
+official %>%
+  drop_na(tavg) %>% 
+  group_by(year) %>% 
+  summarize(yearlyTemp = mean(tavg))
+```
+
+```{r}
+# Year should be on the x axis, average temperature in that year should be on the y axis. Include points, a connecting line, and a curved trend line. Include proper labels.
+official %>%
+  drop_na(tavg) %>% 
+  group_by(year) %>% 
+  summarize(yearlyTemp = mean(tavg)) %>% 
+ggplot(aes(year, yearlyTemp)) +
+  geom_point() +
+  geom_smooth() +
+  labs(
+    title = "Madison Temperature Over Time",
+    x = "Year",
+    y = "Average Yearly Temperature"
+  )
+```
+
+- The pattern we see is:
+    - the average temperature increased from about 45.5 degrees Fahrenheit in 1870 up to about 46.8 degrees around 1940.
+    - then, temperatures went down for about 30 years, bottoming out in 1970 at about 45.9 degrees
+    - since then, the average temperature has increased over 2 degrees Fahrenheit
+    - the rate that the average temperature is increasing is accelerating
+
+### Daily Temperature Records
+
+> For each of the 366 unique dates of the year, find the historical date which had the highest maximum temperature on that day of the year. There may be ties, which will lead to slightly more than 366 rows.
+
+```{r}
+official %>% 
+  mutate(
+    year = year(date),
+    month = month(date),
+    day = day(date)
+  ) %>% 
+  group_by(month, day) %>% 
+  slice_max(tmax, n = 1)
+```
+
+
+### 30-year Period
+
+> Meteorologists often determine weather norms by averaging over a 30-year period. Create a new variable which indicates what 30-year period a given day is part of; starting with 1871-1900, then 1901-1930, up to 1991-2020. You can exclude years before 1871 and after 2020.
+
+```{r}
+official_withPeriod = official %>%
+  filter(year >= 1871 & year <= 2020) %>% 
+  mutate(
+    period30 = case_when(
+    year >= 1871 & year <= 1900 ~ "1871-1900",
+    year >= 1901 & year <= 1930 ~ "1901-1930",
+    year > 1930 & year <= 1960 ~ "1931-1960",
+    year > 1960 & year <= 1990 ~ "1961-1990",
+    year > 1990 & year <= 2020 ~ "1991-2020"
+  ))
+
+official_withPeriod %>% 
+  count(period30)
+```
+
+
+### Temperature by Period
+
+> Then, with that 30-year-period variable you just created, calculate within each of the twelve months within each period (e.g. 1 row for all Januarys in 1871-1900, 1 row for all Februarys in 1871-1900... for each month, for each period) the average, maximum, and minimum of `tavg`.
+
+```{r}
+official_withPeriod %>%
+  drop_na(tavg) %>% 
+  group_by(period30, month) %>% 
+  summarize(avgTemp = mean(tavg),
+            maxTemp = max(tavg),
+            minTemp = min(tavg))
+```
+
+### Days with Precipitation
+
+> Make a summary table which shows the proportion of days which had any precipitation in each 30-year period + month combination.
+
+```{r}
+official_withPeriod %>% 
+  mutate(month = month(date)) %>% 
+  group_by(period30, month) %>% 
+  summarize(daysWPrcp = sum(prcp > 0),
+            totalDays = n(),
+            proportion = daysWPrcp / totalDays)
+```
+
+> With a separate panel (facet) for each 30-year period, create a column graph of the percentage of precipitation in each month.
+
+```{r}
+official_withPeriod %>% 
+  group_by(period30, month) %>% 
+  summarize(daysWPrcp = sum(prcp > 0, na.rm = T),
+            totalDays = n(),
+            proportion = daysWPrcp / totalDays) %>% 
+  ggplot(aes(month, proportion)) +
+  geom_col() +
+  facet_wrap(vars(period30))
+```
