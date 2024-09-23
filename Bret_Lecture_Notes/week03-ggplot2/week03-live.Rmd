@@ -24,6 +24,15 @@ library(tidyverse)
 
 ```{r}
 mendota = read_csv("../../data/lake-mendota-winters-2024.csv")
+
+### Add a century variable
+mendota = mendota %>% 
+  mutate(century = as.character(floor(year1/100)+1),
+         century = case_when(
+           century == "19" ~ "19th",
+           century == "20" ~ "20th",
+           century == "21" ~ "21st"
+         ))
 ```
 
 ### Small example
@@ -59,5 +68,178 @@ ggplot(data = mendota,
   geom_line() + 
   geom_point(color = "red") +
   geom_smooth(se = FALSE)
+```
+
+### More on aes() and layers
+
+```{r}
+ggplot(data = mendota, mapping = aes(x = year1, y = duration) ) +
+  geom_point()
+
+ggplot(data = mendota, mapping = aes(x = year1, y = duration) ) +
+  geom_point(size = 5, color = "red")
+
+ggplot(mendota, aes(x = year1, y = duration, color = intervals) ) +
+  geom_point()
+```
+
+```{r}
+ggplot(mendota, aes(
+    x = year1, 
+    y = duration, 
+    color = as.character(intervals)
+    ) # this parentheses ends the aes() call
+  ) + # this parentheses ends the ggplot() call
+  geom_point()
+```
+
+```{r, eval = FALSE}
+### This fails because geom_line() has no aes()
+ggplot(mendota) +
+  geom_point(
+    aes(x = year1, 
+    y = duration, 
+    color = as.character(intervals))) +
+  geom_line()
+    
+```
+
+```{r}
+ggplot(mendota, aes(x = year1, y = duration)) + 
+  geom_line(col = "red") +
+  geom_point(size = 2, col = "blue")
+```
+
+```{r}
+ggplot(mendota, aes(x = year1, y = duration, color = intervals) ) +
+  geom_line(linewidth = 7) +
+  geom_point(size = 0.5)
+```
+
+```{r}
+ggplot(mendota, aes(x = year1, y = duration) ) + 
+  geom_line(size = 2) + 
+  geom_point(mapping = aes(color = intervals), size = 4) 
+```
+
+```{r}
+ggplot(mendota, aes(x = year1, y = duration) ) + 
+  geom_point(mapping = aes(size = as.factor(intervals)))
+```
+
+### geom_smooth()
+
+```{r}
+ggplot(data = mendota, mapping = aes(x = year1, y = duration) ) +
+  geom_point()
+```
+
+```{r}
+ggplot(data = mendota, mapping = aes(x = year1, y = duration) ) +
+  geom_point() +
+  geom_smooth()
+```
+
+```{r}
+ggplot(data = mendota, mapping = aes(x = year1, y = duration) ) +
+  geom_point() +
+  geom_smooth(se = FALSE) ## no ribbon
+```
+
+```{r}
+ggplot(data = mendota, mapping = aes(x = year1, y = duration) ) +
+  geom_point() +
+  geom_smooth(se = FALSE, method = "lm")
+```
+
+### alpha
+
+```{r}
+ggplot(mendota, aes(x = year1, y = duration)) +
+  geom_smooth(alpha = 1) +
+  geom_point(alpha = 0.5, size = 3) +
+  geom_line(alpha = 0, linewidth = 3)
+  
+```
+
+### One Variable Plots
+
+#### Histograms
+
+```{r}
+ggplot(mendota, aes(x = duration)) + 
+  geom_histogram()
+```
+
+```{r}
+ggplot(mendota, aes(x = duration)) + 
+  geom_histogram(
+    color = "steelblue4",
+    fill = "skyblue1"
+  )
+```
+
+```{r}
+ggplot(mendota, aes(x = duration)) + 
+  geom_histogram(
+    binwidth = 10,
+    boundary = 100,
+    color = "steelblue4",
+    fill = "skyblue1"
+  ) +
+  
+  # This is just labelling the x-axis to make it clearer where the bins are. Read more about it in Deeper Customization.
+  scale_x_continuous(breaks = seq(30, 160, by = 10))
+```
+
+
+```{r}
+ggplot(mendota, aes(x = duration)) + 
+  geom_histogram(
+    binwidth = 10,
+    center = 100,
+    color = "steelblue4",
+    fill = "skyblue1"
+  ) +
+  
+  # This is just labelling the x-axis to make it clearer where the bins are. Read more about it in Deeper Customization.
+  scale_x_continuous(breaks = seq(30, 160, by = 10))
+```
+
+### Density Plots
+
+```{r}
+ggplot(mendota, aes(duration)) +
+  geom_density(
+    # Notice the same border-inside coloring scheme with color vs. fill
+    color = "red4",
+    fill = "red", # Default is totally clear, no fill color
+    size = 2
+  ) +
+  geom_hline(yintercept = 0, size =2)
+```
+
+```{r}
+ggplot(mendota, aes(duration)) +
+  geom_histogram(
+    aes(y = after_stat(density)), # This line shrinks the histogram's height to be on the same scale as geom_density; out of scope of this course, no need to worry about it
+    color = "steelblue4",
+    fill = "skyblue1",
+    center = 100,
+    binwidth = 10
+  ) +
+  geom_density(
+    color = "red4",
+    fill = "red1",
+    alpha = 0.3, # Transparency... the density plot is "on top"
+    size = 2
+  )
+```
+
+### Boxplots
+
+```{r}
+ggplot(mendota, aes(x = duration)) +
+  geom_boxplot()
 ```
 
