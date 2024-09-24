@@ -1,0 +1,234 @@
+---
+title: "Homework 1"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message=FALSE, error = TRUE)
+library(tidyverse)
+```
+
+# Preliminaries
+
+- This file should be in `STAT240/homework/hw01` on your local computer.
+
+While you should create your answers in the .Rmd file, homework problems are better formatted and therefore easier to read in the .html file. We recommended frequently knitting and switching between the two as you read and solve problems.
+
+# Problem 1
+
+Consider a vector `a` which has three numeric elements, a vector `b` which has two numeric elements, and a single number on its own, `c`.
+
+For each of the following operations, write down **how many elements long the output will be**.
+
+*We encourage you to think through the question first and make an initial guess, then check your work in the console.*
+
+*For an extra challenge, think through which command will throw a warning message.*
+
+1.A. `a + c`
+
+> This command will return 3 numeric element(s).
+
+```{r}
+a = 1:3
+b = 1:2
+c = 1
+```
+
+```{r}
+a + c
+```
+
+1.B. `sum(a)`
+
+> This command will return 1 numeric element(s).
+
+```{r}
+sum(a)
+```
+
+1.C. `sum(a * c)`
+
+> This command will return 1 numeric element(s).
+
+```{r}
+sum(a + c)
+```
+
+
+1.D. `a + b`
+
+> This command will return 3 numeric element(s).
+
+```{r}
+a + b
+```
+
+
+1.E. `sum(a) + b`
+
+> This command will return 2 numeric element(s).
+
+```{r}
+sum(a) + b
+```
+
+
+# Problem 2
+
+**Create** a vector of all the whole numbers from 1 to 50 (including the endpoints), and **save** it in a new variable called `firstFifty`.
+
+```{r}
+# Write your code here
+firstFifty = 1:50
+```
+
+# Problem 3
+
+**Compute** the mean of `firstFifty`.
+
+Then, **create** a new vector which is the result of subtracting that mean from each value in `firstFifty`.
+
+Finally, take the **sum** of that resulting vector.
+
+Let that sum be **printed as output**, do not save it as a variable.
+
+```{r}
+# Write your code here
+sum(firstFifty - mean(firstFifty))
+```
+
+*Note: This result is not just a special case with these specific numbers, this process will return that sum for any vector!*
+
+# Problem 4
+
+**Compute** the **standard deviation** of `firstFifty` **without** using the `sd` command. Let this single number be **printed as output**.
+
+To compute the standard deviation, execute the following steps in this order:
+
++ Compute the mean of `firstFifty` and subtract it from every element in `firstFifty`, as in the previous question.
+
++ Square every element in that vector.
+
++ Take the sum of that new squared vector; this should be close to 10,400.
+
++ Divide that number by (the length of the vector minus 1). You can obtain the length of firstFifty with `length(firstFifty)`. Don't forget parentheses & order of operations!
+
++ Finally, take the square root (`sqrt()`) of the number you got from the previous step.
+
+The mathematical notation for this is:
+
+$$
+\sqrt{\frac{\sum_{i=1}^n{(x_i - \bar{x})^2}}{n-1}}
+$$
+
+... where $x$ is your vector of interest, in this case `firstFifty`, $n$ is the length of $x$, and $\bar{x}$ is the mean of $x$. 
+
+```{r}
+# Write your code here!
+
+# Step by step answer
+meanFF = mean(firstFifty)
+deviations = firstFifty - meanFF
+squaredDeviations = deviations^2
+sumSquaredDeviations = sum(squaredDeviations)
+insideFraction = sumSquaredDeviations/(length(firstFifty) - 1)
+finalAnswer = sqrt(insideFraction)
+
+finalAnswer
+```
+
+```{r}
+# Single line answer
+sqrt(sum((firstFifty - mean(firstFifty))^2)/(length(firstFifty)-1))
+```
+
+We encourage you to use `sd(firstFifty)` to check your work.
+
+# Problem 5
+
+We have provided you below with a vector containing all of the prime numbers from 1 to 50.
+
+```{r}
+# We have written this code for you, do not edit it
+primes = c(2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47)
+```
+
+**Create** a vector of logical elements - that is, `TRUE`s and `FALSE`s; which indicates whether each of the elements in `firstFifty` is a prime number.
+
+Let this vector be **printed as output**, do not save it as a variable.
+
+*Hint: Use the `%in%` operator!*
+
+```{r}
+# Write your code here
+firstFifty %in% primes
+```
+
+# Problem 6
+
+Below we demonstrate the function `toupper`, applied to the built-in R vector `letters` (all 26 lowercase letters from "a" to "z").
+
+```{r}
+letters
+
+toupper(letters)
+```
+
+**Find sentences** from the help page for `toupper` (which you can access with `?toupper`) to answer the following questions:
+
+6.A. What do `toupper` and the closely related `tolower` do?
+
+> Translate characters in character vectors, in particular from upper to lower case or vice versa.
+
+6.B. What do `toupper` and `tolower` do to **non-alphabetic characters**?
+(*Hint: Try using the "Find in Topic" box in the top bar of the help page, or click on the help page and use Ctrl+F on Windows/Command+F on Mac!*)
+
+> In the second paragraph of "Details": Non-alphabetic characters are left unchanged.
+
+# Problem 7
+
+**Create** a dataframe using the `tibble()` command with five columns:
+
+- The first column should be called `char`, and contain the 26 values of `letters`,
+    
+- The second column should be called `pos`, and contain the whole number values 1, 2, ..., 25, 26.
+    
+- The third column should be called `isVowel`, and should contain 26 logical values according to whether `char` in that row is one of "a", "e", "i", "o", or "u" or not. *We won't consider "y" as a vowel for simplicity.*
+     
+- The fourth column should be called `isPrime`, and should contain 26 logical values according to whether `pos` in that row is a prime number (or not).
+
+- The fifth column should be called `vowelAndPrime`, and should contain 26 logical values; `TRUE` when that row has both a vowel and a prime number, and `FALSE` otherwise. *Hint: Use `&`!*
+
+**Save** this dataframe in a new variable called `alphanumeric`.
+
+```{r}
+# Write your code here!
+alphanumeric = tibble(
+  char = letters,
+  pos = 1:26,
+  isVowel = char %in% c("a", "e", "i", "o", "u"),
+  isPrime = pos %in% primes,
+  vowelAndPrime = isVowel & isPrime
+)
+```
+
+# Problem 8
+
+Once you have created `alphanumeric` in Problem 7, uncomment (delete the #) the lines of code in the following chunk and run it.
+
+```{r}
+alphanumeric
+
+print(alphanumeric, n = Inf)
+```
+
+* Notice that `print` with the `n = Inf` output is specifying to print ALL (`Inf` = infinity) rows of the data frame, whereas just calling `alphanumeric` on its own defaults to 10 rows being printed.
+
+Looking at this output, **Which vowel(s) are in a prime number position? In other words, in which rows is `vowelAndPrime` TRUE?**
+
+> "e" is the only vowel which is in a prime number position (5).
+
+# Submission
+
+Once you have finished all the problems above, **knit** this file and submit **BOTH the .Rmd and .html files on Canvas!**
+
