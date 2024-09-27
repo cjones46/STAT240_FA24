@@ -60,8 +60,8 @@ Your first two rows should look like this if you did it correctly. (Column order
 ```
     year n_discovered minimum_mass
    <dbl>        <int>        <dbl>
- 1  1998            1       723.  
- 2  1999            2       232. 
+ 1  1999            1       232.  
+ 2  2001            1      1392.  
 ```
 
 # Problem 3
