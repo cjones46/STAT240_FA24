@@ -1,0 +1,517 @@
+---
+title: "STAT 240: tidyr"
+author: "Cameron Jones"
+date: "Fall 2024"
+output: rmdformats::readthedown
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
+                      error = TRUE)
+
+library(tidyverse)
+```
+
+# Overview
+
+## Learning Outcomes
+
+* These lectures will teach you how to:
+  - Join datasets together in various ways
+  - Pivot datasets between wide and long formats
+## Preliminaries
+
+1. Download the file `week05-joinAndPivot.Rmd` into `STAT240/lecture/week05-joinAndPivot`.
+  
+# Introduction
+
+- Our last main unit was on manipulating dataframes with `dplyr`, particularly with `group_by()`, `mutate()`, and `summarize()`.
+
+- In this lecture series we add two more tools to our data manipulation toolbox; joining two dataframes together
+
+- Finally, we will add a `tidyr` tool to our repertoire; **pivoting** datasets.
+
+# Joining Datasets
+
+- There are two categories of `*_join`, each of which has multiple commands within it; the **mutating joins**, which combine columns (hence the name) and the **filtering joins**, which keep/delete rows based on matching status.
+
+## Mutating Joins
+
+> The four mutating joins, `left_join`, `right_join`, `inner_join`, and `full_join`, **append** columns from multiple datasets together into one dataframe.
+
+* The "mutating" joins are named so because they are **adding columns**, just like `mutate()` from `dplyr`.
+
+- These commands require three things:
+    - The first two arguments are the **two dataframes to merge** together.
+    - The third is the **name(s) of the column(s) which connects the two dataframes**, as the `by` argument, via a call to `join_by()`.
+        - These commands can sometimes guess what you mean if you don't specify `by`, but it is best practice to specify it.
+        
+- Consider the mock dataframes below.
+
+```{r drinks-discounts}
+drinks = tibble(
+  Row = 1:4,
+  Drink = c("Milk Tea", "Espresso", "Latte", "Espresso"),
+  Cafe = c("Happy Tea", "Daily Grind", "Daily Grind", "Bev's Beverages"),
+  Price = c(4, 2, 3, 2)
+)
+
+drinks
+
+discounts = tibble(
+  Row = 1:3,
+  Coupon = c("25%", "50%", "5%"),
+  Cafe = c("Happy Tea", "Daily Grind", "The Roast")
+)
+
+discounts
+```
+
+- The values in `Cafe` in `drinks` match up with the values in `Cafe` in `grocery_prices`, so we will add the argument `by = join_by(Cafe)` to the join we end up using.
+    
+- Some of these commands may result in missing values; In this case, the default is to plug in `NA`, but you can optionally specify this as well.
+    
+### left_join
+
+> `left_join(x, y)` keeps all the rows in `x`  regardless of matching, and appends columns where possible from `y`.
+
+- I like to conceptualize this as: `left_join` nails the `x` dataframe up on the wall; the values in that dataframe are staying put, no matter what.
+
+- We then look to `y`, and add the named columns of `y` (except the matching one, which is by definition already there) to `x`. 
+
+- We don't just blindly take the column in `y` as is and append it, though; we match up the values based on the appropriate matching column in `x` (the `by` argument).
+
+
+```{r}
+# As a reminder
+drinks
+```
+
+```{r}
+discounts
+```
+
+```{r}
+left_join(x = drinks, y = discounts, by = join_by(Cafe))
+```
+
+- Notice some important results:
+    - Where did `Row.x` and `Row.y` come from? Both dataframes had a column called `Row`, but we can't have two columns with the same name, so it changes the first one (from `drinks`, the `x` argument to `left_join`) to `Row.x`, and the second one (from `discounts`) to `Row.y`.
+    
+    - We told `left_join` to match rows by `Cafe`. The second and third row of `drinks` both had "Daily Grind" as their `Cafe` value. The second row of `discounts` has "Daily Grind" as its `Cafe`.
+        + Because `x` is nailed to the wall, that second row of `discounts` is appended to both. **There does not have to be a one-to-one correspondence between rows in the two dataframes.**
+    
+    - `left_join` keeps everything in `x` and appends values from `y` where applicable. Row 4 in `drinks` has a `Cafe` called "Bev's Beverages", but that `Cafe` does not appear in `discounts`, so its value of `Row.y` and `Coupon` are `NA`.
+    
+- This is how we are more likely to visually structure the above code:
+
+```{r}
+# Notice the addition of the pipe, and the removal of the arguments names; they are always going to be x, y, by.
+drinks %>% 
+  left_join(discounts, join_by(Cafe))
+```
+
+### right_join
+
+> `right_join(x, y)` keeps all the rows in `y` regardless of matching, and appends columns where possible from `x`.
+
+* This definition is very similar to `left_join`; in fact, `right_join(x, y)` is the same as `left_join(y, x)`. `right_join` just pins the second dataframe up on the wall instead of the first.
+
+* It is just a convenient shortcut if you prefer to think of the first dataframe being added to the second, rather than the second being added to the first.
+
+* Notice that we can achieve the same result as we did with `left_join`.
+
+```{r}
+discounts %>% 
+  right_join(drinks, join_by(Cafe))
+```
+
+#### Sidenote: Matching by Columns with Different Names
+
+- Sometimes, the two columns you want to match by do NOT have the same name.
+
+- For instance, say the `Cafe` column in `discounts` was instead called `Location`.
+
+```{r}
+discounts2 = discounts %>% 
+  rename(Location = Cafe)
+
+discounts2
+```
+
+- We can't use `join_by(Cafe)` anymore because that column is called `Location` in `discounts2`.
+
+- If we let R try to guess what we mean WITHOUT providing the `by` argument..
+
+```{r}
+right_join(discounts2, drinks)
+```
+
+- **The joins will by default match on any columns with the same name in `x` and `y`.**
+
+- Uh-oh! It matched by `Row`, since that was a column we had in both dataframes. `Row == 3` matched "The Roast" with "Daily Grind". That's not correct.
+
+* If we have no columns in common, you will get an error:
+
+```{r, error = TRUE}
+discounts2 %>% 
+  select(-Row) %>% 
+  right_join(drinks)
+```
+
+- The `join_by` function, as the `by` argument, has an easy solution for columns with the same information but different names. `join_by` will accept a pair of the form `columnNameInX == columnNameInY`.
+
+```{r}
+# discounts2 is "x", the first dataframe (recall how the pipe works), and its column is called Location
+# drinks is "y", the second dataframe, and its column is called "Cafe".
+discounts2 %>% 
+  right_join(drinks, join_by(Location == Cafe))
+```
+
+- Now we are matching correctly.
+
+- Of course, you could always just rename the problematic column as well.
+
+```{r}
+discounts2 %>% 
+  rename(Cafe = Location) %>% 
+  right_join(drinks, join_by(Cafe))
+```
+
+### full_join
+
+> `full_join(x, y)` keeps ANY row which appears in either dataframe.
+
+* Because `full_join` keeps all rows in both dataframes, the order you specify the columns in doesn't matter.
+
+* Think of performing a `left_join`, but then anything that doesn't match from `y` also gets added to the bottom.
+
+```{r}
+# Back to "discounts", so we can use join_by(Cafe) again
+left_join(drinks, discounts, join_by(Cafe))
+```
+
+```{r}
+# Notice the last row of discounts added to the bottom; "The Roast" didn't match anything of the Cafes in drinks, left_join would ignore it, but full_join includes it.
+full_join(drinks, discounts, join_by(Cafe))
+```
+
+* There is still a `join` happening; don't fall into the trap of thinking that `full_join` is just stacking two dataframes on top of each other vertically. That's a fully separate command called `bind_rows`.
+
+```{r}
+# Notice how there is NO matching by Row or Cafe, just stacked them one on top of the other.
+bind_rows(drinks, discounts)
+```
+
+### inner_join
+
+> `inner_join(x, y)` only keeps those rows which appear in BOTH `x` and `y`.
+
+* Whereas `full_join` keeps ALL rows, regardless of matching, `inner_join` keeps only those rows which match in both dataframes.
+    - Once again, order does not matter in `inner_join`. (Though in this example, the order manifests itself in the names of `Row.x` and `Row.y`.)
+
+```{r}
+drinks %>% 
+  inner_join(discounts, join_by(Cafe))
+```
+
+
+---
+
+##### EXERCISE: Predict the Join Result
+
+- This exercise will ask you to **predict** the result of the following code, which joins two example dataframes in various ways.
+
+- `band_instruments` and `band_members` are two dataframes built into `dplyr` specifically for you to practice joining.
+
+```{r}
+band_instruments
+```
+
+```{r}
+band_members
+```
+
+- **Sketch out** what you think the result of each of the following commands will be; then uncomment and run them to see if you were right!
+
+- In particular: **How many rows will there be? What will the column names be? Will there be any NA values?**
+
+```{r}
+#left_join(band_instruments, band_members, join_by(name))
+```
+
+```{r}
+# full_join(band_instruments, band_members, join_by(name))
+```
+
+```{r}
+# I did not specify a join_by(). Will it still work? Which column(s) will it match by default?
+
+#inner_join(band_instruments, band_members)
+```
+
+> Technical takeaway: The various `join` commands keep rows or columns in various different ways, sometimes filling in missing values with NA or sometimes getting rid of those rows entirely.
+
+> Philosophical takeaway: When trying to comprehend mutating joins of larger datasets, start with just a few rows and try tracing where you think a specific value will end up.
+
+---
+
+## Filtering Joins
+
+> The two filtering joins, `semi_join` and `anti_join`, **filter** rows of one dataframe based on whether or not they appear in the other.
+
+* Filtering joins are named such because they **keep and remove rows**, just like `dplyr`'s `filter`.
+
+### semi_join
+
+> `semi_join(x, y)` returns all rows of `x` which have a match in `y` according to the `by` argument.
+
+* For example: which drinks do I have a discount for?
+
+```{r}
+drinks %>% 
+  semi_join(discounts, join_by(Cafe))
+```
+
+* Notice that no information from `discounts` has entered the dataframe; this is not a *mutating* join.
+
+* Notice that the output of the above is only rows from `drinks`; similar to some hypothetical command `drinks %>% filter(has a match in y according to the "by" argument)`.
+
+* If we were to instead run `inner_join`, we would get a similar structured dataframe; however:
+    - `Coupon` from `discounts` is now present
+    - The duplicate columns `Row` have had suffixes added to indicate which dataframe they are from
+
+```{r}
+drinks %>% 
+  inner_join(discounts, join_by(Cafe))
+```
+
+* Finally, unlike `inner_join`, the order of `semi_join` does matter, because it STARTS with `x`, as described in the first definition, and then keeps any rows which have a match.
+
+* Which of my coupons apply to cafes that I go to? 
+
+```{r}
+discounts %>% 
+  semi_join(drinks, join_by(Cafe))
+```
+
+* Notice these are rows from `discounts`, not rows from `drinks`, because `discounts` was first.
+
+### anti_join
+
+> `anti_join(x, y)` is the opposite of `semi_join(x, y)`; it returns all rows from `x` which do NOT match anything in `y` according to the `by` argument.
+
+* Which drinks do I NOT have a coupon for?
+
+```{r}
+drinks %>% 
+  anti_join(discounts, join_by(Cafe))
+```
+
+* Which of my coupons do NOT apply to places I go to?
+
+```{r}
+discounts %>% 
+  anti_join(drinks, join_by(Cafe))
+```
+
+---
+
+##### EXERCISE: Predict the Filtering Join Output
+
+* Revisit the `band_members` and `band_instruments` built-in dataframes from the previous exercise.
+
+* **Predict** the output of the following filtering joins, then uncomment and run them to see if you were right!
+
+```{r}
+band_members
+```
+
+```{r}
+band_instruments
+```
+
+```{r}
+#semi_join(band_members, band_instruments, join_by(name))
+```
+
+```{r}
+# Switched order of band_instruments and band_members
+#semi_join(band_instruments, band_members, join_by(name))
+```
+
+```{r}
+#anti_join(band_members, band_instruments, join_by(name))
+```
+
+
+> Technical takeaway: Reinforce definitions of `semi_join` returning rows of `x` which match `y` by the `by` argument, and `anti_join` returning rows of `x` which do NOT match `y` by the `by` argument.
+
+> Philosophical takeaway: `anti_join` returns all of the rows of `x` that `semi_join` doesn't. Neither of them add any columns from `y`.
+
+# Pivoting
+
+* We now move on to a distinct data manipulation principle called **pivoting**.
+
+> Pivoting, with `pivot_longer()` or `pivot_wider()`, changes the SHAPE of the dataframe, but does not add or take away any information; it is just a restructuring.
+
+> `pivot_longer()` and `pivot_wider()` are inverses of each other, like addition and subtraction.
+
+## Longer vs. Wider
+
+* For an example of what we mean by longer vs. wider, let's work with the following mock dataset called `players`.
+
+```{r}
+players = tibble(
+  player = c("Erling Haaland", "Kevin De Bruyne"),
+  goals = c(36, 7),
+  assists = c(8, 16),
+  games = c(35, 32)
+)
+
+players
+```
+
+* The `players` dataset has one row per player, with information about those players stored across columns. This feels like a natural way to store this data if players are the unit you care about.
+
+* Instead of one row per player, we could alternatively store the **exact same data** as one row for each player-statistic.
+
+```{r}
+players_long = players %>%
+  pivot_longer(-player, names_to = "statistic")
+
+players_long
+```
+
+* Notice how the second dataframe has *more rows* and *less columns* than the first dataframe.
+
+* The columns which used to be called `goals`, `assists`, and `games` have now "pivoted" from their previous horizontal arrangement to a vertical arrangement on top of each other.
+
+* There are now THREE rows per player, because we pivoted three columns. The three old column names have become the *values* of a single new column, `statistic`. The three old column values have become the values of a single new column, `value`. 
+
+* We would summarize this by saying the second dataframe is **longer** than the first, and the first dataframe is **wider** than the second.
+
+* Length and width are relative ideas - neither one is the "correct" way, nor is a single dataset ever "long" or "wide" in the absolute sense. They are only ever *longer* or *wider* than another dataset.
+
+* Here's a helpful animation that I won't dwell on too long, but leave here for your reference.
+
+![](https://fromthebottomoftheheap.net/assets/img/posts/tidyr-longer-wider.gif)
+
+## pivot_longer()
+
+> `pivot_longer()` first requires a dataframe, and then a vector of names of columns as the second argument, which will be pivoted into just two longer columns.
+
+* Let's dive into pivoting `players` to its longer version.
+
+```{r}
+players
+```
+
+* The first argument, like always, is the dataframe upon which to act.
+
+* The second argument is a **vector** of column names.
+    - Unlike `select()` and similar commands, column names must be combined with `c()` or some other vector creation function into a single object to pass into the `cols` argument.
+
+* `pivot_longer()` will by default create two new columns:
+    - `name` contains the old column names
+    - `value` contains the old column values
+
+```{r}
+players %>% 
+  pivot_longer(c(goals, assists, games))
+```
+
+#### Column Specification Tricks
+
+* There are a couple useful tricks so you don't have to list out every single column.
+
+* First, you can specify "every column except" with `-columnName` or `-c(columnName1, columnName2...)`.
+
+```{r}
+# Pivot "every column except" player
+players %>% 
+  pivot_longer(-player)
+```
+
+- You can also use `firstColumnName:lastColumnName` to specify every column between and including the specified two. (This is a useful trick that isn't limited to just the pivoting commands!)
+
+```{r}
+players %>% 
+  pivot_longer(goals:games)
+```
+
+#### names_to and values_to: Optional Renaming Argument
+
+* If you are not satisfied with the new column names, `name` and `value`, `pivot_longer()` offers you the opportunity to rename them with some simple arguments: `names_to` and `values_to`.
+
+* These are **optional**, and just save you a quick call to `rename()`
+
+```{r}
+players %>% 
+  pivot_longer(-player, names_to = "type", values_to = "amount")
+```
+
+## pivot_wider()
+
+> `pivot_wider()` requires a dataframe, a column of names which will each become a new column (the `names_from` argument), and a column of values which will populate those new columns (the `values_from` argument).
+
+* Let's pivot the longer version of `players` back into its original, wider form.
+
+```{r}
+players_long
+```
+
+* We want to create three columns called `goals`, `assists`, and `games`. Those are the values in `name`, which we will pass to the `names_from` argument.
+
+* The values of the new columns (`goals`, `assists`, and `games`) should come from the column currently called `value`; which we will pass to the `values_from` argument.
+
+```{r}
+players_long %>% 
+  pivot_wider(names_from = statistic, values_from = value)
+```
+
+---
+
+##### EXERCISE: Pivoting Practice 
+
+* This exercise will give you practice identifying wide and long data and writing pivoting commands of your own.
+
+* Consider `table1` and `table2`, two built-in dataframes on tuberculosis cases from the World Health Organization.
+
+```{r}
+table1
+```
+
+```{r}
+table2
+```
+
+* **Which** dataset is the wider one? **Which** dataset is the longer one?
+
+* **Complete** the pivoting command which starts with `table1` and produces `table2` (bonus points if you match the column names!)
+
+```{r}
+table1 %>% 
+  pivot_longer(c(cases, population), names_to = "type", values_to = "count")
+```
+
+* **Complete** the pivoting command which starts with `table2` and produces `table1`.
+
+```{r}
+table2 %>% 
+  pivot_wider(names_from = type, values_from = count)
+```
+
+> Technical takeaway: This exercise is meant to reinforce the concept that `pivot_wider()` and `pivot_longer()` are inverses of each other.
+
+> Philosophical takeaway: `pivot_wider()` "stretches" data out horizontally, `pivot_longer()` "stretches" data out vertically.
+
+---
+
+
+
+
+
+
+
+  
