@@ -1,0 +1,176 @@
+---
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, eval = F)
+```
+
+```{r}
+library(tidyverse)
+
+grocery_prices <- read_csv("../../data/grocery-prices.csv")
+grocery_list <- read_csv("../../data/grocery-list.csv")
+
+# We'll learn about left_join later in the "Join Commands" section!
+produce <- grocery_list %>% 
+  left_join(grocery_prices, by = "item") 
+
+produce <- produce %>% 
+    mutate(cost = price * quantity,
+           sales_tax = 0.05 * cost)
+```
+
+
+
+## Solutions
+
+### Produce
+
+"Show me just the fruits."
+
+```{r}
+produce %>%
+  filter(type == "fruit")
+```
+
+
+"Can you put whether it’s a fruit or vegetable at the beginning?"
+
+```{r}
+produce %>%
+  relocate(type)
+```
+
+
+“I only care about the food name and the total cost, can you get rid of everything else?”
+
+```{r}
+produce %>%
+  select(item, cost)
+```
+
+
+“Can you put the foods in alphabetical order so apple is first?”
+
+```{r}
+produce %>%
+  arrange(item)
+```
+
+
+“Can you give each food a sale price that’s half off the normal price?”
+
+```{r}
+produce %>%
+  mutate(sale_price = 0.5 * price) %>%
+  relocate(sale_price, .after = price)
+```
+
+```{r}
+official <- read_csv("../../data/madison-weather-official-1869-2023.csv") %>% 
+  mutate(year = year(date),
+         month = month(date, label = TRUE),
+         day = day(date))
+```
+
+### Annual Average Temperature
+
+> Summarize the data to obtain the average temperature (`tavg`) per year. Then, make an effective plot of this data to show patterns over time and variation around the main pattern.
+
+```{r}
+# Remove dates with missing tavg
+# Summarize to the level of year
+
+annual_temp <- official %>%
+  drop_na(tavg) %>%
+  group_by(year) %>% 
+  summarize(yearly_temp = mean(tavg))
+```
+
+```{r}
+# Year should be on the x axis,
+# average temperature in that year should be on the y axis.
+# Include points, a curved trend line, and proper labels.
+
+annual_temp %>% 
+ggplot(aes(year, yearly_temp)) +
+  geom_point() +
+  geom_smooth() +
+  labs(
+    title = "Madison Temperature Over Time",
+    x = "Year",
+    y = "Average Yearly Temperature"
+  )
+```
+
+### Daily Temperature Records
+
+> For each of the 366 unique dates of the year, find the historical date which had the highest maximum temperature on that day of the year. There may be ties, which will lead to slightly more than 366 rows.
+
+```{r}
+official %>% 
+  group_by(month, day) %>% 
+  slice_max(tmax, n = 1)
+```
+
+
+### 30-year Period
+
+> Meteorologists often determine weather norms by averaging over a 30-year period. Create a new variable which indicates what 30-year period a given day is part of; starting with 1871-1900, then 1901-1930, up to 1991-2020. You can exclude years before 1871 and after 2020.
+
+```{r}
+official_period <- official %>%
+  filter(year >= 1871 & year <= 2020) %>% 
+  mutate(
+    period30 = case_when(
+    year >= 1871 & year <= 1900 ~ "1871-1900",
+    year > 1900 & year <= 1930 ~ "1901-1930",
+    year > 1930 & year <= 1960 ~ "1931-1960",
+    year > 1960 & year <= 1990 ~ "1961-1990",
+    year > 1990 & year <= 2020 ~ "1991-2020"
+  ))
+
+official_period %>% 
+  count(period30)
+```
+
+
+### Temperature by Period
+
+> Then, with that 30-year-period variable you just created, calculate within each of the twelve months within each period (e.g. 1 row for all Januarys in 1871-1900, 1 row for all Februarys in 1871-1900... for each month, for each period) the average, maximum, and minimum of `tavg`.
+
+```{r}
+official_period %>%
+  drop_na(tavg) %>% 
+  group_by(period30, month) %>% 
+  summarize(avg_temp = mean(tavg),
+            max_temp = max(tavg),
+            min_temp = min(tavg))
+```
+
+### Days with Precipitation
+
+> Make a summary table which shows the proportion of days which had any precipitation in each 30-year period + month combination.
+
+```{r}
+official_period %>% 
+  group_by(period30, month) %>% 
+  summarize(days_w_prcp = sum(prcp > 0),
+            total_days = n(),
+            proportion = days_w_prcp / total_days)
+```
+
+> With a separate panel (facet) for each month, create a column graph of the percentage of precipitation in each 30-year period.
+
+```{r}
+official_period %>% 
+  group_by(period30, month) %>% 
+  summarize(days_w_prcp = sum(prcp > 0, na.rm = T),
+            total_days = n(),
+            proportion = days_w_prcp / total_days) %>% 
+  ggplot(aes(period30, proportion)) +
+  geom_col() +
+  facet_wrap(vars(month))
+```
+
