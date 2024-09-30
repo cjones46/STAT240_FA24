@@ -1,0 +1,255 @@
+---
+output: html_document
+---
+
+```{r setup, include = FALSE}
+##   when the tidyverse library is loaded, messages are generated that we do not want to include in the knitted document
+## setting the chunk argument include = FALSE means this chunk is executed, but the text in the chunk and any output do not appear in the knitted document
+
+## The following command sets some options for this R Markdown file
+  ##   echo = TRUE means that the code in R chunks will appear in the knitted document
+  ##   message = FALSE and warning = FALSE mean that messages and warnings do not appear in the final document
+  ##   error = TRUE means the document will continue to knit in the presence of errors while knitting
+  ##   fig.height = 3 means figures are 3 inches tall unless otherwise specified
+knitr::opts_chunk$set(echo = TRUE, message = FALSE,
+                      warning = FALSE,
+                      error = TRUE, fig.height = 3,
+                      fig.width = 4)
+
+library(tidyverse)
+```
+
+
+### Grocery Example
+
+```{r}
+grocery_prices = read_csv("../../data/grocery-prices.csv")
+grocery_list = read_csv("../../data/grocery-list.csv")
+
+produce_orig = grocery_list %>% 
+  left_join(grocery_prices, by = "item") 
+```
+
+### Column changers
+
+#### mutate()
+
+```{r}
+produce = produce_orig %>% 
+    mutate(cost = price * quantity,
+           sales_tax = 0.05 * cost)
+```
+
+
+#### select()
+
+```{r}
+produce %>%
+  select(cost, sales_tax)
+
+produce %>%
+  select(-quantity)
+
+produce %>% 
+  select(starts_with("q"))
+
+produce %>% 
+  select(1:4)
+```
+
+#### relocate()
+
+```{r}
+produce %>% 
+  relocate(price, quantity, cost, sales_tax)
+
+produce %>% 
+  select(price, quantity, cost, sales_tax)
+
+produce %>% 
+  relocate(cost, .after = item)
+
+
+```
+
+
+
+#### rename()
+
+```{r}
+produce %>% 
+  rename(pricePerUnit = price,
+         totalCost = cost)
+```
+
+
+### Row changers
+
+#### arrange()
+
+```{r}
+produce %>% 
+  arrange(cost)
+
+produce %>%
+  arrange(desc(item))
+
+produce %>% 
+  arrange(type, price)
+
+
+```
+
+#### filter()
+
+```{r}
+produce %>% 
+  filter(type == "fruit")
+
+produce %>% 
+  filter(cost > 2 & cost < 5)
+
+produce %>% 
+  filter(between(cost, 2, 5))
+
+produce %>% 
+  filter(cost < 2 | cost > 5)
+
+produce %>% 
+  filter(cost < 2 & cost > 5)
+```
+
+#### Exercises
+
+“Show me just the fruits.”
+
+```{r}
+produce %>% 
+  filter(type == "fruit")
+```
+
+“Can you put whether it’s a fruit or vegetable at the beginning?”
+
+```{r}
+produce %>% 
+  relocate(type)
+```
+
+“I only care about the food name and the total cost, can you get rid of everything else?”
+
+```{r}
+produce %>% 
+  select(item, cost)
+```
+
+“Can you put the foods in alphabetical order so apple is first?”
+
+```{r}
+produce %>% 
+  arrange(item)
+```
+
+“Can you give each food a sale price that’s half off the normal price?”
+
+```{r}
+produce %>% 
+  mutate(sales_price = price / 2) %>% 
+  relocate(sales_price, .after = price)
+
+produce %>% 
+  mutate(sales_price = price / 2, .after = price)
+```
+
+### summarize()
+
+```{r}
+produce %>% 
+  summarize(totalCost = sum(cost),
+            totalTax = sum(sales_tax)) #%>% 
+  #as.data.frame()
+```
+
+### group_by()
+
+```{r}
+produce %>% 
+  group_by(type)
+```
+
+- Find total cost of fruits and vegetables separately
+
+```{r}
+produce %>% 
+  group_by(type) %>% 
+  summarize(totalCost = sum(cost))
+```
+
+- group_by() and mutate() example
+
+Find the % of the cost for each item within the total cost for the type (fruit or vegetable)
+
+```{r}
+prob = produce %>% 
+  group_by(type) %>% 
+  mutate(totalCost = sum(cost), .after = cost) %>% 
+  mutate(pct_cost = 100 *cost / totalCost)
+
+prob %>% 
+  print(width = Inf)
+  
+```
+
+```{r}
+prob2 = produce %>% 
+  group_by(type) %>% 
+  mutate(totalCost = sum(cost), .after = cost) %>% 
+  mutate(pct_cost = 100 *cost / totalCost) %>% 
+  select(item, type, cost, totalCost, pct_cost) #%>% 
+  #ungroup()
+
+prob2
+
+### grouping is still present
+prob2 %>% 
+  summarize(sum = sum(pct_cost))
+
+prob2 %>% 
+  ungroup() %>% 
+  summarize(sum = sum(pct_cost))
+```
+
+### n()
+
+```{r}
+produce %>% 
+  summarize(n = n())
+
+produce %>% 
+  group_by(type) %>% 
+  summarize(n = n())
+
+produce %>% 
+  group_by(type) %>% 
+  summarize(n = n(),
+            total_cost = sum(cost),
+            max_price = max(price),
+            median_tax = median(sales_tax))
+```
+
+### count()
+
+```{r}
+produce %>% 
+  count(type)
+
+produce %>% 
+  count()
+```
+
+### slice
+
+```{r}
+produce %>% 
+  slice_max(quantity)
+```
+
