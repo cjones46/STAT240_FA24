@@ -1,0 +1,288 @@
+---
+title: "Homework 4"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE,
+                      warning = FALSE, error = TRUE,
+                      fig.height = 3)
+library(tidyverse)
+```
+
+# Preliminaries
+
+- This file should be in `STAT240/homework/hw04` on your local computer.
+- You should also download `education.csv` and `obesity.csv` to `STAT240/data` on your local computer.
+
+```{r, echo = FALSE}
+education_original = read_csv("../../data/education.csv")
+obesity = read_csv("../../data/obesity.csv")
+```
+
+**The eventual goal of this assignment is to compare the obesity percentage in each zip code and sex with the college educated percentage. Both dataframes contain data on Wisconsin residents.**
+
+# Problem 1
+
+Every row of `education_original` represents a **zip code** within Wisconsin; a small-ish region that the Postal Office uses for mailing purposes.
+
+`pct_f_bach` represents the percentage of female adults within that zip code that have a bachelor's degree.
+
+`pct_m_bach` represents the percentage of male adults within that zip code that have a bachelor's degree.
+
+```{r}
+head(education_original)
+```
+
+The following chunk is provided for you.
+
+```{r}
+# Do not edit this chunk!
+education_original %>% 
+  summarize(w = n(),
+            x = sum(pct_f_bach > pct_m_bach, na.rm = T),
+            y = mean(pct_f_bach > pct_m_bach, na.rm = T),
+            z = sum(is.na(pct_f_bach) & is.na(pct_m_bach)))
+```
+
+**What do each of these four quantities represent in real terms?** Do not use technical vocabulary. For example, if it was correct, you could write that "w is the percentage of zip codes in which at least half of female adults have a bachelor's degree." 
+
+> `w` is the number of zip codes in Wisconsin.
+
+> `x` is the number of zip codes in which the percentage of women with a bachelors degree is higher than the percentage of men with a bachelors degree.
+
+> `y` is the percentage of zip codes in which the percentage of women with a bachelors degree is higher than the percentage of men with a bachelors degree.
+
+> `z` is the number of zip codes in which both the percentage of women with a bachelors degree and the percentage of men with a bachelors degree are unknown.
+
+# Problem 2
+
+Using `education_original`, create a **scatter plot** with `pct_f_bach` on the x axis and `pct_m_bach` on the y axis. There will be one point for each zip code.
+
+Incorporate the following customizations:
+
+* Add a straight, diagonal, red line with `slope = 1` and `intercept = 0` using `geom_abline()`.
+
+* Improve the x and y axis labels.
+
+```{r}
+ggplot(education_original, aes(pct_f_bach, pct_m_bach)) +
+  geom_point() +
+  geom_abline(color = "red", slope = 1, intercept = 0) +
+  labs(
+    x = "% Women w/ Bach. Degree",
+    y = "% Men w/ Bach. Degree"
+  )
+```
+
+**What do points BELOW this red line (e.g. the bottom/right half) represent in real terms?** 
+
+> Points below the red line represent a zip code in which the percentage of women with a bachelors degree is higher than the percentage of men with a bachelors degree.
+
+# Problem 3
+
+Our goal in this problem is to create a new dataframe called `education_long`. This dataframe will have the columns:
+
+- `zip`
+- `sex`: with values "female" and "male"
+- `pct_bachelors`: The percentage of that sex within that zip code that has a bachelor's degree.
+
+Here are the first few rows of the dataframe we're going for:
+
+```
+     zip sex    pct_bachelors
+   <dbl> <chr>          <dbl>
+ 1 53001 male            13  
+ 2 53001 female          23  
+ 3 53002 male            16.2
+ 4 53002 female          25.4
+```
+
+---
+
+The steps to generate this new dataframe are:
+
+- Start with `education_original`,
+
+- **Drop** any rows that have any missing data anywhere.
+
+- **Pivot** the dataframe such that you have TWO rows per zip code; one for each sex within zip. (*Hint: We have one row per zip code in `education_original`, so the dataset is getting `longer`*)
+
+- Make the **column names** after pivoting: `zip`, `sex`, and `pct_bachelors`. (This can be done either with a `rename()`, or with arguments within `pivot_longer()`.)
+
+- Make the **values** of `sex` "female" and "male" rather than "pct_f_bach" and "pct_m_bach" using `case_when()`. (Alternatively, a slightly easier way could be to `rename()` the columns to `female` and `male` before pivoting; either way is acceptable.)
+
+```{r}
+education_long = education_original %>% 
+  drop_na() %>% 
+  rename(female = pct_f_bach, male = pct_m_bach) %>% 
+  pivot_longer(-zip, names_to = "sex", values_to = "pct_bachelors")
+
+# the case_when would be: 
+
+# mutate(sex = case_when(
+#   sex == "pct_f_bach" ~ "female",
+#   sex == "pct_m_bach" ~ "male"
+# ))
+```
+
+# Problem 4
+
+Right now, the `obesity` data has one row for every zip-sex-age group combination; age groups are 5 years old - 17 years old, 18-34, 35-54, 55-74, and 75+.
+
+We want to obtain a version of the `obesity` dataset we can merge with `education_long` above; so both datasets would have to have one row for every zip-sex combination.
+
+This means we need to `summarize()` the obesity dataset to obtain one row per zip-sex combination, purposefully "smoothing over" all the age group detail we currently have.
+
+The dataset we are trying to obtain will have the following first few rows:
+
+```
+     zip sex    total_pop total_obese_pop_estimate
+   <dbl> <chr>      <dbl>                    <dbl>
+ 1 53001 female       726                     259.
+ 2 53001 male         755                     330.
+ 3 53002 female       977                     369.
+ 4 53002 male        1052                     404.
+```
+
+---
+
+Create a new dataset called `obesity_summary` by executing the following steps:
+
+- Start from `obesity`,
+
+- **Remove** all rows with data about the youngest age group (05-17), since the `education_long` dataset is only about adults, so that would be an unfair comparison.
+
+- Within each row, calculate **obese_percent** by taking `obese/n`. (`n` is the number of people we have data for; `pop` is the total population, so `obese/n` is just an estimate)
+
+- Within each row, calculate **obese_pop_estimate** by taking `obese_percent * pop`.
+
+- **Group and summarize** the data, such that you obtain one row per zip-sex combination (like in `education_long`), with the information:
+    - Total population within that zip-sex combination: call this `total_pop`
+    - Total obese population (estimated) within that zip-sex combination: call this `total_obese_pop_estimate`.
+    
+    - Note that you will have to use `na.rm = T` when summarizing to avoid NAs.
+    
+- **Remove** all rows where there are 0 estimated obese individuals. (*Bonus question: Why didn't we just do this at the beginning? Answer at the bottom of the question.*)
+
+```{r}
+obesity_summary = obesity %>% 
+  filter(age != "05-17") %>% 
+  mutate(
+    obese_percent = obese/n,
+    obese_pop_estimate = obese_percent * pop
+  ) %>%
+  group_by(zip, sex) %>% 
+  summarize(
+    total_pop = sum(pop, na.rm = T),
+    total_obese_pop_estimate = sum(obese_pop_estimate, na.rm = T)
+  ) %>% 
+  filter(total_obese_pop_estimate != 0) 
+
+```
+
+*Answer to bonus question: We needed to know the `pop` from every single row to calculate total population of a zip-sex combo, even if there were no obese people in that row. If we would have cleared out the 0 obese rows early, we would have lost some population.*
+
+# Problem 5
+
+**Create** a new dataframe called `joined` by **joining** `education_long` and `obesity_summary` (note that their rows should match by `zip` and `sex` together) and *only keeping rows that match in both dataframes.*
+
+Your first four rows of `joined` should look like this:
+
+```
+     zip sex    pct_bachelors total_pop total_obese_pop_estimate
+   <dbl> <chr>          <dbl>     <dbl>                    <dbl>
+ 1 53001 male            13         755                     330.
+ 2 53001 female          23         726                     259.
+ 3 53002 male            16.2      1052                     404.
+ 4 53002 female          25.4       977                     369.
+```
+
+*Hint: Just like we can `group_by(zip, sex)`, we can `join_by(zip, sex)`*.
+
+```{r}
+joined = inner_join(education_long, obesity_summary, join_by(zip, sex))
+```
+
+# Problem 6
+
+Using `joined` from the previous problem,
+
+Create a **scatter plot** of points with `pct_bachelors` on the x-axis and percentage obese on the y axis. *You will have to calculate percentage obese for this problem.*
+
+Incorporate the following customizations:
+
+- **Color** the points by sex.
+
+- Improve the **labels** of the x axis, y axis, and legend.
+
+- Add a **single** smooth line showing the trend of the data. (You should not have two different lines by sex!)
+
+```{r}
+joined %>% 
+  mutate(pct_obese = 100*total_obese_pop_estimate/total_pop) %>% 
+ggplot(aes(pct_bachelors, pct_obese)) + 
+  geom_point(aes(color = sex)) +
+  geom_smooth()
+```
+
+What does this graph tell you about the relationship between college education rates and obesity rates?
+
+> As the percentage of adults with a bachelor's degree goes up, the percentage of adults with obesity tends to decrease.
+
+# Problem 7
+
+Use `joined` to compute:
+
+- The percentage of the entire Wisconsin adult population with a bachelor's degree
+- The percentage of the entire Wisconsin adult population with obesity
+
+Let these values **print as output**.
+
+*Hint: You'll need to compute some other quantities along the way, including the number of people with a bachelors in each zip-sex, and the total Wisconsin adult population.*
+
+```{r}
+joined %>% 
+  mutate(num_bachelors = pct_bachelors * total_pop) %>% 
+  summarize(
+    perc_bachelors = sum(num_bachelors)/sum(total_pop),
+    perc_obese = sum(total_obese_pop_estimate)/sum(total_pop)
+  )
+```
+
+It is okay if one percentage is on the 0-1 scale and the other is on the 0-100 scale. You should get the following percentages:
+
+```
+  perc_bachelors perc_obese
+           <dbl>      <dbl>
+1           29.3      0.362
+```
+
+# Problem 8
+
+Use `joined` to compute the same three metrics as the previous problem, but this time, within each group of `sex`.
+
+Let these values **print as output**.
+
+```{r}
+joined %>% 
+  mutate(num_bachelors = pct_bachelors * total_pop) %>% 
+  group_by(sex) %>% 
+  summarize(
+    perc_bachelors = sum(num_bachelors)/sum(total_pop),
+    perc_obese = sum(total_obese_pop_estimate)/sum(total_pop)
+  )
+```
+
+
+You should get the following output:
+
+```
+  sex    perc_bachelors perc_obese
+  <chr>           <dbl>      <dbl>
+1 female           30.4      0.375
+2 male             28.2      0.349
+```
+
+
+
