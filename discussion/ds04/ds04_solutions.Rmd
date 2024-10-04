@@ -1,0 +1,174 @@
+---
+title: "Discussion 4"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+library(tidyverse)
+```
+
+# Preliminaries
+
+- This file should be in `STAT240/discussion/ds04`.
+- You should also download `exoplanets-clean-through-2022.csv` to `STAT240/data`.
+
+- You will need the `scales` package for this assignment; install it with `install.packages("scales")`.
+
+- This assignment should be completed in your **assigned Canvas groups**. Only one person has to submit on behalf of the group. You may submit whatever you have at the end of discussion section for full credit.
+
+# Present Group Members
+
+Please **write the names of the present group members** here.
+
+> Present Group Member 1
+
+> Present Group Member 2
+
+> Present Group Member 3
+
+> Present Group Member 4 (some groups only have 3)
+
+
+
+# Problem 1
+
+```{r}
+planets = read_csv("../../data/exoplanets-clean-through-2022.csv")
+```
+
+**Astronomical background**: As time goes on, our ability to find small planets has gotten better.
+
+Starting from `planets`, 
+
+- **Drop** all the planets whose `radius` is missing.
+
+- **Grouping by year**, `summarize()` to determine the minimum `radius` of planets discovered in each year.
+
+- **Save** this dataframe as `smallest_planets`.
+
+```{r}
+smallest_planets = planets %>% 
+  drop_na(radius) %>% 
+  group_by(year) %>% 
+  summarize(smallest_radius = min(radius))
+```
+
+# Problem 2
+
+Using `smallest_planets` from the previous problem,
+
+Create a **scatter plot** of points, with `year` on the x axis and the smallest radius of a planet discovered in that year on the y axis.
+
+Add a **smooth trend line** through the data. You decide whether or not it is appropriate to constrain the line to be straight.
+
+```{r}
+ggplot(smallest_planets, aes(year, smallest_radius)) +
+  geom_point() +
+  geom_smooth(se = F)
+```
+
+Does your graph support the idea that we are getting better at finding smaller planets over time?
+
+> Yes; up to a point. There seems to be a "floor" on how small the planets we find can be, that we hit around 2015.
+
+# Problem 3
+
+**Astronomical background**: When using the Transit method to detect exoplanets, we usually get enough information to also estimate their radius, but not their mass.
+
+Starting from `planets`, and using **only planets discovered using the Transit method**, `summarize` to determine:
+
+- The total number of planets discovered using the Transit method,
+- How many of those planets have missing data for `radius`
+- How many of those planets have missing data for `mass`
+
+*Hint: `is.na(radius)` will return a long vector of `TRUE`s and `FALSE`s... how do we convert that into a single number, the count of `TRUE`s?*
+
+```{r}
+planets %>% 
+  filter(method == "Transit") %>% 
+  summarize(total = n(),
+            radMissing = sum(is.na(radius)),
+            massMissing = sum(is.na(mass)))
+```
+
+*Your answer should be a one row, three column dataframe with descriptive column names.*
+
+# Problem 4
+
+In the previous problem, using only Transit planets, we counted # of planets, # of planets with missing mass, and # of planets with missing radii.
+
+**Using `group_by`**, do the same calculation as the previous problem, but this time for all `method`s at once. You should end up with one row for every `method`, and four columns; `method`, plus the three summary features. 
+
+**Save** this dataframe as `missing_by_method`.
+
+```{r}
+missing_by_method = planets %>% 
+  group_by(method) %>% 
+  summarize(total = n(),
+            radMissing = sum(is.na(radius)),
+            massMissing = sum(is.na(mass)))
+```
+
+# Problem 5
+
+Using `missing_by_method` from the previous problem,
+
+- **Filter** to only include methods which have discovered at least 50 planets.
+
+- **Create a new column called `r_miss_perc`** representing the **percentage** of planets discovered by that method whose radius is missing/unknown.
+
+- **Keep** only three columns, `method`, the total number of planets, and `r_miss_perc`.
+
+- **Save** this dataframe as `radius_missing_percentages`. 
+
+```{r}
+radius_missing_percentages = missing_by_method %>% 
+  filter(total > 50) %>% 
+  mutate(r_miss_perc = radMissing/total) %>% 
+  select(method, total, r_miss_perc)
+```
+
+# Problem 6
+
+The following two problems will expose us to more ggplot customization features.
+
+Using `radius_missing_percentages`, create a **bar plot** (using either `geom_bar()` or `geom_col()`, left to you to figure out) which plots `r_miss_perc` for each `method`.
+
+Incorporate the following customizations:
+
+- `fill` the columns according to total number of planets discovered.
+
+- Whatever axis you put the percentage on, use the appropriate `scale_*_*` command with the argument `labels = label_percent()`.
+    + Previously, we had only seen `labels = some vector of custom labels`. `labels` also accepts functions like `label_percent()` which will transform your old labels (such as 0.25) to better looking ones (such as 25%).
+
+```{r}
+library(scales)
+
+ggplot(radius_missing_percentages, aes(method, r_miss_perc, fill = total)) +
+  geom_col() +
+  scale_y_continuous(labels = label_percent())
+```
+
+# Problem 7
+
+In this problem, we make two further improvements to the previous plot. Please **copy and paste** your code from the previous problem into the chunk below and modify it.
+
+First, notice that `method`, by default, plots in alphabetical order. What if we wanted to instead arrange the methods such that the bars were of increasing height? 
+We can accomplish this with `reorder(x, y)`; where `x` is the column to reorder, and `y` is the secondary column whose values will dictate the new order of `x`.
+
+**Replace** `method` in your graphing code with `reorder(method, r_miss_perc)`.
+
+Second, notice that the color scheme by default is not super helpful in distinguishing between the three non-Transit methods. It would help if our color scale was not linear, but exponential, to account for Transit being a high outlier.
+
+**Add the following layer** to your graph: `scale_fill_gradient(trans = "log10")`.
+
+Notice how the legend labeling has changed.
+
+```{r}
+ggplot(radius_missing_percentages, aes(reorder(method, r_miss_perc), r_miss_perc, fill = total)) +
+  geom_col() +
+  scale_y_continuous(labels = label_percent()) +
+  scale_fill_gradient(trans = "log10")
+```
+
