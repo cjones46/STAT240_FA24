@@ -1,0 +1,86 @@
+---
+title: "Section 8: Probability Basics"
+author: "Student's Name Here"
+date: "2024-09-11"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, error = TRUE)
+```
+
+```{r}
+library(tidyverse)
+```
+
+## Random variables
+
+For a RV that can take on a few specific values, we can visually represent the variable with line segments.  The y-axis corresponds to probability.
+
+```{r}
+apgar_vals <- 0:10
+apgar_probs <- c(0.001, 0.006, 0.007, 0.008, 0.012, 0.02,
+                 0.038, 0.099, 0.319, 0.437, 0.053)
+
+apgar <- tibble(apgar_vals, apgar_probs)
+
+apgar_distribution <- ggplot(apgar, aes(x = apgar_vals, y = apgar_probs)) +
+  geom_segment(aes(xend = apgar_vals, yend = 0), color = "blue", size=2) +
+  geom_hline(yintercept = 0) +
+  ylab("P(X=x)") +
+  ggtitle("Distribution of Apgar Scores")
+
+apgar_distribution
+```
+
+
+## Properties of RVs
+
+What is the mean (expected value), variance, and SD of the Apgar score data?
+
+```{r}
+apgar_mean <- sum(apgar_vals*apgar_probs)
+
+apgar_var <- sum((apgar_vals - apgar_mean)^2 * apgar_probs)
+
+apgar_sd <- sqrt(apgar_var)
+
+apgar_mean; apgar_var; apgar_sd
+```
+
+
+Let X be a discrete RV with possible values (0, 1, 2, 3, 4).  A partial distribution is given below.
+
+```{r}
+x_dist <- tibble(
+  x = 0:4,
+  p = c(0.15, 0.25, 0.05, 0.35, NA)
+)
+
+x_dist
+```
+
+Find the missing value for P(X = 4) and update the table.  Try to do this with dplyr commands.
+
+```{r}
+
+```
+
+Next, find E(X), V(X), and sd(X).
+
+```{r}
+
+```
+
+Finally, use ggplot with `geom_segment` to visualize the probability distribution of X.
+
+```{r}
+
+```
+
+
+
+
+
+
+
