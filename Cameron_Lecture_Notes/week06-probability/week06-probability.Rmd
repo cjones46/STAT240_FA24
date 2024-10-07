@@ -24,6 +24,7 @@ source("../../scripts/ggprob.R") # This file contains functions custom written f
 ## Preliminaries
 
 1. Download the file `week06-probability.Rmd` into `STAT240/lecture/week06-probability`.
+2. Download the file `ggprob.R` into `STAT240/scripts`. (New folder!)
     
 ## A Note on Our Semester
     
