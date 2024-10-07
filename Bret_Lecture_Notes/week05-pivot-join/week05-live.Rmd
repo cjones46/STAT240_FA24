@@ -1,0 +1,136 @@
+---
+output: html_document
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE,
+                      warning = FALSE,
+                      error = TRUE, fig.height = 3,
+                      fig.width = 4)
+
+library(tidyverse)
+```
+
+## Data for the Example
+
+```{r}
+drinks = tibble(
+  Row = 1:4,
+  Drink = c("Milk Tea", "Espresso", "Latte", "Espresso"),
+  Cafe = c("Happy Tea", "Daily Grind", "Daily Grind", "Bev's Beverages"),
+  Price = c(4, 2, 3, 2)
+)
+
+drinks
+```
+
+```{r}
+discounts = tibble(
+  Row = 1:3,
+  Coupon = c("25%", "50%", "5%"),
+  Cafe = c("Happy Tea", "Daily Grind", "The Roast")
+)
+
+discounts
+```
+
+## Mutating Joins
+
+### left_join()
+
+- keep all rows from the first
+- add new columns and data from the second
+
+```{r}
+drinks %>% 
+  left_join(discounts, by = join_by(Cafe))
+```
+
+- the other way
+
+```{r}
+discounts %>% 
+  left_join(drinks, by = join_by(Cafe))
+```
+
+### right_join()
+
+```{r}
+discounts %>% 
+  right_join(drinks, join_by(Cafe))
+```
+
+### Note on different column names
+
+```{r}
+discounts2 = discounts %>% 
+  rename(Location = Cafe)
+
+discounts2
+```
+
+```{r}
+discounts2 %>% 
+  right_join(drinks, join_by(Location == Cafe))
+```
+
+### full_join()
+
+```{r}
+drinks %>% 
+  full_join(discounts, join_by(Cafe))
+```
+
+### inner_join()
+
+```{r}
+drinks %>% 
+  inner_join(discounts, join_by(Cafe))
+```
+
+## Filtering joins
+
+- keep the same number of columns and the same column names; either keep or discard rows which do match
+
+### semi_join()
+
+```{r}
+drinks %>% 
+  semi_join(discounts, join_by(Cafe))
+
+drinks %>% 
+  filter(Cafe %in% discounts$Cafe)
+```
+
+### anti_join()
+
+```{r}
+drinks %>% 
+  anti_join(discounts, join_by(Cafe))
+```
+
+
+## Pivoting
+
+```{r}
+players = tibble(
+  player = c("Erling Haaland", "Kevin De Bruyne"),
+  goals = c(36, 7),
+  assists = c(8, 16),
+  games = c(35, 32)
+)
+
+players
+```
+
+### pivot_longer()
+
+```{r}
+players_long = players %>%
+  pivot_longer(-player,
+               names_to = "statistic",
+               values_to = "value")
+
+players_long
+```
+
