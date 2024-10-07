@@ -127,7 +127,7 @@ players
 
 ```{r}
 players_long = players %>%
-  pivot_longer(-player,
+  pivot_longer(-player, ## specify the columns to pivot
                names_to = "statistic",
                values_to = "value")
 
