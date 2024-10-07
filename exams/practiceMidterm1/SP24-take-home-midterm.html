@@ -461,10 +461,12 @@ commodity details like production, imports/exports, etc. Select just the
 columns <code>Commodity_Description</code>, <code>Country_Name</code>,
 <code>Market_Year</code>, <code>Production</code>, <code>Imports</code>,
 <code>Exports</code> and rename these as “commodity”, “country”, “year”,
-“production”, “import”, “export” . In addition, please also sort rows by
+“production”, “import”, “export”; also keep
+<code>Total.Distribution</code> and <code>Domestic.Consumption</code>,
+no need to rename these. In addition, please also sort rows by
 commodity, then country, then year.
 <ul>
-<li><strong>After step 3, your data frame should have 155,338 rows and 6
+<li><strong>After step 3, your data frame should have 155,338 rows and 8
 columns</strong></li>
 </ul></li>
 <li>Now, remove rows where:
@@ -482,7 +484,7 @@ you can use an appropriate filtering join function such as
 <li>The commodity is either “Cotton”, “Millet”, or “Mixed Grain” as
 these are reported inconsistently.</li>
 <li>The year is 2024, since the current year is incomplete.</li>
-<li><strong>After step 3, your data frame should have 123,186 rows and 6
+<li><strong>After step 3, your data frame should have 123,186 rows and 8
 columns</strong></li>
 </ul></li>
 </ol>
