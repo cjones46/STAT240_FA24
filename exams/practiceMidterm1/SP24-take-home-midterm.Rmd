@@ -88,7 +88,7 @@ Create a new data frame called `psd_tidy` by performing the following operations
    - We highly recommend adding the argument ` names_repair="universal" ` to your pivot function, which will automatically repair column names by replacing invalid characters with periods
    - **After step 2, your data frame should have 155,338 rows and 75 columns**
 
-3. After step 2, you should have a lot more columns with specific commodity details like production, imports/exports, etc. Select just the columns `Commodity_Description`, `Country_Name`, `Market_Year`, `Production`, `Imports`, `Exports` and rename these as "commodity", "country", "year", "production", "import", "export"; also keep `Total.Distribution` and `Domestic.Consumption`, no need to rename these. In addition, please also sort rows by commodity, then country, then year.
+3. After step 2, you should have a lot more columns with specific commodity details like production, imports/exports, etc. Select just the columns `Commodity_Description`, `Country_Name`, `Market_Year`, `Production`, `Imports`, `Exports` and rename these as "commodity", "country", "year", "production", "import", "export"; also keep `Total.Distribution` and `Domestic.Consumption`, rename these to be lowercase. In addition, please also sort rows by commodity, then country, then year.
    - **After step 3, your data frame should have 155,338 rows and 8 columns**
 
 4. Now, remove rows where:
