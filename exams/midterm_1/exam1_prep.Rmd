@@ -1,0 +1,94 @@
+---
+title: "Exam 1 Prep"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+# These same settings will be included in the exam .Rmd.
+
+knitr::opts_chunk$set(echo = TRUE, message = FALSE,
+                      warning = FALSE,
+                      error = TRUE,
+                      fig.height = 3, fig.width = 6)
+
+library(tidyverse)
+```
+
+
+## STAT 240 Fall 2024 Take-Home Midterm
+
+> You have three hours to complete the exam from the time that you begin the Canvas quiz which gives you access to the exam documents.
+
+- You may use course resources (lecture notes, homework solutions, course notes, personal notes) when working on the exam.
+- Piazza will be disabled during the exam and for several days after.
+- You may not use any other materials (including other web sites or any type of AI).
+- You may not talk to anyone about the exam except for your instructor or TA.
+
+### Set-up
+
+Inside your course directory `STAT240`, add these additional directories.
+
+- `STAT240/exams/`
+- `STAT240/exams/midterm_1`
+
+Download the following data set from the course repository and put them into your `STAT240/data/` directory.
+
+- `vb-2023-teams.csv`
+- `states.csv`
+- `cities.csv`
+
+This file and other exam files should be placed in `STAT240/exams/midterm_1`.
+
+### Exam datasets
+
+The following chunk reads in the data sets used in the exam.
+
+```{r}
+vb <- read_csv("../../data/vb-2023-teams.csv")
+states <- read_csv("../../data/states.csv")
+cities <- read_csv("../../data/cities.csv")
+```
+
+These lines of code will only work if you have your file directories set up correctly according to the instructions above.  If you get a "file does not exist error", then most likely one of the following has happened.
+
+- There is a mismatch between the file path inside `read_csv` and the file structure on your personal computer.
+- The files are set up correctly, but the .csv file is not in the correct location on your computer.
+
+You are strongly encouraged to perform a thorough exploration of the data sets ahead of time!
+
+#### Data Set 1: Volleyball
+
+- The volleyball data set (`vb`) contains summary information for all 2023 Women's NCAA Division I volleyball teams.
+  - Our own University of Wisconsin team is on row 326.
+- You do not need to know anything about volleyball to be able to answer the questions.
+- There are 332 such teams and their identities are recorded with a number in `Team_Index`, their name in `Team`, and a conference affiliation in `Conference`.
+- Other variables contain various summary statistics and will be defined if needed in certain questions.
+
+#### Data Set 2: States
+
+- The `states` data set has a single row for each of the 50 states in the USA.
+- There are multiple other variables, some of which are categorical and some of which are numerical.
+  - Variables will be defined as necessary in exam questions which use them.
+  
+#### Data Set 3: Cities
+
+- The `cities` data set has a single row for each state, district, or federal territory in the USA and columns with the name and population for the largest city within each of these entities.
+
+### Data exploration
+
+You are **strongly encouraged** to explore both data sets prior to beginning the exam. Optionally, for each of the three datasets, write down or make a mental note of the following.
+
+- How many rows does the data have?
+- What are the columns names and column types?  Use `glimpse`.
+- Are any of the columns within the dataset directly related to each other?
+- What are some interesting research questions we could answer with this dataset?
+
+### Exam
+
+When you open the exam assignment on Canvas, your 3-hour timer will start and you will be able to download an .Rmd file containing the exam questions.  The format is very similar to homework assignments.  You'll write your answers and code within the same .Rmd and knit it to an .html.
+
+- Knit the document frequently as you work on it.
+- Make sure to turn in the R Markdown file **and** the knitted HTML file before your quiz time runs out.
+- If you encounter technical errors, email your instructor and TA immediately so that we have a time-stamped version of your work.
+
+
