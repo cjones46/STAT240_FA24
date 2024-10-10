@@ -1,0 +1,185 @@
+---
+title: "Discussion 5"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+library(tidyverse)
+```
+
+# Preliminaries
+
+- This file should be in `STAT240/discussion/ds05`.
+- You should also download `billboard_2000_weekly.csv` and `billboard_2000_dates.csv` to `STAT240/data`.
+
+- This assignment should be completed in your **assigned Canvas groups**. Only one person has to submit on behalf of the group. You may submit whatever you have at the end of discussion section for full credit.
+
+# Present Group Members
+
+Please **write the names of the present group members** here.
+
+> Present Group Member 1
+
+> Present Group Member 2
+
+> Present Group Member 3
+
+> Present Group Member 4 (some groups only have 3)
+
+# Background
+
+```{r}
+billboard_weekly = read_csv("../../data/billboard_2000_weekly.csv")
+```
+
+`billboard_weekly` contains data for 317 tracks which appeared in the Billboard Top 100 (most popular songs in the United States) at any time in the year 2000.
+
+After the song enters the Billboard Top 100, its `rank` in the top 100 is recorded (1 is the most popular song of all) for the next 76 `week`s. 
+
+If a song is still in the Top 100 in that `week` since its debut in the Top 100, its `rank` is recorded (1 is the most popular song of all).
+
+Many do not last in the top 100 for long; `NA` means that song was not in the Billboard Top 100 in that week of its lifespan. 
+
+For example, in the first ten rows of `billboard_weekly`: 2 Pac's "Baby Don't Cry" entered the Top 100 at #87 in February 2000, and peaked at #72 three weeks later. Eight weeks after it entered, it dropped out of the Top 100 entirely.
+
+```{r}
+billboard_weekly
+```
+
+# Problem 1
+
+Using a `pivot` command, **create and save** a new dataframe called `billboard_tracks`, starting from `billboard_weekly`.
+
+`billboard_tracks` should have one row PER TRACK (for 317 tracks), and columns `artist`, `track`, `date.entered`, `wk1`, `wk2`, ... `wk76`, for a total of 79 columns. 
+The columns `wk1`, `wk2`, ..., `wk76` should indicate that track's rank in that week.
+
+```{r}
+billboard_tracks = billboard_weekly %>% 
+  pivot_wider(names_from = week, values_from = rank)
+```
+
+# Problem 2
+
+All of the following problems purposefully do not specify whether you should use `billboard_weekly` or `billboard_tracks`, or how to get the answer. This is left up to you to figure out. None of the problems rely on each other from here on out
+
+You should answer by starting with one of those dataframes, performing some manipulation, and letting the output print to console, no need to save any output from here on out.
+
+---
+
+**Which track had the best ranking (lowest number) in its very first week in the Billboard Top 100?**
+
+```{r}
+# This one can be done quickly with either dataframe
+billboard_tracks %>% 
+  slice_min(wk1, n = 1)
+
+billboard_weekly %>% 
+  filter(week == "wk1") %>% 
+  slice_min(rank, n = 1)
+```
+
+# Problem 3
+
+Is there any `track` name that got used by two different artists?
+
+```{r}
+billboard_tracks %>% 
+  count(track) %>% 
+  filter(n > 1)
+
+# This one is difficult to do with billboard_weekly unless you know distinct(), which we haven't covered in this course.
+billboard_weekly %>% 
+  distinct(artist, track) %>% 
+  count(track) %>% 
+  filter(n > 1)
+```
+
+# Problem 4
+
+Three songs that entered the Top 100 in 2000 stayed there all the way to April 7th, 2001.
+
+```{r}
+billboard_dates = read_csv("../../data/billboard_2000_dates.csv")
+
+longest_running_songs = slice_max(billboard_dates, date.of.week, n = 3)
+
+longest_running_songs
+```
+
+**What were their rankings in that final week?** Your answer should use a `*_join` command to join `longest_running_songs` to EITHER `billboard_weekly` or `billboard_tracks`.
+
+```{r}
+# Numerous ways to do this problem using billboard_weekly; here are three possible options
+
+left_join(longest_running_songs, billboard_weekly)
+
+inner_join(longest_running_songs, billboard_weekly)
+
+left_join(billboard_weekly, longest_running_songs) %>% slice_max(date.of.week, n = 3)
+
+left_join(billboard_weekly, longest_running_songs) %>% drop_na(date.of.week)
+```
+
+# Problem 5
+
+**Which track had the biggest rise from week 1 to week 5?**
+
+```{r}
+# Straightforward with billboard_tracks
+billboard_tracks %>%
+  mutate(rise = wk1 - wk5) %>% 
+  slice_max(rise, n = 1)
+
+# Very difficult to do with billboard_weekly; also relies on the "diff" command, which returns how far apart two numbers are, which we haven't learned in this class
+billboard_weekly %>% 
+  filter(week %in% c("wk1", "wk5")) %>% 
+  group_by(artist, track) %>% 
+  summarize(rise = diff(rank)) %>%
+  ungroup() %>% 
+  slice_max(rise, n = 1)
+
+```
+
+
+# Problem 6
+
+**Which five tracks spent the most total weeks in the Billboard Top 100?**
+
+```{r}
+# This one is very hard to do with billboard_tracks
+
+billboard_weekly %>% 
+  drop_na() %>% 
+  count(artist, track) %>% 
+  slice_max(n, n = 5)
+```
+
+# Problem 7
+
+**Which tracks hit rank #1 at ANY point?**
+
+```{r}
+# Could do this with billboard_tracks, but would have to do
+# filter(wk1 == 1 | wk2 == 1 | wk3 == 1 | ...)
+
+billboard_weekly %>% 
+  group_by(artist, track) %>% # If you just group_by(track), "Where I Wanna Be" could be duplicated! Doesn't matter for this question but something to keep in mind
+  summarize(bestRank = min(rank, na.rm = T)) %>% 
+  filter(bestRank == 1)
+```
+
+# Problem 8
+
+**Which track had the most weeks ranked at #1, and how many weeks was it there?**
+
+```{r}
+# Also very hard to do with billboard_tracks
+
+billboard_weekly %>% 
+  group_by(artist, track) %>% 
+  summarize(numWeeksAtOne = sum(rank == 1, na.rm = T)) %>% 
+  ungroup() %>% # The grouping of "artist" persists here, have to get rid of it before slice_max
+  slice_max(numWeeksAtOne, n = 1)
+```
+
