@@ -1,0 +1,169 @@
+---
+title: "Section 9: Binomial Distribution"
+author: "Student's Name Here"
+date: "2024-10-11"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, error = TRUE)
+```
+
+```{r}
+library(tidyverse)
+```
+
+## Binomial properties
+
+Use `choose` or `factorial` to count the number of ways to have x successes in n total trials.
+
+```{r}
+n <- 3
+x <- 2
+
+choose(n, x)
+
+factorial(n) / (factorial(x) * factorial(n - x))
+```
+
+
+We can use `dbinom` to calculate a specific binomial probability.
+
+```{r}
+dbinom(2, 3, 0.6)
+```
+
+Here, it is used to fully describe a binomial distribution.
+
+```{r}
+n <- 3
+p <- 0.6
+
+tibble(
+  x = 0:n,
+  p = dbinom(x, n, p)
+)
+```
+
+The function `pbinom` calculates a cumulative probability.  What is the probability that we hit 2 or fewer green lights?
+
+```{r}
+dbinom(0, n, p) + dbinom(1, n, p) + dbinom(2, n, p)
+
+sum(dbinom(0:2, n, p))
+
+pbinom(2, n, p)
+```
+
+### pbinom exercise
+
+Let Y ~ Binom(8, 0.3).  Use `pbinom` to answer the following:
+
+```{r}
+# P(Y > 4)
+
+
+# P(Y >=)
+
+
+# P(3 <= Y <= 6)
+
+
+```
+
+
+## Mean and variance
+
+The binomial shortcuts for mean and variance give us the same values as the standard formulas.
+
+```{r}
+lights <- 0:3
+light_probs <- c(0.064, 0.288, 0.432, 0.216)
+
+lights_mean <- sum(lights * light_probs)
+
+lights_var <- sum((lights - lights_mean)^2 * light_probs)
+```
+
+We can also verify this with simulation.
+
+```{r}
+# rbinom generates a random binomial sample
+
+rbinom(3, n, p)
+
+large_sample <- rbinom(500000, n, p)
+
+mean(large_sample)   # compare to 1.8
+var(large_sample)    # compare to 0.72
+
+tibble(x = large_sample) %>%  
+  ggplot(aes(x)) +
+  geom_histogram(stat = "count", color = "black",) +
+  stat_count(geom = 'text',    # Add counts to each bin
+             color = 'white', 
+             aes(label = after_stat(count)),
+           position = position_stack(vjust = 0.5)) +
+
+  labs(
+    title = "Simulated Binomial Distribution",
+    subtitle = "n = 3, p = 0.6"
+  )
+```
+
+
+## Quantiles
+
+Consider an example where we flip a fair coin 10 times, and count the number of heads.
+
+`pbinom` can be used to find a cumulative probability.
+
+```{r}
+n <- 10
+p <- 0.5
+
+# How much probability is at or below 5 on Binom(10, 0.5)?
+pbinom(5, n, p)
+
+# How much probability is at or below 6?
+pbinom(6, n, p)
+```
+
+For `qbinom`, we input a cumulative probability and are given the corresponding x value.  This will return discrete x values.
+
+```{r}
+# To capture at least 70% of the probability in Binom(10, 0.5)
+# How large do we need to make x?
+
+qbinom(0.7, n, p)
+
+# How "far in" do we need to go to capture at least 95% of the probability?
+qbinom(0.95, n, p)
+
+pbinom(7, n, p)
+pbinom(8, n, p)
+```
+
+### Try it out!
+
+Let X ~ Binom(90, 0.7)
+
+```{r}
+# Find the mean and sd of X
+
+
+# Find P(X <= mu)
+
+
+# Find P(mu - sigma <= X <= mu + sigma)
+
+
+# Find the 5th and 95th percentiles of X
+
+
+```
+
+
+
+
+
