@@ -1,0 +1,131 @@
+---
+title: "Discussion 6"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+library(tidyverse)
+```
+
+# Preliminaries
+
+- This file should be in `STAT240/discussion/ds06`.
+- Please also download `Messi_Through_Oct112024_FBRef.csv` to `STAT240/data`.
+
+- This assignment should be completed in your **assigned Canvas groups**. Only one person has to submit on behalf of the group. You may submit whatever you have at the end of discussion section for full credit.
+
+# Present Group Members
+
+Please **write the names of the present group members** here.
+
+> Present Group Member 1
+
+> Present Group Member 2
+
+> Present Group Member 3
+
+> Present Group Member 4 (some groups only have 3)
+
+# Problem 1
+
+The following dataset contains information on all the games Lionel Messi has played in the 2024 season, sourced from [FBRef.com](https://fbref.com/en/players/d70ce98e/matchlogs/2024/Lionel-Messi-Match-Logs).
+
+```{r}
+messi_original = read_csv("../../data/Messi_Through_Oct112024_FBRef.csv")
+```
+
+Each row is a single game. The `Gls` column indicates how many goals Messi scored in that game, and `Ast` indicates how many assists Messi provided in that game. (An assist is a pass that leads to a goal.)
+
+**Create and save a new dataframe** called whatever you want, by executing the following steps, starting from `messi_original`, 
+
+- Create a new column called `points`, calculated as `Gls + Ast`. (You can think of this as how many goals Messi was involved in during that game - a term borrowed from hockey.)
+
+- Summarize to obtain one row for each unique value of `points`, with a new column `n` indicating in how many games Messi scored that exact value of `Points`.
+*Check: Your dataframe should indicate that Messi has scored 0 points 10 times, 1 point 8 times... and one time only he scored 6 points!*
+
+- Create a new column called `percent`, which indicates in what percent of games Messi scored that exact value of points. *(Hint: The total number of games played can be figured out exclusively from the `n` column!)*
+
+```{r}
+# Write your code here!
+
+```
+
+# Problem 2
+
+`points` and `percent` from the dataframe above form a **probability distribution**.
+
+Is it a **discrete** probability distribution or a **continuous** one? Briefly explain why.
+
+> Replace this text with your response.
+
+
+# Problem 3
+
+Using your dataframe from problem 1, what is the **average number of points** Messi has scored in games in 2024?
+
+```{r}
+# Write your code here!
+
+```
+
+# Problem 4
+
+**Plot** the probability distribution, with a vertical bar for each value of `points`, the height of which represents `percent`.
+
+Incorporate the following customizations:
+
+- Adjust the X axis so that the ticks and labels indicate every whole number 0 through 6.
+
+- Add a **red, vertical, dashed** line at the mean you calculated in problem 3.
+
+- Make at least one other fun visual improvement that you think makes the graph look better - adjust the colors, add a theme, et cetera!
+
+```{r}
+# Write your code here!
+
+```
+
+# Problem 5
+
+For context, Messi made his professional soccer debut in 2004 at the age of 17, and is now 37 and still playing.
+
+The average you calculated in problem 3 and graphed in problem 4 should have been about 1.27.
+
+**Is it valid to say that in a random game from Messi's entire career, we would expect him to score about 1.27 points?** If not, why not?
+
+> Replace this text with your response.
+
+# Problem 6
+
+Using your dataframe from problem 1, what is the **variance** and **standard deviaton** of the number of points Messi has scored in 2024?
+
+```{r}
+# Write your code here!
+
+```
+
+# Problem 7
+
+In what percent of 2024 games did Messi score multiple points?
+
+*This would be easy to do by hand; but try to do it by code using your dataframe from problem 1!*
+
+```{r}
+# Write your code here!
+
+```
+
+# Problem 8
+
+The percentage you calculated above should be 30.8%. 
+**a)**
+Is it valid to say that in a randomly selected game from Messi's entire career, there is a 30.8% chance he scored multiple points?
+
+> Replace this text with your response.
+
+Is it valid to say that in a randomly selected game Messi played in 2024, there is a 30.8% chance he scored multiple points?
+
+> Replace this text with your response.
+
+
