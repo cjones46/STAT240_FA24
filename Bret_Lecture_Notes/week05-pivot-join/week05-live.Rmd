@@ -131,6 +131,32 @@ players_long = players %>%
                names_to = "statistic",
                values_to = "value")
 
+players_long = players %>%
+  pivot_longer(goals:games, ## specify the columns to pivot
+               names_to = "statistic",
+               values_to = "value")
+
 players_long
+```
+
+### pivot_wider()
+
+```{r}
+players_wide = players_long %>% 
+  pivot_wider(names_from = statistic,
+              values_from = value)
+
+players_wide
+```
+
+### Example
+
+```{r}
+data(table1)
+
+table1 %>% 
+  pivot_longer(cases:population,
+               names_to = "type",
+               values_to = "count")
 ```
 
