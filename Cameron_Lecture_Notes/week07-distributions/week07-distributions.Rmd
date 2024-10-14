@@ -1361,12 +1361,14 @@ gnorm() +
 
 ### The Theorem
 
-> Consider sampling $n$ points from any distribution $D$, which has expected value $\mu$ and standard deviation $\sigma$, and then taking the mean of those $n$ points as a random variable $\bar{X}$. Then, $\bar{X} \sim N(\mu, \frac{\sigma}{\sqrt{n}}$).
+> Consider sampling $n$ points from any distribution $D$, which has expected value $\mu$ and standard deviation $\sigma$, and then taking the mean of those $n$ points as a random variable $\bar{X}$. Then, $\bar{X} \stackrel{\text{approx}}{\sim} N(\mu, \frac{\sigma}{\sqrt{n}}$).
+
+> This distribution is an approximation, which becomes more accurate as $n$ increases. It will perform poorly at low values of $n$, especially for highly skewed distributions.
 
 * There are three important components to this theorem:
-1. The sample mean $\bar{X}$ always follows a normal distribution, **regardless of the initial distribution $D$**. (!!)
+1. The sample mean $\bar{X}$ *approximately* follows a normal distribution, **regardless of the initial distribution $D$**. (!!)
 2. That normal distribution is centered around $\mu$; that is, the sample mean will, on average, center around the true average of the individual points. (Hence, "Central").
-3. The more points we sample (increasing $n$), the lower standard deviation we have ($\sqrt{n}$ is in denominator). That is, the mean of 100 random points is likely to be closer to $\mu$ than the mean of 2 random points. (Hence, "Limit").
+3. The more points we sample (increasing $n$), the lower standard deviation we have ($\sqrt{n}$ is in denominator). That is, the mean of 100 random points is likely to be closer to $\mu$ than the mean of 10 random points. (Hence, "Limit").
 
 ### Simulation Examples
 
@@ -1508,7 +1510,7 @@ ggplot(tibble(x=c(a,b), y=1/(b-a))) +
   )
 ```
 
-* The sampling distribution is normal again! It will always come out normal for any initial distribution, there was nothing special about the uniform or normal distributions we showed in examples here.
+* The sampling distribution is normal again! It will always come out *approximately* normal for *large enough samples* from any initial distribution, there was nothing special about the uniform or normal distributions we showed in examples here.
 
 * Finally, we can check the parameters to make sure this is the specific normal distribution predicted by CLT. $Uniform(2, 5)$ has expected value $\mu = 3.5$ (somewhat intuitive) and standard deviation $\frac{b-a}{12} = \frac{5-2}{12} = 0.25$ (not intuitive or a required fact you need to know).
 
@@ -1553,6 +1555,14 @@ exercise_plot
 
 * If you do this correctly, your normal distribution should NOT extend into the negatives!
 
+* Using the sampling distribution from the previous problem, **compute** $P(\bar{X} < 0.1)$.
+
+```{r}
+# Your solution here
+```
+
+##### Solution
+
 ```{r}
 n = 20
 
@@ -1564,19 +1574,13 @@ exercise_plot +
   geom_norm_density(mu = xbar_mean, sigma = xbar_sd)
 ```
 
-* Using the sampling distribution from the previous problem, **compute** $P(\bar{X} < 0.1)$.
-
-```{r}
-# Your solution here
-```
-
-* From CLT (and the previous problem), $\bar{X} \sim N(shape * scale, \sqrt{scale} * shape / \sqrt{n})$.
+$\bar{X} \sim N(shape * scale, \sqrt{scale} * shape / \sqrt{n})$.
 
 ```{r}
 pnorm(0.1, xbar_mean, xbar_sd)
 ```
 
-> **Philosophical Takeaway**: Since CLT dictates $\bar{X}$ always has a normal distribution, you can use `pnorm` to calculate probabilities of the sample mean taking on certain values!
+> **Philosophical Takeaway**: Since CLT dictates $\bar{X}$ approximately has a normal distribution, you can use `pnorm` to calculate probabilities of the sample mean taking on certain values!
 
 ---
 
