@@ -1,0 +1,1635 @@
+---
+title: "STAT 240: Binomial and Normal Distributions"
+author: "Cameron Jones"
+date: "Fall 2024"
+output: rmdformats::readthedown
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
+                      error = TRUE, fig.height = 4)
+library(tidyverse)
+library(egg)
+source("../../scripts/ggprob.R")
+```
+
+# Overview
+
+## Learning Outcomes
+
+* These lectures will teach you how to:
+    - Identify when a random variable follows a binomial distribution, and what its parameters are
+    - Understand what a normal distribution is, and what its parameters are
+    - Compute important numeric features of these distributions using the `d<dist>`, `p<dist>`, and `q<dist>` commands
+
+## Preliminaries
+
+* You will need to install the `egg` package for a couple isolated examples in these lecture notes, with `install.packages("egg")`.
+
+1. Download the file `week07-distributions.Rmd` into `STAT240/lecture/week07-distributions`.
+
+# Motivation
+
+* As mentioned last week, the large-scale goal of this class is to get you investigating real problems through statistical inference.
+
+* Statistical inference requires us to calculate specific properties of probability distributions.
+
+* In last week's lectures, we learned how to calculate the mean, variance, and standard deviation from a probability distribution; we used examples of simple, known distributions, from coin flips and dice rolls.
+
+* Knowing how to calculate properties of a distribution doesn't help, though, if you don't know the distribution.
+
+* So, **how do we take a real life random process and figure out the probability distribution of its outcomes?**
+
+* In real life, processes are messy and complex. They're influenced by the wind, your mood, traffic, things whose existence and importance are admittedly small, but A) undeniably there and B)  very hard to put in a dataframe. 
+
+* Even the coin flip example, seemingly the most straightforward 50/50 distribution of them all, can be challenged and complicated if you look closely enough. [Some research](https://arxiv.org/abs/2310.04153) suggests the coin is slightly more likely to land on the side that started facing up, but that people get more equal in their flips as they do more of them.
+
+---
+
+* So if the humble coin isn't 50/50, what now? How can we know anything about probability distributions at all?
+
+* We have two paths forward:
+
+- We run the random process **infinitely many times** (or at least a very large number of times, like in the link above) and just count the percentage of trials in which each outcome happens. (*In the case of just doing it a large number of times, you will have a good estimate of the probability distribution, but not the true distribution.*)
+
+- OR, we make some **reasonable assumptions**, which make the distribution **easy** to figure out, while preserving its **usefulness**.
+
+## Assumptions
+
+- In this class, we will primarily derive distributions the second way, by making reasonable assumptions.
+
+- For example, forgetting all of the numbers involved, let's try to work out the probability distribution of how many red lights I will encounter out of five total lights on the way to school.
+
+- In reality, the traffic lights are often coordinated with each other, creating a complex pattern of dependency with what lights I make it through and which I stop at.
+
+- This makes it very hard, if not impossible, to determine the "real" probability distribution.
+
+- However, if I make two reasonable assumptions, it becomes very easy to determine the distribution.
+    - Assumption #1: The state of each light as I approach it does not affect and is not affected by any other lights - they are **independent**.
+    - Assumption #2: All lights have the same probability `p` of being green as I approach. 
+    
+These assumptions are definitely **simplifications of reality**, as we just stated lights depend on each other in a complex way. However, they are **reasonable simplifications**.    
+
+- By making these assumptions, I can determine the whole probability distribution.
+
+- For example, the probability of hitting five straight greens is $p*p*p*p*p = p^5$, the probability of hitting five straight reds is $(1-p)^5$, and the probability of hitting four greens and a red is $5 * p^4 * (1-p)$ (more on these formulas later)!
+
+- The calculations above **require the assumptions to be true**.
+
+- The assumptions, in the most technical sense, are not true. Many assumptions will never be "technically" true, and that's okay. If we are willing to accept the assumptions as "true enough", then we can actually start making some useful progress.
+
+---
+
+### Unreasonable Assumptions, Useless Results
+
+I could have assumed, instead, that: 
+
+- Assumption #1: The first light has 50/50 chance of being red or green.
+- Assumption #2: Every green light will be followed by another green light.
+- Assumption #3: Every red light will be followed by a 50/50 light.
+
+
+These assumptions also allow me to calculate the entire distribution:
+
+50% chance all five are green
+25% chance I hit a red, then four greens
+12.5% chance I hit two reds, then three greens
+6.25% chance I hit three reds, then two greens
+3.125% chance I hit four reds, then a green
+3.125% chance all five are red
+
+If you accept the assumption as "true enough", this distribution is correct. There were no mathematical errors in deriving it based on those assumptions.
+
+However, that assumption is clearly unreasonable, so our results are useless, despite the lack of mathematical errors.
+
+This example underlines the importance of making assumptions that are **reasonable**.
+
+# The Binomial Distribution
+
+* There is a common real life scenario in which we can make a few assumptions that lead to a specific, convenient probability distribution, called the **binomial distribution**.
+
+> A **binomial distribution** is the probability distribution for a random variable which counts the number of successes from a **fixed number** of **independent**, **binary**, **constant-probability** trials.
+
+> When a random variable $X$ is the count of successes from $n$ such trials, each with success probability $p$, we write $X \sim Binom(n, p)$, or that "X follows a Binomial 'n, p' distribution."
+
+* $n$ and $p$ are called the **parameters** of any binomial distribution. They are the two values which control everything about the distribution. If you know $n$ and $p$, you know everything about it. 
+
+* Note that we generally say "a" binomial distribution and not "the" binomial distribution, because $n$ and $p$ can take on any positive integer or probability, respectively. There is not just one "true" or "parent" binomial distribution, but a family of many that all share the same characteristics based on their individual $n$ and $p$. (More on this in the Explore Binomial Graphs section.)
+
+---
+
+* Let's look at an example to emphasize the difference between a single **trial** and a **value** of the random variable $X$.
+
+* For example, consider that our random process is flipping a fair coin ten times, and our random variable $X$ is the number of heads we observe. 
+  - $X$ could take on any whole number from 0 to 10, but we expect it to be near the middle, 5.
+  - Note that $X$ is *discrete*.
+
+* We would write $X \sim Binom(10, 0.5)$ to indicate that $X$ is the number of "successes" from 10 trials, each of which has probability 0.5 of "succeeding" (heads).
+
+* One **trial** here is a single coin flip; which we are going to repeat ten times to form a single iteration of the random process. One **value of the random variable** represents how many heads we observe from a single iteration of the random process - which is *ten* trials/coin flips.
+
+* For example:
+1. Outcome of the random process, which is to run ten individual trials: H-H-T-T-T-H-T-T-H-T
+2. Value of the random variable, the number of heads observed: $X = 4$.
+
+## The BINS Assumptions
+
+> To assess whether a random variable follows a binomial distribution, check if it meets the four BINS assumptions: 
+
+* **B = Binary Outcomes**: Each individual trial may be considered either a **success** or **failure**. (In particular, it is not returning a number other than 0 or 1.)
+
+* **I = Independent**: Each individual trial does not affect the outcome of another.
+
+* **N = Fixed Sample Size**: The number of *trials* is pre-specified, and does not depend on the outcome of those trials.
+
+* **S = Same Probability**: Each individual trial has the same probability of success as any other.
+
+> **All** of these criteria must be met for a random variable to be binomial. In other words, **if any fail**, your variable is **not binomial**. 
+
+---
+
+* We can verify that $X$ from above, the number of heads meets these criteria:
+
+  - **B: Binary Outcomes**: Each trial either succeeds (heads) or fails (not heads)
+  - **I: Independent**: The result of any coin flip does not affect the other coin flips.
+  - **N: Fixed Sample Size**: We pre-specified we were going to flip the coin 10 times.
+  - **S: Same probability**: Each coin flip has probability 0.5 of turning up heads. The coin does not get "better" or "worse" at turning up heads.
+
+---
+
+* Another example of a binomial random variable, let's call this $D$, is the number of times I roll a 4 from five rolls of a fair six-sided die.
+  - We would say that $D \sim Binom(5, 1/6)$.
+  - The last three assumptions; independence, fixed sample size, and same probability, are clearly met for the same reasons as the previous example.
+  - However, it is tempting to say that this is not a binary outcome, because a single roll of the die can produce any of six outcomes, whereas the coin was heads or tails.
+  - This reasoning is tempting, but forgets the definition of our random variable.
+  
+  - If all we care about is whether or not we got a 4, each trial is binary; we either got a 4 or we didn't.
+  
+1. Outcome of the random process (five rolls of a fair six-sided die):
+4-1-2-4-5
+
+2. How you could view this as a binary outcome:
+Success - Fail - Fail - Success - Fail
+
+3. Value of the random variable: $D = 2$
+
+---
+
+* Two examples of random variables which are **not** binomial:
+
+* The raw measurement of a continuous variable, such as the height of a person, is not binomial.
+    - Because a binomial variable must be the number of successes from a certain number of trials, it can only take on integer values. A binomial variable will never take on a value like 50.5.
+    - You would have to make each numeric trial into a success-fail, such as measuring "the number of people out of 20 who are at least 5'5"".
+
+*Background note: In basketball, a free throw is an un-defended shot from about fifteen feet that you can take standing still, as compensation if the other team fouls you.*
+
+* You take free throws until you make one. Let $F$ be the number of free throws you take in total.
+  - While it is true that each trial is make-or-miss (**B**), your free throws don't affect each other (**I**), and each one has the same basic probability of going in (**S**), the **N: Fixed Sample Size** criteria is not met.
+  - We are not prespecifying how many trials we are going to undertake; what would we use for $n$ in $F \sim Binom(n, p)$?
+  
+### Sidenote: Nitpicking Assumptions
+
+- In the free throw example, we assume that whether one free throw goes in does not affect the probability of future free throws going in.
+
+- In reality, it may be true that seeing one miss could cause someone to lose their confidence, and make subsequent free throws LESS likely to go in than the prior one, or that an initial make could build their confidence and make subsequent free throws MORE likely to go in.
+
+- Assumptions are often **simplifications of reality**; we make them because they **allow useful progress towards the distribution** without the cost of being too crazy. 
+  
+---
+
+##### EXERCISE: Is it Binomial?
+
+- This exercise will reinforce the BINS criteria by asking students to identify which, if any, of the BINS criteria are not met.
+
+- For each of the following scenarios, **determine if the random variable is binomial.**
+
+- If it is not, **which BINS assumption is violated?**
+
+1. You have a drawer of 6 red socks and 6 blue socks. You pull a sock out of the drawer at random, set it aside, and then pull another sock out. Let $X$ be the number of blue socks you pull. Is $X$ binomial?
+
+
+2. You shoot 1 free throw. Let $X$ be the total number of free throws you make. Is $X$ binomial?
+
+3. Each of 15 members of a basketball team shoots a single free throw. Let $X$ be the total number of free throws made from the 15 attempts. Is $X$ binomial?
+
+##### Solutions (Try without them first!)
+
+> 1. No, $X$ is not binomial. If you pull a blue sock first (probability 6/12), your probability of pulling another is (5/12). These events are not Independent (also a violation of Same probability).
+
+> 2. Yes, $X$ is binomial. It is a common misconception that $n$ cannot be one. There is a fixed number of trials (1), which is either a make or a miss, all (one) trials are independent, and all (one) trials have the same probability. If $p$ is the true, underlying probability of you making a free throw, this is $Binom(1, p)$.
+
+> 3. No, $X$ is not binomial. Some members of the team may be better at shooting a free throw than others - i.e. they have a higher true $p$ than others, so Same probability is violated.
+
+---
+
+## The Binomial Probability Distribution Informal Proof
+
+> We will not cover this proof in lecture nor will we ever test you on it. It is only **here for the curious**, and because Cameron put all that effort into writing it and thought it was cool.
+
+* Consider rolling a fair six-sided die three times, and let $D$ be the number of 1's you observe. We know $D \sim Binom(3, 1/6)$.
+
+* What is $P(D = 1)$? (In other words, what is the probability that three rolls of a fair six-sided die will yield EXACTLY one "1"?)
+  - Not an easy thing to compute in your head!
+
+* There are $2^n = 2^3= 8$ possible outcomes, when each trial is success/fail:
+
+```{r}
+# Let TRUE represent a success (1), FALSE represent a failure (Not a 1)
+three_rolls = tibble(
+  roll1 = c(F, T, F, F, T, T, F, T),
+  roll2 = c(F, F, T, F, T, F, T, T),
+  roll3 = c(F, F, F, T, F, T, T, T)
+)
+three_rolls
+```
+
+* Exactly three of these outcomes result in $D = 1$.
+
+```{r}
+three_rolls = three_rolls %>% 
+  mutate(D = roll1 + roll2 + roll3)
+
+three_rolls
+```
+
+
+* This does not mean that $P(D=1) = 3/8$, because not every outcome has the same probability!
+
+* Since the trials are independent, the probability of a given outcome occurring is the product of the probabilities of each trial.
+
+* For example, Success - Fail - Fail in this case has probability of 1/6 * 5/6 * 5/6.
+
+```{r, echo = FALSE}
+# This code is suppressed in the knitted file because it is a bit complex and distracts from the proof
+three_rolls = three_rolls %>%
+  # case_match is a shorter version of case_when; see ?case_match
+  mutate(roll1_p = case_match(
+    roll1,
+    T ~ "1/6",
+    F ~ "5/6"
+  ),
+  roll2_p = case_match(
+    roll2,
+    T ~ "1/6",
+    F ~ "5/6"
+  ),
+  roll3_p = case_match(
+    roll3,
+    T ~ "1/6",
+    F ~ "5/6"
+  ),
+  prob_str = str_c(roll1_p, roll2_p, roll3_p, sep = " * ")) %>% 
+  rowwise() %>% 
+  mutate(prob = round(eval(parse(text = roll1_p))*eval(parse(text = roll2_p))*eval(parse(text = roll3_p)), 3)) %>% 
+  select(roll1, roll2, roll3, prob_str, prob, D) %>% 
+  ungroup()
+
+three_rolls
+```
+
+* Observe that each case which has the same number of successes (the same value of $D$, the same number of 1's observed) has the same probability of happening!
+
+* That's because the order we multiply in doesn't matter. For example, in the second and third row, $\frac{1}{6}*\frac{5}{6}*\frac{5}{6} = \frac{5}{6}*\frac{1}{6}*\frac{5}{6}$.
+
+* Both of those examples evaluate to $\frac{1}{6}^1*\frac{5}{6}^2$. Notice that $\frac{1}{6}$ is the probability of success of a single trial, and $\frac{5}{6}$ is the "probability of failure": $1 - \frac{1}{6}$. 
+
+* Furthermore, the "1" exponent is the number of successes, and the "2" exponent is the number of failures (3 trials - 1 success).
+
+* More generally,
+
+$$
+\text{Prob. of one specific outcome} = \text{Prob. Success}^{\text{Num. Success}} * \text{Prob. Failure}^{\text{Num. Failure}}
+$$
+
+* Now, because every trial either succeeds or fails, we only need to know the probability and number of successes to determine the probability and number of failures.
+
+* Let's say we have probability of success $p$, and we are interested in an outcome with $k$ successes. (There may be more than one outcome with $k$ successes - right now we care about a specific one.)
+
+$$
+\text{Prob. of one specific outcome} = p^k * (1-p)^{n-k}
+$$
+
+---
+
+* We can use $k = 1$, along with the known $n = 3$ and $p = 1/6$, to determine the probability of each of the individual outcomes with exactly 1 success.
+
+```{r}
+p = 1/6
+k = 1
+n = 3
+round(p^k * (1-p)^(n-k), 3)
+
+# They match!
+three_rolls %>% filter(D == 1)
+```
+
+* Finally, the probability of getting $D = 1$ is the probability that we get ANY of these outcomes.
+
+* Here, we have $0.116 + 0.116 + 0.116 = 3 * 0.116 = 0.348$!
+
+* More generally, this is $C * (p^k * (1-p)^{n-k})$, where $C$ is the number of ways to get $k$ successes from $n$ trials, and the remainder of the term is the probability we just derived of getting an individual one of those outcomes.
+
+* Here, $C$ would be 3; there are three ways to get one success from three trials, namely, getting the success on your first, second, or third attempt.
+
+* It is not immediately obvious how to obtain this number $C$ mathematically.
+
+* However, this number can be calculated more generally using something called the **binomial coefficient**.
+
+* The **binomial coefficient**, $\binom{n}{k}$, computes how many ways there are to get $k$ successes from $n$ trials.
+
+$$
+\binom{n}{k} = \frac{n!}{k!(n-k)!}
+$$
+    
+* The derivation of this coefficient is beyond the scope of this class, but a reasonable explanation for the curious can be found [here](https://math.stackexchange.com/questions/119480/derivation-of-binomial-coefficient-in-binomial-theorem).    
+    
+*Note: "!" represents the "factorial" expression, such that 3! = 3 times 2 times 1 = 6, 5! = 5 times 4 times 3 times 2 times 1 = 120, etc.*     
+
+```{r}
+# The binomial coefficient can be calculated with choose(n, k)
+choose(n, k)
+
+# Manually
+factorial(n) / (factorial(k) * factorial(n - k))
+```
+
+* Putting it all together, we get the crown jewel of the binomial distribution, the probability of getting $k$ successes any way from $n$ trials with success probability $p$:
+
+## The Binomial Probability Distribution Result
+
+$$
+P(X = k) = \binom{n}{k} * p^k * (1-p)^{n-k} \ldots \text{ where } X \sim Binom(n, p)
+$$
+
+... where $n$ is the number of binomial trials, $p$ is the (constant) probability of success of each trial, and $k$ is the number of successes.   
+    
+* You do not have to calculate this "manually" each time: R has a useful command to calculate this probability for you.    
+    
+> `dbinom(k, size = n, prob = p)`, standing for "Density of the Binomial distribution", will compute $P(Binom(n, p) = k)$ for you.
+
+* Let's apply this formula to our above example; how likely is it that we will get a single "1" from three rolls of a fair, six-sided die?
+
+```{r}
+n = 3
+k = 1
+p = 1/6
+
+# From our theory:
+choose(n, k) * p^k * (1-p)^(n-k)
+
+# This useful command calculates it for you! Definitely use this instead of the above code!
+dbinom(k, n, p)
+```
+
+- The probability of getting exactly one "1" from three rolls of a fair, six-sided die, written as $P(Binom(3, 1/6) = 1)$, is roughly 34.7%.
+
+- We can now enumerate the full probability distribution for $D \sim Binom(3, 1/6)$:
+
+```{r}
+# Reminder that these all should sum to 1!
+n = 3
+p = 1/6
+tibble(
+  x = 0:n,
+  p = dbinom(x, n, p)
+)
+```
+
+
+## Binomial Mean, Variance, and Standard Deviation
+
+* Last week, we learned the general formula for the mean and variance of a probability distribution.
+
+* The discrete formulas are shown below.
+
+$$
+E(X) = \sum x * P(X = x)
+$$
+
+$$
+Var(X) = \sum (x-\mu)^2*P(X=x)
+$$
+
+* Those formulas will *always work*, but they are often inconvenient to compute. Last week's examples were very small and friendly.
+
+* Now that we know $P(X = x) = \binom{n}{k} * p^k * (1-p)^{n-k}$ for any $X \sim Binom(n, p)$, we can plug this into our mean and variance formulas. 
+
+* For example, to derive the mean of $Binom(n, p)$, we can compute:
+
+$$
+E(X) = \sum_{k = 0}^n x * \binom{n}{k} * p^k * (1-p)^{n-k}
+$$
+
+* No easy task, to be sure. Luckily for us, statisticians have already done this for us, and it simplifies to a very nice, intuitive result.
+
+> The **mean** of $Binom(n, p)$ is n*p.
+
+* For example, the mean of $D \sim Binom(3, 1/6)$ is 3 * 1/6 = 0.5.
+
+* Conducting a similar substitution and evaluation for the variance:
+
+> The **variance** of $Binom(n, p)$ is $\sigma^2 = np(1-p)$.
+
+* The variance of $D$ is $3 * 1/6 * (1 - 1/6) \approx 0.417.$
+
+> The **standard deviation** of $Binom(n, p)$ is $\sigma = \sqrt{np(1-p)}$.
+
+* The standard deviation of $D$ is $\sqrt{Var(D)} = \sqrt{0.417} \approx 0.645$.
+
+---
+
+* These formulas are much simpler than the general forms!
+
+* We will now investigate these formulas through a new concept called **simulation**.
+
+### Verification by Simulation
+
+> **Simulation** is the idea of generating large amounts of random data from a distribution, and observing its behavior, usually to see if its behavior matches our mathematical theory.
+
+> Simulation is **not** a way to prove a theoretical result is certainly true, nor to compute exact means and variances. It is a test to see if our theory works with actual observed data, or to estimate means and variances.
+
+> We will **not** ask you to write simulation code in this class, you will learn that in STAT 340. We will only use simulation as a lecture tool to back up our theoretical assertions.
+
+* The function `rbinom(n, size, prob)` (standing for Random generation from the Binomial distribution) will give you `n` random values generated from the distribution $Binom(size, prob)$.
+
+* For example, `rbinom(3, 10, 0.5)` can be interpreted as:
+
+- The random process is to flip a coin (an individual trial) 10 times, and count the number of "successes" (call that $X$).
+- Do that random process three times, and report the three values of $X$ you get. 
+
+- Each time you run this command, you will get new, random output!
+
+```{r}
+# Try it out! Each value you get is the result of 10 coin flips.
+rbinom(3, size = 10, prob = 0.5)
+```
+
+- We can push the `n` argument as high as we want, generating thousands or millions of random draws from any binomial distribution we want.
+
+- Let's take a million draws from the $Binom(100, 0.5)$ distribution and check that we get a mean and standard deviation very close to what we would expect from theory. 
+
+- The true mean is $np = 100(0.5) = 50$.
+
+- The true variance is $np(1-p) = 100(0.5)(1-0.5) = 25$.
+
+```{r}
+random_data = rbinom(1000000, size = 100, prob = 0.5)
+mean(random_data)
+var(random_data)
+```
+
+- Since this is still random data, we will basically never get exactly 50 and exactly 25, but our high sample size (a million data points) means our statistics should be pretty close to what we expect.
+
+- Let's test the probability formula from earlier. From theory, the probability of getting EXACTLY 51 successes from 100 coin flips is roughly 7.8%.
+
+```{r}
+dbinom(51, 100, 0.5)
+```
+
+- And the percentage we observe in our random data is:
+
+```{r}
+mean(random_data == 51)
+```
+
+```{r}
+# ggplot requires a dataframe, not a vector 
+tibble(x = random_data) %>%  
+  ggplot(aes(x)) +
+  geom_histogram(
+    aes(y = after_stat(density)), # Changes raw counts to observed probabilities
+    center = 50, binwidth = 1, 
+    color = "black", fill = "gray") +
+  
+  scale_y_continuous(expand = expansion(mult = c(0, 0.05)),
+                     labels = scales::percent) +
+  theme_classic() +
+  
+  labs(
+    title = "Simulated Binomial Distribution",
+    subtitle = "n = 100, p = 0.5",
+    y = "Observed Probability"
+  )
+```
+ 
+*Technical note: `geom_histogram` implies we have a continuous variable and we are "binning" it, but we know this is really a discrete value that only takes on the integers, which is why I used binwidth 1 and center 50. Using `geom_segment` would better reflect the discrete nature of the data, but `geom_segment` starts to become an eyesore when there are so many.*  
+ 
+```{r}
+# Here's the real Binom(100, 0.5)!
+gbinom(100, 0.5) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.05)),
+                     labels = scales::percent) +
+  xlim(c(25, 75)) +
+  theme_classic() +
+  labs(
+    title = "Binom(100, 0.5)",
+    subtitle = "From Theory",
+    y = "Theoretical Probability"
+  )
+```
+ 
+## Explore Binomial Graphs
+
+- The following arrangement of graphs shows how the shape of binomial distributions changes for $p \in \{0.1, 0.5, 0.9\}$ as $n$ increase from 1 to 1024 by powers of 2.
+- Notice how the skewness and scale change for each $p$ as $n$ increases.
+
+*This output is too large to look nice in RStudio, it is formatted nicely in the knitted file.*
+
+```{r binomial-graphs, echo = FALSE, fig.height = 24}
+# This code is suppressed in the knitted file because you are not responsible for knowing code at this level, and the main focus is the output in the knitted file.
+
+# For the curious, note the use of:
+#     - the **tidyr** function `expand_grid()` which creates a data frame with all possible combinations of `n_options` and `p_options`
+#     - the use of `pmap()` from the purrr package to iterate over the rows of a data frame
+#     - the anonymous function which produces a plot where `.x` is the first argument `n_options` and `.y` is the second argument `p_options`
+
+n_options = 2^seq(0, 10, by = 1)
+p_options = c(0.1, 0.5, 0.9)
+
+binomial_plots = expand_grid(n_options, p_options) %>% 
+  pmap(~{
+    gbinom(.x, .y,
+           color = if_else(.y == 0.1, "red", 
+                           if_else(.y == 0.5, "purple", "blue")),
+           scale = TRUE) +
+      theme_minimal()
+  })
+
+ggarrange(plots = binomial_plots,
+          ncol = length(p_options),
+          nrow = length(n_options))
+```
+
+- When $p$ is close to the extremes of 0 or 1, the distributions are skewed for small $n$, but become more symmetric as $n$ increases.
+- When $p=0.5$, the distributions are always symmetric from the start.
+- As the distributions get larger in scale, the same shape emerges: the "normal", bell-shaped curved.
+
+### Sidenote: gbinom() and geom_binom_density()
+
+> `gbinom(n, p)` is a shortcut command written by Professor Bret Larget for this class (contained in ggprob.R), which graphs the probability distribution for $Binom(n, p)$ with the given parameter values.
+
+> Like simulation, we will mostly use this as a lecture/educational tool rather than something to directly test you on, but there may be a few questions that indirectly use these commands.
+
+* This command automatically computes the heights of the bars, plots the segments, plots the solid x axis, and gives the graph reasonable labels for you. 
+
+```{r}
+gbinom(n = 2, p = 0.4)
+```
+
+* This is using `ggplot` behind the scenes, so we can use all our familiar ggplot tricks.
+
+```{r}
+gbinom(n = 2, p = 0.4) +
+  geom_vline(xintercept = 2*0.4, linetype = "dashed", color = "red")
+```
+
+> Behind the scenes, `gbinom` is just a call to `ggplot() + geom_binom_density()`. You can call `geom_binom_density()` (also from ggprob.R) yourself for further customization or to plot multiple distributions on the same panel.
+
+* One example of further customization allowed by `geom_binom_density` is quick specification of endpoints.
+
+```{r}
+# a and b represent the left and right endpoints of the range you want to graph!
+ggplot() +
+  geom_binom_density(n = 100, p = 0.5, a = 40, b = 55) +
+  geom_binom_density(n = 100, p = 0.6, a = 50, b = 70, color = "red", alpha = 0.5)
+```
+
+## Cumulative Probabilities and Quantiles
+
+* In addition to means, variances, and specific probabilities, statistical inference also concerns itself with **cumulative probabilities and quantiles**.
+
+* Fortunately, R includes quick code to calculate these quantities as well.
+
+* We have already seen `dbinom(x, size, prob)`, which gives $P(Binom(size, prob) = x)$, and `rbinom(n, size, prob)`, which gives $n$ random points from the $Binom(size, prob)$ distribution.
+
+* If you pull up the help page for either function, you will be brought to the general "Binomial Distribution" help page, which brings up *four* commands. These correspond to the four most common operations for a known probability distribution.
+    
+    - These same `d<dist>`, `p<dist>`, `q<dist>`, and `r<dist>` functions are defined the same way for many distribution types in R!
+    
+    - Try `?dnorm` for normal distributions, `?dt` for "t" distributions, and `?dunif` for uniform distributions!
+    
+    - There are many other distributions we will not touch on in this class, upon which R supports this core set of four commands, including:
+        - F distributions, `?df`
+        - Chi-squared distributions, `?dchisq`
+        - Poisson distributions, `?dpois`
+        - Exponential distributions, `?dexp`
+        - Gamma and Beta distributions, `?dgamma` and `?dbeta`
+        
+### pbinom()
+
+> `pbinom(q, size, prob)` returns $P(Binom(size, prob) \leq q)$.
+
+* This is the probability of the random variable taking on any value *less than or equal to* the given `q`.
+    - Graphically, this is the total of the heights of the bars to the left of and including `q`.
+    - Mathematically, we call this the **cumulative distribution function**, or **CDF**.
+
+* Specific emphasis is needed that the inequality sign is $\leq$, not $<$. `pbinom(q, size, prob)` will **include** the probability of $P(Binom(size, prob) = q)$.
+
+```{r}
+# So we don't have to keep typing out 10 and 0.5
+n = 10
+p = 0.5
+```
+
+
+```{r}
+# What is the probability of getting four or fewer heads from 10 coin flips?
+pbinom(4, n, p)
+
+# The manual alternative:
+dbinom(0, n, p) + dbinom(1, n, p) + dbinom(2, n, p) + dbinom(3, n, p) + dbinom(4, n, p)
+
+# A shorter, but still manual alternative:
+sum(dbinom(0:4, n, p))
+```
+
+* The red bars below correspond to the probability totaled by `pbinom(4, n, p)`. 
+
+```{r}
+gbinom(n, p) +
+  geom_binom_density(n, p, b = 4, color = "red") +
+  scale_x_continuous(breaks = 0:10)
+```
+
+* Notice how this is different from `dbinom(4, n, p)`, which returns just the height of the bar at `x = 4`. We can see from the graph this should be a little more than 0.2.
+
+```{r}
+dbinom(4, n, p)
+```
+
+#### Calculating Area to the Right
+
+* By default, `pbinom(x, n, p)` returns the total probability of the bars to the left of and including `x`.
+
+* We don't have an explicit command for area to the right of `x`, but we can do some basic manipulation of `pbinom` to figure that out.
+
+* We know that the total sum of all probability is 1, so the area to the right and NOT including `x` (i.e. the area to the right of and including `x+1`) must be `1 - pbinom(x, n, p)`.
+
+* Because of the *discrete* nature of binomial distributions, **we have to be very careful and explicit about whether or not we are including an endpoint.**
+
+```{r}
+# This is P(X > 4), or P(X >= 5)
+1 - pbinom(4, n, p)
+```
+
+```{r}
+gbinom(n, p) +
+  geom_binom_density(n, p, a = 5, color = "red") +
+  scale_x_continuous(breaks = 0:10)
+```
+
+* A shortcut (although it is more characters) is the optional argument `lower.tail = FALSE`.
+
+```{r}
+# This is P(X > 4), or P(X >= 5). NOT P(X >= 4)!
+pbinom(4, n, p, lower.tail = FALSE)
+```
+
+* As the comment notes above, `pbinom(4, n, p, lower.tail = FALSE)` is $P(X > 4)$, not $P(X >= 4)$.
+
+* If we wanted $P(X >= 4)$, there are two equivalent ways to accomplish that.
+
+```{r}
+# One option: P(X >= 4) is P(X > 3) for the binomial distribution, since it only can be an integer
+pbinom(3, n, p, lower.tail = FALSE)
+
+
+# Another equally valid option: P(X >= 4) is P(X > 4) + P(X = 4)
+pbinom(4, n, p, lower.tail = FALSE) + dbinom(4, n, p)
+```
+
+#### Calculating Area in Between Two Points
+
+* The last "puzzle piece" area we can calculate is the area between two points.
+
+* Say we are interested in $P(4 <= X <= 7)$.
+
+```{r}
+gbinom(n, p) +
+  geom_binom_density(n, p, a = 4, b = 7, color = "red") +
+  scale_x_continuous(breaks = 0:10)
+```
+
+* We could add up all of the individual probabilities, but this becomes infeasible for distributions with large n, and (spoiler) is impossible for continuous distributions.
+
+* We can achieve this quickly with a basic manipulation of `pbinom`.
+
+* Consider `pbinom(7, n, p)`. This returns all of the bars to the left of and including 7.
+
+* Now, consider `pbinom(3, n, p)`. This returns all of the bars to the left of and including 3.
+
+```{r}
+gbinom(n, p) +
+  geom_binom_density(n, p, b = 7, color = "red") +
+  geom_binom_density(n, p, b = 3, color = "green", alpha = 0.5) +
+  scale_x_continuous(breaks = 0:10)
+```
+
+* The remaining red area is exactly $P(X <= 7) - P(X <= 3) = P(4 <= X <= 7)$! The red area is calculated with `pbinom(7, n, p) - pbinom(3, n, p)`.
+
+* We include 7 in the first pbinom because it is one of the bars we want to *include*, since the bound is $<= 7$ in our desired probability.
+
+* We do NOT include 4 in the second pbinom because the second pbinom are the extra bars on the low end we want to get rid of. We want to keep 4 because the bound is $<= 4$ in our desired probability, so we don't include it in the `pbinom` that we are taking away.
+
+> More generally, P(a <= Binom(n, p) <= b) can be computed with `pbinom(b, n, p) - pbinom(a - 1, n, p)`.
+
+---
+
+* If you get a bound in the form of $P(c < X < d)$, you can rewrite it as $P(c + 1 <= X <= d - 1)$, and apply the above principle.
+
+* For example: calculate $P(51 <= Binom(100, 0.5) < 57)$.
+    - This can be rewritten as $P(51 <= Binom(100, 0.5) <= 56)$, (57 becomes 56, $<$ becomes $<=$) which by the above principle is:
+    
+```{r}
+n = 100
+p = 0.5
+pbinom(56, n, p) - pbinom(51 - 1, n, p)
+```
+```{r}
+# I use a = 45 to "zoom in" on the calculated area
+gbinom(n, p, a = 45, b = 65) +
+  geom_binom_density(n, p, a = 45, b = 56, color = "red") +
+  geom_binom_density(n, p, a = 45, b = 50, color = "green", alpha = 0.5)
+```
+
+
+### qbinom()
+
+> `qbinom(p, size, prob)` tells you how large `q` needs to be for $P(Binom(size, prob) \leq q)$ to be at least `p`. It is the inverse of `pbinom(q, size, prob)`. 
+
+* In `pbinom`, we input an x value and are given the corresponding cumulative probability.
+
+```{r}
+n = 10
+p = 0.5
+
+# How much probability is at or below 5 on Binom(10, 0.5)?
+pbinom(5, n, p)
+
+# How much probability is at or below 6?
+pbinom(6, n, p)
+```
+
+* In `qbinom`, we input a cumulative probability and are given the corresponding x value.
+
+```{r}
+# To capture at least 70% of the probability in Binom(10, 0.5), how large do we need to make x?
+qbinom(0.7, n, p)
+
+# How "far in" do we need to go to capture at least 95% of the probability?
+qbinom(0.95, n, p)
+```
+
+> If `q` is the first/smallest value for which $P(X <= q)$ exceeds some `p`, then we say **"`q` is the `p` quantile."**
+
+```{r}
+# To capture at least 35% of the probability in Binom(10, 0.5), we need to capture all the bars up to and including...
+qbinom(0.35, size = 10, prob = 0.5)
+
+# Therefore, 4 is the 0.35 quantile of Binom(10, 0.5).
+```
+
+## The `d`, `p`, `q` Summary Table
+
+* Recall that `dbinom`, `pbinom`, and `qbinom` are just the binomial example of the larger `d`, `p`, `q` family of commands.
+
+* All of them take a numeric input of interest (as well as the parameters of the distribution; for `binom`, these are `size` and `prob`) and give a numeric output.
+
+* Instead of `binom`, consider any distribution abbreviation like `norm` or `unif`; I'll write this as `<dist>`.
+
+* For any `<dist>`, including `binom`, these three commands have the following input and output types:
+
++---------------+---------------------+-----------------------------------+
+| Command       | In                  | Out                               |
++===============+=====================+===================================+
+| ```d<dist>``` | A value of $X$, `x` | $P(X = x)$                        |
++---------------+---------------------+-----------------------------------+
+| ```p<dist>``` | A value of $X$, `q` | $P(X <= q)$                       |
++---------------+---------------------+-----------------------------------+
+| ```q<dist>``` | A probability, `p`  | $q$, such that $P(X <= q) = p$    |
++---------------+---------------------+-----------------------------------+
+
+---
+
+##### EXERCISE: Predict the Output
+
+* This exercise will reinforce the `p<dist>`, `q<dist`, and `r<dist>` commands by asking students to predict their output.
+
+* For each of the following chunks, **predict** what the output will be; then **uncomment and run** the chunk to see if you were right!
+
+```{r}
+# We continue to use our usual example n and p values, 10 and 0.5.
+n = 10
+p = 0.5
+```
+
+```{r}
+#dbinom(11, n, p)
+
+#dbinom(0, n, p)
+```
+
+```{r}
+#pbinom(10, n, p)
+
+#pbinom(0, n, p)
+```
+
+```{r}
+#qbinom(1, n, p)
+
+#qbinom(0.5, n, p)
+```
+
+---
+
+# Binomial Distribution Live Coding
+
+## Problem 1
+
+What are the mean and standard deviation of the $\text{Binomial}(90, 0.7)$ distribution?
+
+```{r}
+# Live coding
+```
+
+
+## Problem 2
+
+Plot the $\text{Binomial}(90, 0.7)$ distribution. 
+Add a red partly transparent solid vertical line at the mean, dashed vertical lines one standard deviation above and below the mean, and dotted lines two standard deviations above and below the mean.
+
+```{r}
+# Live coding
+```
+
+
+## Problem 3
+
+If $X \sim \text{Binomial}(90, 0.7)$, what is $P(X = \mu)$?
+
+```{r}
+# Live coding
+```
+
+
+
+## Problem 4
+
+If $X \sim \text{Binomial}(90, 0.7)$,
+what is $P(\mu - \sigma \leq X \leq \mu + \sigma)$?
+
+```{r}
+# Live Coding
+```
+
+
+
+## Problem 5
+
+Find the 0.05 and 0.95 quantiles of the $\text{Binomial}(90, 0.7)$ distribution.
+
+```{r}
+# Live coding
+```
+
+
+## Solutions
+
+### Problem 1
+
+The mean is $\mu = (90)(0.7) = `r 90*0.7`$.
+
+The standard deviation is $\sigma = \sqrt{90(0.7)(0.3)} = `r sqrt(90*0.7*0.3)`$.
+
+### Problem 2
+
+```{r}
+n = 90
+p = 0.7
+mu = n*p
+sigma = sqrt(n*p*(1-p))
+
+gbinom(n, p, scale = TRUE) +
+  geom_vline(xintercept = mu, color = "red", alpha = 0.5) +
+  geom_vline(xintercept = mu + c(-1,1)*sigma,
+             color = "red", linetype = "dashed") +
+  geom_vline(xintercept = mu + c(-2,2)*sigma,
+             color = "red", linetype = "dotted") +
+  theme_minimal()
+```
+
+### Problem 3
+
+```{r}
+dbinom(mu, n, p)
+```
+
+### Problem 4
+
+```{r}
+## endpoints
+mu + c(-1,1)*sigma
+
+## Within one standard deviation
+## P(mu - sigma <= X <= mu + sigma)
+## P(59 <= X <= 67) = P(X <= 67) - P(X <= 58)
+pbinom(67, n, p) - pbinom(58, n, p)
+
+## Sum of probabilities
+sum( dbinom(59:67, n, p) )
+```
+
+### Problem 5
+
+```{r}
+qbinom(c(0.05, 0.95), n, p)
+
+## Compare to the tail probabilities
+pbinom(56, n, p) # P(X <= 56) >= 0.05
+pbinom(55, n, p) # P(X <= 55) < 0.05
+
+## Compare to the tail probabilities
+pbinom(70, n, p) # P(X <= 70) >= 0.95
+pbinom(69, n, p) # P(X <= 69) < 0.95
+```
+
+# Normal Distributions
+
+> The normal distribution is a **continuous** probability distribution which appears very often in statistical settings. It has two parameters, $\mu$ and $\sigma$, which control the center and spread respectively. We write $X 
+\sim N(\mu, \sigma)$.
+
+* The binomial distribution is motivated by a common *real life* scenario, whereas the normal distribution is motivated by a common *statistical* scenario (though it often appears in real life as well).
+
+* In statistical inference (recall: our long-term goal of teaching probability distributions), we are very often required to work with the normal distribution.
+
+## The Density Function, Mean, and Variance
+
+* Technically, we should not write $P(X=x)$ for a continuous variable, because the probability of getting *exactly* $x$ is 0, as there are infinitely many possible values. However, we often abuse notation and do anyway.
+
+* Here, we write $f(x)$, the probability density function. This density function allows for interpretation of probability related to **the area under the curve**.
+
+$$
+f(x) = \frac{1}{\sigma\sqrt{2\pi}} e^{-\frac{1}{2}\left(\frac{x-\mu}{\sigma}\right)^2}
+$$
+
+### Mean and Variance
+
+* Similar to how we substituted $P(X=x)$ into the discrete mean formula to find the mean of a binomial distribution, let's subtitute $f(x)$ into the continuous mean formula to find the mean of the normal distribution.
+
+$$
+E(X) = \int x * \frac{1}{\sigma\sqrt{2\pi}} e^{-\frac{1}{2}\left(\frac{x-\mu}{\sigma}\right)^2}
+$$
+
+* That's a doozy. If you're curious, [here's the algebra behind working this out.](https://statproofbook.github.io/P/norm-mean.html#)
+
+* If you're not curious, just trust us that the final result is:
+
+> The **mean of a normal distribution** is $\mu$.
+
+* Just like the binomial mean was the simple $n*p$, the normal mean is the *even simpler* $\mu$! No calculation required!
+
+* We can do similar [algebra for the variance](https://statproofbook.github.io/P/norm-var.html), and find:
+
+> The **variance of a normal distribution** is $\sigma^2$.
+
+> Therefore, the **standard deviation** is $\sigma$.
+
+* Barely any calculation required here at all! If you are told that $X \sim N(\mu, \sigma)$, you know that $E(X) = \mu, Var(x) = \sigma^2, sd(x) = \sigma$ right away.
+
+## Explore Normal Graphs
+
+> `gnorm` and `geom_norm_density` are conceptually identical to `gbinom` and `geom_binom_density` above, but require the parameters `mu` and `sigma` instead of `size` and `prob`. 
+
+```{r}
+# Contrasting three normal distributions
+ggplot() +
+  geom_norm_density(mu = 0, sigma = 1, color = "blue") +
+  geom_norm_density(mu = 0, sigma = 0.5, color = "red") +
+  geom_norm_density(mu = 2, sigma = 1, color = "darkgreen") +
+  labs(
+    title = "Three Normal Distributions",
+    subtitle = "Blue: N(0, 1). Red: N(0, 0.5). Green: N(2, 1)",
+    y = "Density"
+  ) +
+  geom_hline(yintercept = 0)
+```
+
+> Compare the blue to the green curve above. **Changing $\mu$ shifts a normal distribution left or right.**
+
+> Compare the blue to the red curve above. **Changing $\sigma$ spreads out or narrows a normal distribution.**
+
+* Other important features of the normal distribution:
+    - No matter what the parameters are, it is a **symmetric**, "bell-shaped" curve.
+        - Unlike the binomial distribution, which we could "skew" for small n's and extreme values of p, the normal distribution is always symmetric.
+        
+    - Normal distributions can exist anywhere along the real number line; positives, negatives, 0, decimal values, et cetera.
+        - Technically, all normal distributions have at least some non-zero probability across all values. However, this probability drops to *almost* 0 once you get more than a few SD's away from the mean, so we don't even bother showing it.
+        
+    - All normal distributions have total area of 1.0 underneath. That is why the narrower (lower $\sigma$) red curve has to be taller than the wider (higher $\sigma$) blue and green curves.
+
+> `geom_norm_fill` instead of `geom_norm_density` shades in areas instead of drawing the density line. Optional parameters `a` and `b` allow you to specify the left and right endpoints of desired shaded area.
+
+```{r}
+ggplot() +
+  geom_norm_fill(mu = 0, sigma = 1, fill = "skyblue") +
+  geom_norm_fill(mu = 0, sigma = 1, fill = "blue", alpha = 0.5, a = -0.5, b = 1.5)
+```
+
+## dnorm
+
+### d, p, q Summary Table (Reprise)
+
+* We first introduced the `d`, `p`, `q` commands for the binomial distribution.
+
+* These same commands work the same way using `norm` as the `<dist>` instead of `binom`.
+
+* For `binom` commands, we had to provide `size` and `prob`; now we have to provide `mean` and `sd`.
+
+* I copy and paste this table again here for your convenience, exactly as it is above.
+
++---------------+---------------------+-----------------------------------+
+| Command       | In                  | Out                               |
++===============+=====================+===================================+
+| ```d<dist>``` | A value of $X$, `x` | $P(X = x)$                        |
++---------------+---------------------+-----------------------------------+
+| ```p<dist>``` | A value of $X$, `q` | $P(X <= q)$                       |
++---------------+---------------------+-----------------------------------+
+| ```q<dist>``` | A probability, `p`  | $q$, such that $P(X <= q) = p$    |
++---------------+---------------------+-----------------------------------+
+
+* Remember that $P(X=x)$ is technically not correct notation for continuous variables; we will never get a specific value exactly. This is technically just the height of the density function at a specific value, which has no direct, real interpretation.
+
+---
+
+> `dnorm(x, mean, sd)` gives you the height of the density function of $N(mean, sd)$ at `x`.
+
+```{r}
+dnorm(0.5, 0, 1)
+```
+
+```{r, fig.height = 3, fig.width = 4}
+val = dnorm(0.5, 0, 1)
+
+# An illustration of what dnorm is calculating
+
+# Note: Our custom gnorm() calls the first two arguments "mu" and "sigma", while the d, p, q functions call them "mean" and "sd", but we usually won't name these arguments anyway
+gnorm(0, 1, a = -3, b = 3) +
+  
+  scale_x_continuous(
+    breaks = c(-2, 0, 0.5, 2)
+  ) +
+  
+  scale_y_continuous(
+    breaks = c(0, 0.2, val, 0.4),
+    labels = c("0", "0.2", "dnorm(0.5, 0, 1)", "0.4")
+    ) +
+  theme(
+    panel.grid.minor = element_blank()
+  ) +
+  
+  annotate("segment", x = 0.5, xend = 0.5, y = 0, yend = val, linetype = "solid", size = 2) +
+  
+  annotate("segment", x = -3, xend = 0.5, y = val, yend = val, linetype = "solid", size = 2)
+```
+
+## pnorm
+
+> `pnorm(q, mean, sd)` takes in a value of the random variable, `q`, and returns $P(X <= q)$.
+
+#### Continuous Areas: Caution to the Wind!
+
+> Because P(X = q) is technically 0 for continuous distributions, P(X <= q) is equal to P(X < q)- same for >= and >. Therefore, our calculations are the same whether the bounds include the endpoints or not, and we can effectively ignore the difference between <= and <.
+
+* For the binomial distribution, which was discrete, we had to be extremely careful whether or not we included the endpoints. We do not have to exercise that same caution with continuous distributions like the normal distribution.
+
+* For example: Calculate $P(-0.5 <= N(0, 1) <= 1)$.
+    - The equals on the bounds do not matter for a continuous distribution, so this is the same as $P(-0.5 < N(0, 1) < 1)$, or $P(-0.5 <= N(0, 1) < 1)$, or $P(-0.5 <= N(0, 1) < 1)$.
+    - For this same reason, we do not have to make the same `a - 1` adjustment that we did for the binomial distribution!
+
+```{r}
+pnorm(1, mean = 0, sd = 1) - pnorm(-0.5, mean = 0, sd = 1)
+```
+
+```{r}
+gnorm(0, 1) +
+  geom_norm_fill(0, 1, b = 1, fill = "red") +
+  geom_norm_fill(0, 1, b = -0.5, fill = "darkgreen", alpha = 0.5)
+```
+
+* An example of area to the right: calculate $P(N(0, 1) > 0.7)$.
+    - This is the same as $P(N(0, 1) >= 0.7)$.
+    - Both are calculated with:
+    
+```{r}
+1 - pnorm(0.7, mean = 0, sd = 1)
+# or, equivalently:
+pnorm(0.7, mean = 0, sd = 1, lower.tail = FALSE)
+```
+
+#### Two Tailed Areas
+
+* A common statistical operation when we get to inference will be to find probabilities in the form $P(|X - \mu| >= t)$. 
+
+* The vertical bars around an expression, $|a|$, stands for "absolute value", and can be understood as "if $a$ is negative, turn it positive; it $a$ is already positive, keep it that way."
+
+* When we write this as $|X - \mu| >= t$, this refers to all points of $X$ which are at least $t$ away from $\mu$, whether lower or higher.
+
+* For example: If $X \sim N(100, 25)$, find $P(|X-100| > 30)$.
+    - The set of points which satisfies $|X-100| > 30$ are those which are at least 30 away from 100, or further.
+    - This is $X < 70$ or $X > 130$.
+    - This is a "lower" and "upper tail" of the $N(100, 25)$ distribution.
+    
+```{r}
+gnorm(100, 25) +
+  geom_norm_fill(100, 25, a = NULL, b = 70) +
+  geom_norm_fill(100, 25, a = 130, b = NULL) +
+  theme_minimal()
+```
+    
+* We could calculate these two areas separately and add them together. The area to the left of 70 is a straightforward `pnorm`, and the area to the right of 130 needs a slight modification (can do `1 - pnorm` or `lower.tail = FALSE`).
+
+```{r}
+left_tail = pnorm(70, 100, 25)
+
+## using subtraction
+right_tail = (1 - pnorm(130, 100, 25))
+left_tail  + right_tail
+
+## using lower.tail
+right_tail = pnorm(130, 100, 25, lower.tail = FALSE)
+left_tail + right_tail
+```
+
+* You may notice that the left tail area and right tail area graphically appear to be the same; and you would be correct!
+
+```{r}
+left_tail
+right_tail
+```
+
+* This leads to a helpful computational shortcut.
+
+> One can calculate two-tailed areas on symmetric distributions (all normal distributions, or binomial distributions with p = 0.5) by just doubling the probability/area in one tail!
+
+```{r}
+# Double the area to the left of 70
+2 * pnorm(70, 100, 25)
+```
+
+
+## qnorm
+
+> `qnorm(p, mean, sd)` tells you how large `q` needs to be for $P(N(mean, sd) \leq q)$ to be at least `p`. It is the inverse of `pnorm(q, mean, sd)`.
+
+
+* How large do we need to make `q` so $P(N(100, 25) < q)$ is 70%?
+
+```{r}
+qnorm(0.7, 100, 25)
+# I'm not purposefully going to give you the visual this time, I encourage you to try to picture this in your head without it. 
+# The N(100, 25) distribution is centered at 100, and we want to capture more than half the area starting from the left. Because the normal distribution is symmetric, we have to go past the center all the way to 113.11 to capture more area.
+```
+
+* How large do we need to make `q` to capture 15% of the area under $P(N(100, 25))$?
+
+```{r}
+qnorm(0.15, 100, 25)
+```
+
+---
+
+* Recall the binomial distribution could give you the same value for two different quantiles; for example, 6 is both the 0.7 and the 0.71 quantile of $Binom(10, 0.5)$. 
+
+```{r}
+qbinom(0.7, 10, 0.5)
+qbinom(0.71, 10, 0.5)
+```
+
+* This will **not happen** for normal distributions because they are continuous. There is probability (area under the density curve) being added at every single point.
+
+```{r}
+qnorm(0.7, 100, 0.25)
+qnorm(0.71, 100, 0.25)
+```
+
+---
+
+##### EXERCISE: Normal Calculations
+
+- This exercise will reinforce fundamental calculations of quantiles and probabilities of normal distributions.
+
+- Consider $X \sim N(100, 25)$.
+
+```{r}
+mu = 100
+sigma = 25
+```
+
+- **Compute** the 0.975 (97.5%) quantile of X.
+
+```{r}
+# Answer here
+qnorm(0.975, mu, sigma)
+```
+
+- **Compute** $P(X < 75)$.
+
+```{r}
+# Answer here
+pnorm(75, mu, sigma)
+```
+
+- **Compute** $P(|X-\mu|>\sigma)$, with a reminder that $\mu = 100$ and $\sigma = 25$.
+
+```{r}
+# Answer here
+2 * pnorm(75, mu, sigma)
+```
+
+---
+
+## Standard Normal Distribution and Standardization
+
+> The **standard normal distribution**, often denoted with the random variable $Z$, is the normal distribution which has mean = 0 and standard deviation = 1; or $N(0, 1)$.
+
+> $Z$ is a very important statistical distribution whose properties we will study and use significantly.
+
+---
+
+#### Why Z?
+
+* To motivate $Z$'s importance, let's first consider an example.
+
+* One random variable $X \sim N(100, 25)$ takes on the value 75 Another random variable $Y \sim N(10, 7)$, with another normal distribution, takes on the value 24.
+
+* Which value is more extremely, or less likely?
+
+* You could go through the `dnorm` calculations, comparing the heights of the respective density curves, but there is a fundamental connection between these normal distributions.
+
+* Even though 24 is literally much smaller than 75, we can intuitively tell that $N(10, 7)$ producing 24 was a rarer event than $N(100, 25)$... why?
+
+* We can tell by considering **how many standard deviations away from their mean** each point was!
+
+* $X = 75$ was $\frac{75-100}{25} = -1$ standard deviation away from its mean. (The negative means the observed value of $X = 75$, was *below* $E(X) = 100$.)
+
+* $Y = 18$ was $\frac{24-10}{7} = 2$ standard deviations away from its mean.
+
+* If instead, we had reported that $X$ was 1 standard deviation away from its mean and $Y$ was 2 standard deviations away from its mean, we would already know which is more extreme - *regardless of the context* of $X$ and $Y$.
+
+* This "universal language" leads us to **standardized scores, or $Z$ scores**.
+
+> When a random variable $X$ takes on a random value $x$, its **standardized score or $Z$-score** is $z = \frac{x - \mu}{\sigma}. This tells us how extreme the point is regardless of context. 
+
+---
+
+#### Standardizing Normal Values
+
+* The reason that $Z$ scores are useful is because $Z$ scores are always on the same scale, regardless of the initial context that they came from. 
+
+* But *what scale is that*? What constitutes an extreme $Z$ score among all other $Z$ scores? Mathematically, **what is the probability distribution of $Z$ scores?**
+
+> If $X \sim N(\mu, \sigma)$, then $\frac{X - \mu}{\sigma} = Z \sim N(0, 1)$.
+
+*You may have noticed that for the `d`, `p`, `q`, `r`, and `gnorm` commands, the default values for mean and sd if you do not provide them are 0, 1. This is why! There are no default values for the `binom` commands!* 
+
+---
+
+* This relation can be extended to calculating probabilities.
+
+* If $X \sim N(\mu, \sigma), Z \sim N(0,1)$, then:
+
+$$
+P(X < a) = P(Z < \frac{a-\mu}{\sigma})
+$$
+
+*Note: I use < in the above notation, but it can be replaced with >, = $\leq$, or $\geq$.*
+
+#### Example
+
+$X \sim \text{N}(100, 25)$
+
+- Find $\prob(X < 80)$
+
+```{r}
+mu = 100
+sigma = 25
+x = 80
+z = (x-mu)/25
+
+## Using X directly
+pnorm(x, mu, sigma)
+
+## Standardizing first
+## default values for the mean and sd are 0 and 1
+pnorm(z)
+
+gnorm(mu, sigma) +
+  geom_norm_fill(mu, sigma, b=x) +
+  theme_minimal()
+
+gnorm() +
+  geom_norm_fill(b=z) +
+  theme_minimal()
+```
+
+
+# Extensions of Normal Distributions
+
+## Central Limit Theorem
+
+### Motivation
+
+* The Central Limit Theorem is a **fundamental** theorem for statistical inference, which details the probability distribution of the sample mean of independent observations from one probability distribution.
+
+* What the heck does that mean?
+
+---
+
+* To illustrate go back to our familiar random processes. Our random process will involve an unimportant distribution $D$, which has expected value $\mu$ and standard deviation $\sigma$, though $D$ does NOT have to be a normal distribution.
+
+1. Sample $n$ data points from the distribution $D$.
+2. Take the mean of those $n$ points we just sampled; this produces a single number, probably close to $\mu$.
+
+* This constitutes one run of the random process, and produces one value of our random variable, which we will call $\bar{X}$ ("x-bar", or "the sample mean").
+
+* What is the distribution of $\bar{X}$? For example, if we could run this random process millions of times, what values of $\bar{X}$ would we get, and how often would we get them?
+
+* This distribution of $\bar{X}$ is called the **sampling distribution** - named so because it arises from calculation of a statistic from samples of some other distribution $D$.
+
+* Statisticians have [mathematically derived](https://en.wikipedia.org/wiki/Central_limit_theorem#Proof_of_classical_CLT) this distribution, but we will just focus on the result of this important theorem rather than its proof.
+
+### The Theorem
+
+> Consider sampling $n$ points from any distribution $D$, which has expected value $\mu$ and standard deviation $\sigma$, and then taking the mean of those $n$ points as a random variable $\bar{X}$. Then, $\bar{X} \sim N(\mu, \frac{\sigma}{\sqrt{n}}$).
+
+* There are three important components to this theorem:
+1. The sample mean $\bar{X}$ always follows a normal distribution, **regardless of the initial distribution $D$**. (!!)
+2. That normal distribution is centered around $\mu$; that is, the sample mean will, on average, center around the true average of the individual points. (Hence, "Central").
+3. The more points we sample (increasing $n$), the lower standard deviation we have ($\sqrt{n}$ is in denominator). That is, the mean of 100 random points is likely to be closer to $\mu$ than the mean of 2 random points. (Hence, "Limit").
+
+### Simulation Examples
+
+* We refer back to simulation as a way to verify and demonstrate the Central Limit Theorem; not to prove it.
+
+* Consider $X \sim N(100, 25)$, the "initial" distribution.
+
+```{r}
+mu = 100
+sigma = 25
+gnorm(mu, sigma)
+```
+
+* Let's sample **ten** points from $X$ with `rnorm`.
+
+```{r}
+random_data = rnorm(10, mu, sigma)
+random_data
+```
+
+* The **mean** of those ten points, a single value of the random variable $\bar{X}$, is:
+
+```{r}
+mean(random_data)
+```
+
+* Now consider many replications of the above process: draw 10 points, write down their mean, repeat 10,000 times.
+
+```{r}
+random_means = tibble(x = replicate(n = 10000, mean(rnorm(10, mu, sigma))))
+head(random_means)
+```
+
+* Let's compare the **sampling distribution** of the sample mean to the **initial distribution** of random points:
+
+```{r}
+gnorm(mu, sigma) +
+  geom_density(aes(x), random_means) +
+  labs(
+    title = "Initial (Blue) vs. Sampling Distribution (Black)",
+    subtitle = "Sampling Distribution of Sample Mean, n = 10",
+    caption = "Notice: Same Center, Less Variance for Sampling Distribution"
+  )
+```
+
+* Central Limit Theorem tells us the sampling mean should follow $N(\mu, \sigma)$, with $\mu = 100$ and $\sigma_N = \frac{\sigma_D}{\sqrt{n}} = \frac{25}{\sqrt{10}} \approx 7.9$.
+
+```{r}
+# Consistent with theory!
+ggplot(random_means, aes(x)) +
+  geom_density() +
+  geom_norm_density(100, 25/sqrt(10), color = "darkgreen") +
+  labs(
+    title = "Simulated Dist. of Sample Mean (Black) vs. Theoretical Dist. of Sample Mean (Green)",
+    subtitle = "Theoretical Distribution by Central Limit Theorem"
+  )
+```
+
+* Almost a perfect match, our simulation is consistent with our theory!
+
+* Finally, checking the parameters, we observe simulated values of:
+
+```{r}
+# Consistent with theory!
+random_means %>% 
+  summarize(mu_simulated = mean(x), sigma_simulated = sd(x))
+```
+
+* Like the visualization above, these are awfully close to the 100 and 7.9 we were expecting.
+
+---
+
+* Let's demonstrate the behavior as we **increase** $n$. Our random process is now to sample **50** points from $N(100, 25)$, and take their mean. I reduce the code from above into one workflow.
+
+```{r}
+random_means_n50 = tibble(x = replicate(n = 10000, mean(rnorm(50, mu, sigma))))
+
+gnorm(mu, sigma) +
+  geom_density(aes(x), random_means) +
+  geom_density(aes(x), random_means_n50, color = "red") +
+  labs(
+    title = "Increasing n, Decreasing Variance",
+    subtitle = "Initial (Blue) vs. n = 10 Sampling Dist. (Black) vs. n = 50 Sampling Dist. (Red)",
+    caption = "Notice: Same Center, Less Variance for Sampling Distribution"
+  )
+```
+
+> The larger we make $n$, the tighter the sampling distribution of $\bar{X}$ gets around $\mu$.
+
+* Finally, as above, Central Limit Theorem tells us the mean and standard deviation of the sample mean should be $\mu = 100$ and $\frac{\sigma}{\sqrt{n}} = \frac{25}{\sqrt{50}} \approx 3.5$. We observe simulated values of:
+
+```{r}
+# Consistent with theory!
+random_means_n50 %>% 
+  summarize(mu_simulated = mean(x), sigma_simulated = sd(x))
+```
+
+---
+
+* The above example started with an initial distribution that was normal - let's try sampling from an initial $Uniform(a, b)$ distribution.
+
+* The $Uniform(a, b)$ distribution has equal chance of producing any point between $a$ and $b$. Its density for $a = 2$ and $b = 5$ is shown below.
+
+```{r, echo = FALSE}
+# We do not provide a "guniform" or "gunif" command in ggprob.R, so we have to create it somewhat painstakingly manually
+a = 2
+b = 5
+ggplot(tibble(x=c(a,b), y=1/(b-a)), aes(x,y)) +
+  geom_line(size=3, color = "blue") +
+  geom_segment(aes(xend=x, yend=rep(0,2)), size=3, color = "blue") +
+  geom_segment(aes(x=a-1, y=0, xend=a, yend=0), size=3, color = "blue") +
+  geom_segment(aes(x=b+1, y=0, xend=b, yend=0), size=3, color = "blue") +
+  ylim(c(0, 1/(b-a))) +
+  xlim(c(a-1, b+1)) +
+  scale_x_continuous(breaks = seq(a-1,b+1)) +
+  xlab("X") +
+  ylab("Density")+
+  ggtitle(paste0("Uniform(",a, ", ", b, ")"))
+```
+
+* We can sample $n$ points from this distribution with $runif(n, a, b)$; let's arbitrarily set $n = 10$.
+
+* I go through the same workflow as above, and plot the sampling distribution of the sample mean on top of the original distribution.
+
+```{r}
+a = 2
+b = 5
+random_means_uniform = tibble(x = replicate(n = 10000, mean(runif(10, a, b))))
+
+ggplot(tibble(x=c(a,b), y=1/(b-a))) +
+  geom_line(aes(x,y), size=3, color = "blue") +
+  geom_density(aes(x), data = random_means_uniform) +
+  geom_segment(aes(x, y, xend=x, yend=rep(0,2)), size=3, color = "blue") +
+  geom_segment(aes(x, y, x=a-1, y=0, xend=a, yend=0), size=3, color = "blue") +
+  geom_segment(aes(x=b+1, y=0, xend=b, yend=0), size=3, color = "blue") +
+  scale_x_continuous(breaks = seq(a-1,b+1)) +
+  labs(
+    title = "Sampling Distribution (Black) of Uniform(2, 5) (Blue)"
+  )
+```
+
+* The sampling distribution is normal again! It will always come out normal for any initial distribution, there was nothing special about the uniform or normal distributions we showed in examples here.
+
+* Finally, we can check the parameters to make sure this is the specific normal distribution predicted by CLT. $Uniform(2, 5)$ has expected value $\mu = 3.5$ (somewhat intuitive) and standard deviation $\frac{b-a}{12} = \frac{5-2}{12} = 0.25$ (not intuitive or a required fact you need to know).
+
+```{r}
+# Consistent with theory!
+random_means_uniform %>% 
+  summarize(mu_simulated = mean(x), sd_simulated = sd(x))
+```
+
+---
+
+##### EXERCISE: Central Limit Theorem Calculations
+
+* This exercise will reinforce calculations using the Central Limit Theorem.
+
+* $Gamma(shape, scale)$ is a continuous probability distribution defined for positive real numbers which has two parameters, which we will call "shape" and "scale". It has heavy skew towards 0.
+
+* We know the **expected value** of this distribution is $shape * scale$, and the **standard deviation** of this distribution is $scale * \sqrt{shape}$.
+
+* Consider $X \sim Gamma(0.9, 0.09)$.
+
+```{r}
+shape = 0.9
+scale = 0.09
+exercise_plot = tibble(x = seq(0.01, 1, by = 0.05), density = dgamma(x, shape, scale = scale)) %>% 
+  ggplot(aes(x, density)) +
+  geom_line()
+
+exercise_plot
+```
+
+* Remember CLT says $\bar{X} \sim N(\mu, \sigma / \sqrt{n})$, where $\mu$ and $\sigma$ are the mean and standard deviation of the *initial* distribution.
+
+* Using CLT, **calculate** the expected value and standard deviation of $\bar{X}$, where $\bar{X}$ is the sample mean of $n = 20$ points from $X \sim Gamma(0.9, 0.09)$.
+
+```{r}
+# Fill in ???
+
+# exercise_plot +
+#   geom_norm_density(mean = ???, sd = ???)
+```
+
+* If you do this correctly, your normal distribution should NOT extend into the negatives!
+
+```{r}
+n = 20
+
+xbar_mean = shape * scale
+xbar_sd = scale * sqrt(shape) / sqrt(n)
+
+
+exercise_plot +
+  geom_norm_density(mu = xbar_mean, sigma = xbar_sd)
+```
+
+* Using the sampling distribution from the previous problem, **compute** $P(\bar{X} < 0.1)$.
+
+```{r}
+# Your solution here
+```
+
+* From CLT (and the previous problem), $\bar{X} \sim N(shape * scale, \sqrt{scale} * shape / \sqrt{n})$.
+
+```{r}
+pnorm(0.1, xbar_mean, xbar_sd)
+```
+
+> **Philosophical Takeaway**: Since CLT dictates $\bar{X}$ always has a normal distribution, you can use `pnorm` to calculate probabilities of the sample mean taking on certain values!
+
+---
+
+## Normal Approximation of Binomial Distributions
+
+* This section is conceptually separate from Central Limit Theorem and only relies on your knowledge of normal and binomial distributions. It will pop up later in statistical inference.
+
+> A useful mathematical property of the binomial distribution is that its probability distribution approximately converges to (meaning, "looks like") a normal distribution if $n$ is not small and $p$ is not extremely close to 0 or 1.
+
+* We could see this visually in the "Explore Binomial Graphs" section; as $n$ got larger for reasonable $p$ values, the binomial distribution looked more and more like a bell curve.
+
+* Mathematically:
+
+> If $X \sim Binom(n, p)$, then $X \stackrel{\text{approx}}{\sim}\text{N}(np, \sqrt{np(1-p)})$.
+
+* It is important to remember the **binomial distribution is discrete**, and the **normal distribution is continuous**. However, aside from this key difference, their probability distributions are mathematically linked.
+
+- If $n$ is large enough, and $p$ is not too close to 0 or 1, the binomial distribution can be **approximated** by the normal distribution. 
+- A rule of thumb for "large enough" is if $np(1-p) \geq 10$.
+    
+- Here is an example where the assumption is satisfied.
+    - $n = 100$
+    - $p = 0.5$
+    - $np(1-p) = 25$
+    
+```{r normal-approx-good}
+## Assumptions satisfied
+n = 100
+p = 0.5
+mu = n*p
+sigma = sqrt(n*p*(1-p))
+
+gbinom(n, p, scale=TRUE) +
+  geom_norm_density(mu, sigma, color = "red") +
+  theme_minimal()
+```
+
+---
+
+- Here is an example where the assumption is **not satisfied**.
+    - $n = 100$
+    - $p = 0.01$
+    - $np(1-p) = 0.99$
+    
+```{r normal-approx-bad}
+## Criteria not satisfied
+n = 100
+p = 0.01
+mu = n*p
+sigma = sqrt(n*p*(1-p))
+
+gbinom(n, p, scale=TRUE) +
+  geom_norm_density(mu, sigma, color = "red") +
+  theme_minimal()
+```
+
