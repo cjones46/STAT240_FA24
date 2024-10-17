@@ -1,0 +1,249 @@
+---
+title: "Section 10: Normal Distribution"
+author: "Student's Name Here"
+date: "2024-10-11"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, error = TRUE)
+```
+
+```{r}
+library(tidyverse)
+source("../../scripts/ggprob.R")
+```
+
+## R functions
+
+`dnorm` gives the height of the bell-curve
+
+```{r}
+# What is the height of the N(0, 1) bell curve at x = 0.5?
+dnorm(0.5, 0, 1)
+```
+
+`pnorm` calculates an area to the left.  Specify `lower.tail = F` to calculate area to the right.
+
+```{r}
+# What is the area to the left of 2?
+gnorm(0, 1) +
+  geom_norm_fill(0, 1, b = 2, fill = "dodgerblue")
+
+pnorm(2, 0, 1)
+
+# What is the area to the right of 2?
+1 - pnorm(2, 0, 1)
+pnorm(2, 0, 1, lower.tail = F)
+```
+
+`qnorm` calculates a quantile of the normal distribution.  It is the inverse of `pnorm`.
+
+```{r}
+# What is the 75th percentile of the N(0, 1) curve?
+qnorm(0.75, 0, 1)
+
+pnorm(1, 0, 1)
+
+qnorm(0.8413447, 0, 1)
+```
+
+### Try it out!
+
+Let X ~ N(0, 4) and Y ~ N(8, 3).
+
+```{r}
+# Is the peak of X or the peak of Y taller?
+
+
+# What is P(5 <= Y <= 11)?
+
+
+# What is P(|X| >= 3)
+
+
+# What is the 90th percentile of Y?
+
+
+```
+
+
+## Standardization
+
+The weight of flour in a batch of dough is F ~ N(500, 12).  The weight of water in a batch of dough is W ~ N(350, 4).  A flour weight of 476 corresponds to what weight of water?
+
+```{r}
+# You can solve this in R or by hand
+
+
+```
+
+
+## Applications
+
+### Sampling distributions and CLT
+
+In statisticxs, we work with a random sample.  Any quantity calculated from that sample, such as the sample mean, is also random.
+
+Suppose our original population is X ~ N(100, 25).
+
+```{r}
+mu <- 100
+sigma <- 25
+
+gnorm(mu, sigma)
+```
+
+Sample 10 points from X, and calculate their mean.
+
+```{r}
+random_data <- rnorm(10, mu, sigma)
+
+mean(random_data)
+```
+
+Each time, we get a different number that is close-ish to 100. Now imagine replicating this process 10000 times.  In other words, look at the results across 10000 different samples from X.
+
+```{r}
+random_means <- tibble(x = replicate(n = 10000, 
+                                    mean(rnorm(10, mu, sigma))
+                                    )
+                       )
+head(random_means)
+
+mean(random_means$x)
+sd(random_means$x)
+```
+
+Consider the distribution of these values.  They form a bell-curve shape.
+
+```{r}
+ggplot(random_means) +
+  geom_histogram(aes(x = x, after_stat(density)), fill = "gray") +
+  geom_density(aes(x = x), lwd = 1.5) +
+  labs(title = "Sampling Distribution of Sample Mean, n = 10")
+
+# Compare to original population
+gnorm(mu, sigma) +
+  geom_density(aes(x), random_means) +
+  labs(
+    title = "Initial (Blue) vs. Sampling Distribution (Black)",
+    subtitle = "Sampling Distribution of Sample Mean, n = 10",
+    caption = "Notice: Same Center, Less Variance for Sampling Distribution"
+  )
+
+```
+
+The "bell curve" appears even if we have a very skewed population.  But, it depends on how big of a sample we take at each step (n).
+
+```{r}
+# New population
+gbeta(0.3, 2) + 
+  labs(title = NULL)
+
+# Samples of size 5
+means_small_n <- tibble(x = replicate(n = 10000, 
+                                    mean(rbeta(5, 0.3, 2))
+                                     )
+                        )
+
+# When n = 5, sampling distribution is still skewed (but less)
+gbeta(0.3, 2) +
+  geom_density(aes(x), means_small_n) +
+  labs(
+    title = "Initial (Blue) vs. Sampling Distribution (Black)",
+    subtitle = "Sampling Distribution of Sample Mean, n = 5"
+  )
+
+
+
+# Samples of size 30
+means_large_n <- tibble(x = replicate(n = 10000, 
+                                    mean(rbeta(30, 0.3, 2))
+                                     )
+                        )
+
+# When n = 30, sampling distribution looks like a bell curve.\
+gbeta(0.3, 2) +
+  geom_density(aes(x), means_large_n) +
+  labs(
+    title = "Initial (Blue) vs. Sampling Distribution (Black)",
+    subtitle = "Sampling Distribution of Sample Mean, n = 30"
+  )
+```
+
+
+### Try it out
+
+```{r}
+# We have a very skewed population:
+shape <- 0.9
+scale <- 0.09
+
+exercise_plot <- tibble(x = seq(0.01, 1, by = 0.05), density = dgamma(x, shape, scale = scale)) %>% 
+  ggplot(aes(x, density)) +
+  geom_line(col = "blue")
+
+exercise_plot
+```
+
+Fill in the normal density below with the mean and standard deviation of Xbar (with n = 50).
+
+```{r}
+# exercise_plot +
+#   geom_norm_density(mean = ???, sd = ???)
+```
+
+
+### Normal approximation to a binomial
+
+The normal approximation tends to work when $np(1-p)$ is at least 10.  For example,
+
+- $n = 100$
+- $p = 0.5$
+- $np(1-p) = 25$
+
+```{r}
+## Assumptions satisfied
+n <- 100
+p <- 0.5
+
+mu <- n*p
+sigma <- sqrt(n*p*(1-p))
+
+gbinom(n, p, scale=TRUE) +
+  geom_norm_density(mu, sigma, color = "red") +
+  theme_minimal()
+```
+
+
+Here's an example where the assumptions are not satisfied.
+
+- $n = 100$
+- $p = 0.01$
+- $np(1-p) = 0.99$
+
+```{r}
+n <- 100
+p <- 0.01
+mu <- n*p
+sigma <- sqrt(n*p*(1-p))
+
+gbinom(n, p, scale=TRUE) +
+  geom_norm_density(mu, sigma, color = "red") +
+  theme_minimal()
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
