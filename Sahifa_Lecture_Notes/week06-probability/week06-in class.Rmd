@@ -1,0 +1,120 @@
+---
+title: "week06-probability"
+output: html_document
+date: "2024-10-07"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+source("~/Desktop/STAT 240/scripts/ggprob.R")
+```
+
+```{r}
+data = tibble(x = 2:12, `P(X=x)` = round(c(1:6, 5:1)/36, 2)) %>% print(n = Inf)
+```
+
+Mean: $\mu = \sum_x x \cdot P(X=x)$
+
+```{r}
+data %>% mutate(xP = x*`P(X=x)`) %>% summarise(mean = sum(xP))
+
+mean = sum(data$x * data$`P(X=x)`)
+mean
+
+mean(data$`P(X=x)`) # is not that the same as mean/expected value. The mean is just the average
+```
+
+Variance: $\sigma^2 = \sum_x (x-\mu)^2 \cdot P(X=x)$
+
+```{r}
+v = data %>% mutate(v = ((x-mean)^2)*`P(X=x)`) %>% summarise(variance = sum(v))
+variance = v$variance
+
+variance = sum( (data$x - mean)^2 * data$`P(X=x)`)
+variance
+```
+
+Standard Deviation: $\sigma = \sqrt(variance)$
+
+```{r}
+standard_deviation = sqrt(variance)
+standard_deviation
+```
+
+
+
+
+
+# Sec 003 Monday 10/14
+
+Discrete R.V
+
+mean $\mu$, $\mu = \sum_{x}x \cdot P(X= x)$
+
+```{r}
+X = tibble(x = 2:12, `P(X=x)` = round(c(1:6, 5:1)/36, 2)) %>% print(n = Inf)
+X %>% mutate(xP = x*`P(X=x)`) %>% summarise(mean = sum(xP))
+mean = sum(X$x * X$`P(X=x)`)
+mean
+
+mean(X$`P(X=x)`) # not the same as the expected value/mean. Since it only finds the average
+```
+
+Variance: $\sigma^2 = \sum_x (x-\mu)^2 \cdot P(X= x)$ 
+
+```{r}
+X %>% mutate(v = (x-mean)^2*`P(X=x)`) %>% summarise(variance = sum(v))
+
+variance = sum((X$x - mean)^2 * X$`P(X=x)`)
+variance
+```
+
+Standard deviation: $\sigma = \sqrt(variance)$
+
+```{r}
+deviation = sqrt(variance)
+deviation
+```
+
+
+
+# Sec 006-Monday 10/14
+
+Discrete Distribution:
+
+Mean: $\mu$
+
+$\mu = \sum x P(X=x)$
+
+Variance: $\sigma^2$
+
+$\sigma^2 = \sum (x-\mu)^2 P(X=x)$
+
+Standard Deviation: $\sigma$
+
+$\sigma = \sqrt(\sigma^2)$
+
+```{r}
+x = tibble(x = 2:12, `P(X=x)` = round(c(1:6, 5:1)/36, 2)) %>% print(n = Inf)
+mean = sum(x$x * x$`P(X=x)`)
+variance = sum((x$x-sum(x$x * x$`P(X=x)`))^2 * x$`P(X=x)`)
+standard_deviation = sqrt(variance)
+```
+
+# Sec 005 - Monday 10/7
+
+Mathematical expression
+
+$$\frac{1}{n}\sum (x_i - \mu)^2$$
+
+# Sec 003 - Monday 10/7
+
+Mathematical expression
+
+$$\frac{1}{n}\sum (x_{i} - \mu)^2$$
+
+# Sec 006-Monday 10/7
+
+Mathematical expression
+
+$\frac{1}{n}\sum (x_i-\mu)$

@@ -1,0 +1,75 @@
+---
+title: "ggprob"
+author: "Student's Name Here"
+date: "2024-10-11"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, error = TRUE)
+```
+
+```{r}
+library(tidyverse)
+```
+
+Professor Bret Larget has written several shortcut functions in the file `ggprob.R`  Just like how we load a package like `tidyverse`, we can load commands from a different R file on your computer.
+
+- Download this .Rmd to `STAT240/lectures/extras`
+- Download `ggprob.R` to `STAT240/scripts`
+
+The functions in `ggprob` can help us quickly create plots of different distributions.
+
+```{r}
+source("../../scripts/ggprob.R")
+```
+
+For example, let's plot the distribution of a Binom(100, 0.5) variable.
+
+```{r}
+gbinom(100, 0.5)
+```
+
+These functions are built on top of `ggplot2`, so we can add any ggplot layers to our plot.
+
+```{r}
+gbinom(100, 0.5) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.05)),
+                     labels = scales::percent) +
+  xlim(c(25, 75)) +
+  theme_classic() +
+  labs(
+    title = "Binom(100, 0.5)",
+    subtitle = "From Theory",
+    y = "Theoretical Probability"
+  )
+
+
+# a and b represent the left and right endpoints of the range you want to graph!
+gbinom(100, 0.5) +
+  geom_binom_density(n = 100, p = 0.5, a = 45, b = 50, col = "goldenrod2")
+```
+
+
+We can use the `gnorm` function to plot normal bell curves, which is the next type of RV we will discuss.  Here's a normal curve called a standard normal, which is centered at 0 and has a specific amount of area within a distance of 0.
+
+```{r}
+gnorm(0, 1)
+```
+
+Normal curves are continuous, so it can be useful to shade in areas under the curve as well.
+
+```{r}
+gnorm(0, 1) +
+  geom_norm_fill(0, 1, b = 1, fill = "dodgerblue")
+```
+
+
+
+
+
+
+
+
+
+
