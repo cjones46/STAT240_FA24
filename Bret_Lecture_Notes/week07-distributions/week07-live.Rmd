@@ -1,0 +1,281 @@
+---
+output: html_document
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE,
+                      warning = FALSE,
+                      error = TRUE, fig.height = 3,
+                      fig.width = 4)
+
+library(tidyverse)
+source("../../scripts/ggprob.R")
+```
+
+### dbinom()
+
+- Probability of 2 heads in 5 coins tosses of a fair coin
+
+```{r}
+dbinom(2, 5, 0.5)
+
+choose(5, 2) * (0.5)^2 * (0.5)^3
+```
+
+- all the probabilities
+
+```{r}
+dbinom(0:5, 5, 0.5)
+
+prob1 = tibble(
+  x = 0:5,
+  p = dbinom(x, 5, 0.5)
+)
+
+prob1
+```
+
+- sums of probabilities
+
+> If I toss a fair coin 100 times, what is the probability of getting 60 or more heads?
+
+```{r}
+sum(dbinom(60:100, 100, 0.5))
+```
+
+### Mean and Variance
+
+- $n = 100$, $p = 0.5$
+
+```{r}
+n = 100
+p = 0.5
+
+mu = n*p
+mu
+
+sigma = sqrt( n * p * (1-p) )
+sigma
+```
+
+### Simulation
+
+```{r}
+B = 10^6
+n = 100
+p = 0.2
+
+prob2 = tibble(
+  x = rbinom(B, n, p)
+)
+
+ggplot(prob2, aes(x = x)) +
+  geom_bar()
+
+prob2 %>% 
+  summarize(mean = mean(x),
+            sd = sd(x))
+
+n*p
+sqrt(n*p*(1-p))
+```
+
+### gprob examples
+
+```{r}
+ggplot() +
+  geom_binom_density(n = 100, p = 0.5, a = 40, b = 55) +
+  geom_binom_density(n = 100, p = 0.6, a = 50, b = 70, color = "red", alpha = 0.5)
+```
+
+### pbinom()
+
+- What is the probability that there are 60 or more heads in 100 tosses of a fair coin?
+
+- $P(X \ge 60) = 1 - P(X < 60) = 1 - P(X \le 59)$
+
+```{r}
+sum( dbinom(60:100, 100, 0.5) )
+
+1 - pbinom(59, 100, 0.5)
+
+gbinom(100, 0.5, scale = T) +
+  geom_binom_density(100, 0.5,
+                     a = 60,
+                     b = 75, color = "red")
+```
+
+- $P(35 < X < 55)$
+
+```{r}
+sum( dbinom(36:54, 100, 0.5) )
+
+pbinom(54, 100, 0.5) - pbinom(35, 100, 0.5)
+```
+
+- $P(35 \le X \le 55)$
+
+```{r}
+sum( dbinom(35:55, 100, 0.5) )
+
+pbinom(55, 100, 0.5) - pbinom(34, 100, 0.5)
+```
+
+### qbinom()
+
+$X \sim \text{Binomial}(100, 0.5)$
+
+What is the 0.4 quantile of this distribution?
+
+(What is the 40th percentile?)
+
+Seeking a value $x$ such that $P(X \le x) \ge 0.40$ and $P(X \ge x) \ge 0.6$.
+
+```{r}
+qbinom(0.4, 100, 0.5)
+
+pbinom(49, 100, 0.5)
+
+pbinom(48, 100, 0.5)
+```
+
+- Graph of the CDF, illustrating how `qbinom()` works.
+
+```{r}
+n = 100
+p = 0.5
+
+prob3 = tibble(
+  x = 0:100,
+  prob = dbinom(x, n, p),
+  cum_prob = cumsum(prob))
+
+ggplot(prob3, aes(x = x, y = cum_prob)) +
+  geom_step() +
+  geom_hline(yintercept = 0.4,
+             color = "red",
+             linetype = "dashed") +
+  scale_x_continuous(breaks = 45:55,
+                     limits = c(45,55),
+                     minor_breaks = NULL)
+```
+
+The 0.4 quantile of the $\text{Binomial}(100, 0.5)$ quantile is equal to 49 because:
+
+- $P(X \le 49) \ge 0.4$
+- $P(X \ge 49) \ge 1 - 0.4 = 0.6$
+- The CDF crosses the horizontal line at $y = 0.4$ at the value $x = 49$.
+
+Here is another graph which shows the graph of the binomial probabilities with the first 0.4 being red and the next 0.6 being blue.
+
+The switch happens at $x = 49$.
+
+```{r}
+gbinom(100, 0.5, scale = TRUE) +
+  geom_binom_density(100, 0.5, a = 30, b = 48, color = "red") +
+  geom_segment(aes(x = 49,
+                   xend = 49,
+                   y = 0,
+                   yend = pbinom(49, 100, 0.5) - 0.4),
+               color = "red")
+```
+
+### Problems
+
+- $X \sim \text{Binomial}(90, 0.7)$
+
+#### Mean and Variance
+
+```{r}
+n = 90
+p = 0.7
+mu = n*p
+mu
+
+sigma = sqrt( n*p*(1-p) )
+sigma
+```
+
+#### Plot
+
+```{r}
+gbinom(n, p, scale = TRUE) +
+  geom_vline(xintercept = mu, color = "red") +
+  geom_vline(xintercept = mu + c(-1,1)*sigma,
+             color = "red",
+             linetype = "dashed") +
+  geom_vline(xintercept = mu + c(-1,1)*2*sigma,
+             color = "red",
+             linetype = "dotted")
+```
+
+#### Probabilities
+
+- $P(X = \mu)$
+
+```{r}
+dbinom(mu, n, p)
+```
+
+- $P(\mu - \sigma < X < \mu + \sigma)$
+
+```{r}
+mu + sigma
+mu - sigma
+
+pbinom(mu + sigma, n, p) - pbinom(mu - sigma, n, p)
+
+
+
+
+pbinom(67, n, p) - pbinom(58, n, p)
+
+pbinom(mu + 2*sigma, n, p) - pbinom(mu - 2*sigma, n, p)
+```
+
+#### quantiles
+
+```{r}
+qbinom(c(0.05, 0.95), n, p)
+
+gbinom(n, p) +
+  geom_binom_density(n, p, b = 56, color = "red") +
+  geom_binom_density(n, p, a = 70, color = "red")
+
+pbinom(56,n, p)
+```
+
+```{r}
+gbinom(n, p) +
+  geom_binom_density(n, p, b = qbinom(0.05, n, p),
+                     color = "red") +
+  geom_binom_density(n, p, a = qbinom(0.95, n, p),
+                     color = "red")
+```
+
+
+### Normal
+
+```{r}
+ggplot() +
+  geom_norm_density(mu = 0, sigma = 1, color = "blue") +
+  geom_norm_density(mu = 0, sigma = 0.5, color = "red") +
+  geom_norm_density(mu = 2, sigma = 1, color = "darkgreen") +
+  labs(
+    title = "Three Normal Distributions",
+    subtitle = "Blue: N(0, 1). Red: N(0, 0.5). Green: N(2, 1)",
+    y = "Density"
+  ) +
+  geom_hline(yintercept = 0)
+```
+
+
+
+```{r}
+ggplot() +
+  geom_norm_fill(mu = 0, sigma = 1,
+                 fill = "skyblue") +
+  geom_norm_density(0, 1, color = "black") +
+  geom_norm_fill(mu = 0, sigma = 1, fill = "blue", alpha = 0.5, a = -0.5, b = 1.5)
+```
+
