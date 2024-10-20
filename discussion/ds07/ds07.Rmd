@@ -1,0 +1,171 @@
+---
+title: "Discussion 7"
+output: html_document
+---
+
+# Preliminaries
+
+- This file should be in `STAT240/discussion/ds07` and the script `ggprob.R` should be in `STAT240/scripts` on your local computer.
+
+- This assignment should be completed in your **assigned Canvas groups**. Only one person has to submit on behalf of the group. You may submit whatever you have at the end of discussion section for full credit.
+
+# Present Group Members
+
+Please **write the names of the present group members** here.
+
+> Present Group Members:
+
+> Absent Group Members: 
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, 
+                      error = TRUE, 
+                      warning = FALSE, 
+                      message = FALSE)
+library(tidyverse)
+source("../../scripts/ggprob.R")
+```
+
+
+
+# Problem 1
+
+For each scenario, explain why the random variable will or will not have a binomial distribution. If not, cite the specific BINS assumption(s) that are not met.
+
+1. A bucket contains 10 colored tokens with five that are red and five that are blue. Four tokens are drawn at random from the bucket one at a time, but without replacing the tokens drawn. $X_1$ is the number of red tokens selected.
+
+> Replace this text with your response.
+
+2. A fair coin is tossed repeatedly until the tenth head is tossed. $X_2$ is the number of tails tossed prior to the tenth head.
+
+> Replace this text with your response.
+
+3. Four buckets each contain a total of five tokens each, some red and some blue. The number of red tokens in the buckets are 1, 2, 3, and 4 with blue tokens making up the remainder. One token is drawn at random from each bucket. $X_3$ is the total number of red tokens drawn.
+
+> Replace this text with your response.
+
+# Problem 2
+
+For $X \sim \text{Binomial}(15,0.2)$ 
+
+- Part a: Calculate the mean, variance and standard deviation of $X$.
+
+```{r}
+# Write your code here!
+```
+
+- Part b: Calculate the probability of an outcome greater than or equal to 4. List all the ways you can find this probability.
+
+```{r}
+# Write your code here!
+```
+
+# Problem 3
+
+Let $X_1$ and $X_2$ be two draws from $X \sim N(0,1)$. Order the five events below based on which events are least to most likely to occur.
+
+Event A: $X_1 < X_2$    
+Event B: $X_1 = \mu$    
+Event C: $\mu - \sigma < X_2 < \mu + \sigma$    
+Event D: $X_1 > 1.5$ AND $X_2 > 1.5$
+
+# Problem 4
+
+Create a data frame with columns `n`, `p`, `x`, `mu`, and `prob` where:
+
+-   `n` varies from 2 to 100 by twos (so each `n` value is even);
+-   `p` equals 0.5;
+-   `x` is $n/2$;
+-   `mu` is the mean of the distribution;
+-   `prob` is $P(X = x)$
+
+Show the first few rows using `head()`.
+
+```{r}
+# Write your code here!
+```
+
+**Part a** What is the relationship between `x` and `mu`?
+
+> Replace this text with your response.
+
+**Part b** Make a line graph of `prob` versus `n`.
+
+```{r}
+# Write your code here!
+```
+
+**Part c** Describe the pattern: how does the probability that a random variable is equal to the mean change as $n$ increases?
+
+> Replace this text with your response.
+
+# Problem 5 
+
+Find the probabilities of the area shaded in the graph below for $\text{Normal}(2.8, 6)$.
+
+*Make sure you have run `source("../../scripts/ggprob.R")`  at the top of this file! If you get the error `cannot open file '../../scripts/ggprob.R': No such file or directory`, reset your working directory with `Session > Set Working Directory > To Source File Location`.*
+
+
+1. Don't change the R chunk below
+
+```{r}
+gnorm(2.8, 6) +
+  geom_norm_fill(2.8, 6, a = 1.5, b = 4, fill = "red") +
+  geom_vline(xintercept = 1.5) +
+  geom_vline(xintercept = 4) +
+  annotate("text", x = -1.5, y = .07, label = "x = 1.5") +
+  annotate("text", x = 6.5, y = .07, label = "x = 4")
+```
+
+```{r}
+# Write your code here to find the probability!
+```
+
+2. Don't change the R chunk below
+
+```{r}
+gnorm(2.8, 6) +
+  geom_norm_fill(2.8, 6, a = -2, b = 25, fill = "red") +
+  geom_vline(xintercept = -2) +
+  annotate("text", x = 1.5, y = .07, label = "x = -2") 
+```
+
+```{r}
+# Write your code here to find the probability!
+```
+
+3. Don't change the R chunk below
+
+```{r}
+mu = 2.8
+sigma = 6
+gnorm(2.8, 6) +
+  geom_norm_fill(2.8, 6, a = mu-2*sigma, b =  mu+2*sigma, fill = "red") +
+  geom_vline(xintercept =  mu-2*sigma) +
+  geom_vline(xintercept =  mu+2*sigma) +
+  annotate("text", x = 0.7, y = .07, label = "2 standard deviation") +
+  scale_x_continuous(breaks = c(mu-3*sigma, mu-2*sigma, mu-sigma, mu, mu+sigma,mu+2*sigma, mu+3*sigma))
+```
+
+```{r}
+# Write your code here to find the probability!
+```
+
+
+# Problem 6
+
+It is known that for Normal distributions, about 68% of the data will fall within one standard deviation, about 95% within two standard deviations, and about 99.7% within three standard deviations from the mean. 
+
+Calculate these probabilities for $\text{Normal}(0,1)$ and display all three values.
+
+```{r}
+# Write your code here!
+```
+
+
+
+
+
+
