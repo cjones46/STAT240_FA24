@@ -824,21 +824,21 @@ p = 0.5
 ```
 
 ```{r}
-#dbinom(11, n, p)
+dbinom(11, n, p)
 
-#dbinom(0, n, p)
+dbinom(0, n, p)
 ```
 
 ```{r}
-#pbinom(10, n, p)
+pbinom(10, n, p)
 
-#pbinom(0, n, p)
+pbinom(0, n, p)
 ```
 
 ```{r}
-#qbinom(1, n, p)
+qbinom(1, n, p)
 
-#qbinom(0.5, n, p)
+qbinom(0.5, n, p)
 ```
 
 ---
@@ -1261,7 +1261,9 @@ pnorm(75, mu, sigma)
 
 * To motivate $Z$'s importance, let's first consider an example.
 
-* One random variable $X \sim N(100, 25)$ takes on the value 75 Another random variable $Y \sim N(10, 7)$, with another normal distribution, takes on the value 24.
+* One random variable $X \sim N(100, 25)$ takes on the value 75. 
+
+* Another random variable $Y \sim N(10, 7)$, with another normal distribution, takes on the value 24.
 
 * Which value is more extremely, or less likely?
 
@@ -1279,7 +1281,7 @@ pnorm(75, mu, sigma)
 
 * This "universal language" leads us to **standardized scores, or $Z$ scores**.
 
-> When a random variable $X$ takes on a random value $x$, its **standardized score or $Z$-score** is $z = \frac{x - \mu}{\sigma}. This tells us how extreme the point is regardless of context. 
+> When a random variable $X$ takes on a random value $x$, its **standardized score or $Z$-score** is $z = \frac{x - \mu}{\sigma}$. This tells us how extreme the point is regardless of context. 
 
 ---
 
