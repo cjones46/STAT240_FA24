@@ -110,7 +110,7 @@ The average you calculated in problem 3 and graphed in problem 4 should have bee
 
 **Is it valid to say that in a random game from Messi's entire career, we would expect him to score about 1.27 points?** If not, why not?
 
-> Replace this text with your response.
+> No, it is not valid. We cannot extrapolate the 1.27 value from 2024 to his whole career, as he may have played differently/in a harder league/been more fit when he was younger/ any number of reasons that mean the 2024 season is not representative of his whole career.
 
 # Problem 6
 
