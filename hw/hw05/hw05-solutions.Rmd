@@ -1,0 +1,245 @@
+---
+title: "Homework 5"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE,
+                      warning = FALSE, error = TRUE,
+                      fig.height = 3)
+library(tidyverse)
+source("../../scripts/ggprob.R")
+```
+
+# Preliminaries
+
+- This file should be in `STAT240/homework/hw05` on your local computer.
+- Download `Cameron_Lectures_SP24.csv` to `STAT240/data`.
+- Download `ggprob.R` to `STAT240/scripts`.
+
+# Problem 1
+
+[Apgar scores](https://www.ncbi.nlm.nih.gov/books/NBK470569/) are a test of newborn babies' health immediately after being born, on a scale from 0 to 10. Most babies score 7 or higher.
+
+The distribution of Apgar scores is shown below, with the probability of a baby scoring a perfect 10 removed.
+
+```{r}
+apgar_vals <- 0:10
+apgar_probs <- c(0.001, 0.006, 0.007, 0.008, 0.012, 0.02,
+                 0.038, 0.099, 0.319, 0.437, NA)
+
+apgar <- tibble(apgar_vals, apgar_probs)
+
+apgar_distribution <- ggplot(apgar, aes(x = apgar_vals, y = apgar_probs)) +
+  geom_segment(aes(xend = apgar_vals, yend = 0), color = "blue", size=2) +
+  geom_hline(yintercept = 0) +
+  scale_x_continuous(breaks = apgar_vals) +
+  ylab("P(X=x)") +
+  ggtitle("Distribution of Apgar Scores") +
+  
+  annotate("text", x = 10, y = 0.1, label = "?", size = 20, color = "blue")
+
+apgar_distribution
+```
+
+**Write code** to manually compute the value of the missing $P(\text{Apgar} = 10)$. 
+
+**Save that single value** as `p10`.
+
+On a separate line, let the value of `p10` be **printed as output** in your knitted file.
+
+```{r}
+# Write your code here!
+
+p10 = 1 - sum(apgar_probs, na.rm = T)
+p10
+```
+
+# Problem 2
+
+The following code inserts the missing `p10` into the missing slot.
+
+```{r}
+apgar_vals <- 0:10
+apgar_probs <- c(0.001, 0.006, 0.007, 0.008, 0.012, 0.02,
+                 0.038, 0.099, 0.319, 0.437, p10)
+```
+
+**a)** What is the mean of this distribution?
+
+```{r}
+# Write your code here!
+apgar_mean = sum(apgar_vals*apgar_probs)
+apgar_mean
+```
+
+**b)** What is the variance of this distribution?
+
+```{r}
+# Write your code here!
+apgar_var = sum((apgar_vals - apgar_mean)^2 * apgar_probs)
+apgar_var
+```
+
+**c)** What is the standard deviation of this distribution?
+
+```{r}
+# Write your code here!
+sqrt(apgar_var)
+```
+
+# Problem 3
+
+For each of the real life scenarios described below, state whether you would treat the random variable as **discrete** or **continuous** and briefly explain why.
+
+The random process for each of these random variables is: **Your professor holds a STAT 240 lecture.** We have run this "random process" 15+ times already and could have collected 15+ different data points of these random variables!
+
+**a)** The **number** of students who attend a given lecture.
+
+> This is a discrete random variable; there can only be whole numbers of students.
+
+> If your lecture section is quite large, you might choose to treat it as continuous for convenience, but it is technically discrete.
+
+**b)** The **average age** of the students who attend a given lecture. (Treat the age of an *individual student* as a whole number of years, e.g. 18, 19, 20, 21.)
+
+> This must be treated as a continuous random variable. The average could be any decimal number (18.6, 19.7777, et cetera) even if you consider the individual students' ages in years as whole numbers.
+
+**c)** The **length**, in seconds, of the lecture recording for a specific lecture. *Pretend you only know the length to the nearest round second.*
+
+> We would almost certainly treat this as a continuous variable. While it is *technically* discrete, there are so many possibilities that it doesn't make sense to care about each individual count. Furthermore, we know that despite measurement only going to the nearest second, it actually could be measured to further precision, meaning continuous makes the most sense here.
+
+# Problem 4
+
+The `lectures` dataset contains information on the length *in decimal minutes* (not seconds) of Cameron's **Spring 2024** (last semester!) STAT 240 lectures, and information on the outfits he wore.
+
+```{r}
+lectures = read_csv("../../data/Cameron_Lectures_SP24.csv")
+```
+
+**Create a histogram** of `total_minutes`.
+
+Incorporate the following customizations:
+
+- The **bins** should be of width 1, and have boundaries on each of the whole numbers. E.g., there should be a bin from 47 to 48, 48 to 49, et cetera.
+
+- Use a consistent color scheme for the interior and exterior of each bar that is the same for every bar.
+
+- If ggplot does not do it by default, make sure the x axis labels are each of the whole numbers 47 through 52.
+
+```{r}
+ggplot(lectures, aes(total_minutes)) +
+  geom_histogram(binwidth = 1, boundary = 50, color = "black", fill = "dodgerblue") +
+  scale_x_continuous(breaks = 47:52)
+```
+
+# Problem 5
+
+Our goal in this problem is to calculate the percentages associated with each of the five bars in the above histogram.
+
+First, create a new variable called `base_minutes` by "truncating" `total_minutes` by using the `floor()` function. *This is effectively just cutting the decimal off, which is different than rounding; 49.4, 49.9, 50.1, 50.8 will become 49, 49, 50, 50.*
+
+Then, create a dataframe with one row for each different value of `base_minutes`, and a column `n` for how many times that value of `base_minutes` occurs. 
+
+Finally, create a `percent` variable by dividing `n` by the total number of lectures.
+
+Let this dataframe **print as output**, no need to save it in a new variable name.
+
+```{r}
+lectures %>% 
+  mutate(base_minutes = floor(total_minutes)) %>% 
+  count(base_minutes) %>% 
+  mutate(percent = n/sum(n))
+```
+
+*You should determine that 55.3% of Cameron's Spring 2024 lectures were 50 minutes long (plus extra seconds we do not care about).*
+
+# Problem 6
+
+**a)**
+Consider an upcoming, future lecture of Cameron's that has not happened yet - for example, the lecture that will occur on Wednesday, December 4th, 2024.
+
+**Is it valid to say that the future lecture has a 55.3% chance of being 50 minutes + left-over seconds long?** Why or why not?
+
+> No, it is not valid. 55.3% comes from Cameron's Spring 2024 lectures, and is not necessarily applicable to Fall 2024 lectures. For example, perhaps Cameron has become a better lecturer in his second semester.
+
+**b)**
+Consider selecting a random lecture from Cameron's set of existing Spring 2024 recordings. 
+
+**Is it valid to say that the randomly selected lecture has a 55.3% chance of being 50 minutes + left-over seconds long?** Why or why not?
+
+> Yes, that is valid. Drawing from the entire SP24 set obeys the population's distribution, which dictates the 55.3% probability.
+
+# Problem 7
+
+Let's consider modeling the duration of Cameron's upcoming Fall 2024 lectures as a **continuous** variable instead of a discrete one, with the following bell curve:
+
+```{r}
+mu = mean(lectures$total_minutes)
+sigma = sd(lectures$total_minutes)
+
+gnorm(mu, sigma, a = 41, b = mu + (mu - 41)) +
+  labs(
+    x = "Minutes",
+    title = "Our Guess for Lecture Duration Distribution"
+  ) +
+  scale_x_continuous(breaks = c(42, 45, 48, 50, 52, 55, 58))
+```
+
+According to the Spring 2024 data, this model seems reasonable.
+
+Consider a new data point; Cameron's Fall 2024 lecture on Monday, September 16th, is recorded as being **42 minutes long.**
+
+According to our above model, the probability of a lecture being 42 minutes or shorter is extremely, extremely low. The following code visualizes and computes this probability for you.
+
+```{r}
+gnorm(mu, sigma, a = 41.9, b = 42.3) +
+  geom_norm_fill(mu, sigma, a = 41.9, b = 42) +
+  labs(
+    x = "Minutes",
+    title = "Model of Lecture Lengths",
+    y = "Some Really Low Probabilities"
+  )
+
+# Calculation of the shaded left-tail probability
+pnorm(42, mu, sigma)
+```
+
+According to our model, such a short lecture should be extremely unlikely, and yet it happened.
+
+**Does our original model still seem reasonable?** Briefly explain your reasoning.
+
+*Note: This question is about the ability to construct an argument, either yes or no could be justified!*
+
+> One possible answer: Yes. Our model correctly asserts that this should be a very rare occurrence, and one very rare occurrence is not enough to doubt the model. Our model is still reasonable.
+
+> Another possible answer: No, our model is not reasonable. It does not appropriately account for the possibility of lower lecture times; stating that the probability of a sub-42 minute lecture is almost 0 is clearly incorrect, as lectures could get interrupted or just voluntarily cut off early.
+
+# Problem 8
+
+**a)**
+
+**Create and print** a table of how often Cameron wore each `top_color` in `lectures`, with percentages included like Problem 5.
+
+```{r}
+lectures %>% 
+  count(top_color) %>% 
+  mutate(percent = n/sum(n))
+```
+
+*You should find that Cameron wore a navy colored shirt in 36.8% of SP24 lectures.*
+
+**b)**
+
+**Is it valid to guess that approximately 36.8% of all Cameron's shirts he owns are navy-colored?** Briefly explain your reasoning.
+
+> No. The choice of which shirt to wear to lecture may not be a random selection from the set of all his shirts. It is possible that, for example, only 20% of his shirts are navy, but he likes those shirts more than others, and is therefore more likely to pick them.
+
+> Another way to think about this; if you accept that guess above, you also accept the guess that approximately 0% of Cameron's shirts are green, yellow, brown, purple, et cetera, which is more obviously not a valid conclusion.
+
+
+
+
+
+
+
+
