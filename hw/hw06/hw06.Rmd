@@ -57,7 +57,7 @@ Each row corresponds to a single $\text{Binom}(n, p)$ distribution. The first tw
 
 Create two separate line plots of the following:
 - `sigma` versus `p` (y and x axes, respectively)
-- `q90` versus `n`
+- `q90` versus `p`
 
 
 ```{r}
@@ -72,7 +72,7 @@ How does the standard deviation change with $p$?
 
 > Replace this text with your response.
 
-Comment on the relationship between the 90th percentile and $n$.
+Comment on the relationship between the 90th percentile and $p$.
 
 > Replace this text with your response.
 
