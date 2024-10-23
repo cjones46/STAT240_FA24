@@ -1,0 +1,722 @@
+---
+title: "STAT 240: Intro to Inference"
+author: "Cameron Jones"
+date: "Fall 2024"
+output: rmdformats::readthedown
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
+                      error = TRUE, fig.height = 4)
+library(tidyverse)
+source("../../scripts/ggprob.R")
+```
+
+# Overview
+
+## Learning Outcomes
+
+* These lectures will teach you how to:
+    - Use everyday and statistical vocabulary to explain the logical process of statistical inference
+    - Understand the goal of statistical inference and estimation
+    - Interpret the results of statistical inference in a real-life context
+
+## Preliminaries
+
+1. Download the file `week08-inferenceIntro.Rmd` into `STAT240/lecture/week08-inferenceIntro`.
+2. Download the file `ggprob.R` into `STAT240/scripts` if you have not already.
+
+# Motivation & Discussion
+
+* This lecture series will introduce you to the logical concepts behind **statistical inference**.
+
+> **Statistical inference** is the process of estimating or making conclusions about the value of an unknown **parameter** of a **population**, based only upon a **sample** of data from that population.
+
+* Let's dissect this definition -  and the technical words it contains - a little more closely.
+
+## Sample vs. Population
+
+> The **sample** is the smaller group for which we have data. Properties of the sample, like its mean, median, minimum, maximum, standard deviation, are called **statistics**. 
+
+> The **population** is the larger group from which the sample was drawn. It is the group that we wish to learn about, but can't study every unit of, often because it is too big or we are otherwise unable to study some units. Properties of the population are called **parameters**. 
+
+* Parameters are **the entire point** of statistical inference - estimating them and drawing conclusions about them.
+
+* We use statistical inference when we **cannot obtain the true value of the parameter** for some reason (for example, population too large or inaccessible), and need to instead estimate it or draw conclusions about it based on a smaller, more accessible sample.
+
+---
+
+For example, let's consider trying to predict the winner of the election between Candidate A and Candidate B.
+
+* The **population** is everyone who plans to vote, and let's say the **parameter of interest** is the percentage of them who would vote for Candidate A.
+
+* You could get a (pretty much) perfect answer simply by asking everyone ahead of time who they are going to vote for.
+
+* However, political/news organizations are not able to do that, **because the population is too large** - hundreds of millions of people in the United States.
+
+* What they do instead is to collect data from a **smaller sample**, perhaps a thousand people.
+
+* If 51% of that random sample claims they plan to vote for Candidate A, they then claim that 51% of the population plans to vote for Candidate A, with some known level of uncertainty.
+
+* If we can do that in a valid and meaningful way, then that is a huge achievement - making a statement about hundreds of millions of people by only collecting data from a thousand, which is 0.001% of the population.
+
+### Representativeness
+
+* That logical leap has an underlying **assumption**.
+
+* Claiming that 51% of your random sample plans to vote for Candidate A is a fact - but jumping from there to the conclusion that 51% of the population does too requires your **sample to be representative of your population**.
+
+> If the sample is **representative** of the population, then we can use sample statistics to estimate/draw conclusions about population parameters.
+
+* Representativeness is not something we can check numerically. In fact, if we could check that our statistics (from the sample) match up with the parameters (from the population), that would mean we know the parameter and there'd be no point to the sample anyway.
+
+* Therefore, we can only try to reason whether our sample might be, in some systematic way, different from the population.
+
+> The highest standard of a sample being **representative** is to take it **completely randomly** from the larger population.
+
+> Furthermore, the **larger** your random sample is, the better it **represents** the population.
+
+---
+
+#### (Un)Biased Samples
+
+* The first point speaks to some questions we asked you about in Homework 5 last week.
+
+* For example, we asked: *If 36.8% of the shirts Cameron wore to lecture last semester were navy, can we conclude that 36.8% of all his shirts are navy?*
+
+* The answer to that question was **no**. Cameron's choice of what shirt to wear to lecture is **not a random choice from the larger population of shirts**; for example, he avoids pajama shirts and old shirts and more often picks more "professional" shirts.
+
+* Therefore, statistics from the lecture-only sample cannot be used to make conclusions about the 
+
+* There was no data check, no numeric principles we leaned on there - just real-life reasoning.
+
+* On the other hand, if your experiment was **draw 10 random shirts from Cameron's wardrobe and record what percent of them are navy**, that would be a representative sample. Whatever percentage you got from that would be "unbiased"; not necessarily *correct*, but it is *valid to guess* that value of the parameter based on the statistic.
+
+*Note that "unbiased" has a very specific mathematical meaning, but for this class we can just understand it as a statistic that allows you to make a reasonable guess at the parameter.* 
+
+* In statistical inference, we almost never get to know what % of all Cameron's shirts are navy (the population parameter). We only know that we didn't do anything wrong when we obtained our guess of 30%.
+
+#### Sampling Error
+
+* Let's demonstrate the second point of representativeness - more data means better estimate - with a simple, simulated example.
+
+* Consider a small town election between Candidate A and B - there's only 100 people. You want to know about $p$, the true percentage of those 100 people going to vote for candidate A.
+
+```{r, echo = FALSE}
+# 55 is the true percentage, but people just looking at the html file won't see this :)
+p = 0.55
+
+set.seed(10192024) # set.seed(someNumber) ensures that the random command below gives everyone the same results in the same order
+```
+
+```{r}
+population = c(rep("A", 100*p), rep("B", 100*(1-p)))
+
+# population is a vector of 100 values that are either "A" or "B"... we're interested in the proportion that are "A" without looking at the whole thing!
+```
+
+* Let's ask **four random people** who they are going to vote for.
+
+* Naturally, there will be some **error due to sampling**; essentially, if we don't ask everyone, we might get the wrong number.
+
+```{r}
+sample(population, size = 4)
+```
+
+* Let's call our **sample statistic** $\hat{p}$ (pronounced "p hat"), which is what we will use to estimate the true population parameter $p$.
+
+* We get a $\hat{p}$ of 100%. There's nothing *wrong* with the way we got this estimate, this sample was randomly taken from the population.
+
+* However, you would probably conclude from this that "I just got unlucky in asking four candidate A voters in a row, the population isn't 100% Candidate A voters." So let's try again.
+
+```{r}
+sample(population, size = 4)
+```
+
+* This time we get $\hat{p}$ = 50%. Let's try one more time.
+
+```{r}
+sample(population, size = 4)
+```
+
+* This time we get $\hat{p}$ = 25%. 
+
+* It's becoming clear that trying to estimate $p$ with the $\hat{p}$ from four people gives very **unstable** estimates. Let's try asking twenty people.
+
+```{r}
+twentyPeople = sample(population, size = 20)
+twentyPeople
+mean(twentyPeople == "A")
+```
+
+* That time we happen to get $\hat{p}$ = 65%; let's try this a few more times to assess the stability of these estimates.
+
+```{r}
+mean(sample(population, size = 20) == "A")
+mean(sample(population, size = 20) == "A")
+mean(sample(population, size = 20) == "A")
+mean(sample(population, size = 20) == "A")
+```
+
+* The true $p$ that I set the population to happened to be 55%... these $\hat{p}$ values from 20 people are more stable!
+
+* Both the 4 person $\hat{p}$ and 20 person $\hat{p}$ would have averaged out to $p = 55$% if we had done them many, many times (because they are unbiased statistics, because the sample is random).
+
+* However, asking 20 people instead of 4 has given our $\hat{p}$ more **stability**; we have reduced the **sampling error**.
+
+# Sampling Error and Sampling Distributions
+
+> **Sampling error** is the idea that by only collecting data from a **sample** instead of the entire **population**, you introduce the possibility of "getting the wrong answer"; e.g. the sample statistic does not take the value of the population parameter.
+
+* This is true for any statistic - proportions, means, whatever.
+
+* The bad news is that there will always be sampling error if you don't study the entire population.
+
+* The good news is:
+
+1. We can generally reduce the sampling error with more data.
+
+2. We can quantify exactly how much sampling error we have.
+
+## Sampling Distributions
+
+* In the previous section on predicting that small town election, we were running a **random process** to obtain a single **value of a random variable.**
+
+* That **random variable** was the proportion of our sample that... and it has a probability distribution!
+
+* Depending on what people we randomly get in the set of 4, or 20, or however many people we sample, we can get a different estimate for $p$. This is true **before** we take the sample and calculate a statistic, and remains true **after** we have calculated one value of a statistic.
+
+> A **sampling distribution** is the probability distribution for the values of a statistic taken from a random sample.
+
+* In this class, we will primarily use assumptions and mathematical theory behind the scenes to determine probability distributions. We will explore specific theory for specific parameters in the coming weeks.
+
+* However, we can get a sense of **what to expect** using simulation.
+
+* Recall our process of asking 20 people from the population (where we now know the true $p = 0.55$) who they are going to vote for, and determining what percentage are going to vote for candidate A.
+
+```{r}
+mean(sample(population, size = 20) == "A")
+```
+
+* Let's try running the process 10,000 times and plotting the values of $\hat{p}$ we get.
+
+```{r}
+manyRepetitions20 = replicate(10000, mean(sample(population, size = 20) == "A"))
+
+# First six values
+head(manyRepetitions20)
+
+tibble(p_hat = manyRepetitions20) %>% 
+  ggplot(aes(p_hat)) +
+  geom_histogram(binwidth = 0.05, center = 0.55, color = "black", fill = "gray") +
+  geom_hline(yintercept = 0) +
+  scale_x_continuous(breaks = seq(0, 1, by = 0.1), limits = c(0, 1)) +
+  labs(
+    title = "Simulated Sampling Distribution of p-hat",
+    subtitle = "From n = 20 people"
+  )
+```
+
+* Notice how the distribution centers around the true $p = 55$%, but with plenty of possibility for error.
+
+* The distribution will "tighten" around the true $p = 55$% if we increase the sample size to 40 people.
+
+```{r}
+manyRepetitions40 = replicate(100000, mean(sample(population, size = 40) == "A"))
+
+# First six values
+head(manyRepetitions40)
+
+tibble(p_hat = manyRepetitions40) %>% 
+  ggplot(aes(p_hat)) +
+  geom_histogram(binwidth = 1/40, center = 0.50, color = "black", fill = "gray") +
+  geom_hline(yintercept = 0) +
+  scale_x_continuous(breaks = seq(0, 1, by = 0.1), limits = c(0, 1)) +
+  labs(
+    title = "Simulated Sampling Distribution of p-hat",
+    subtitle = "From n = 40 people"
+  )
+```
+
+> By increasing the size of your sample, the **sampling distribution** tightens around the **value of the true parameter**, making your estimate more likely to be close to the true value.
+
+> We refer to the standard deviation of the sampling distribution as **standard error**.
+
+# Confidence Intervals
+
+* So now we know that the 40-person estimate is "better" than the 20-person estimate; it has a lower **standard error** because we are sampling more of the population.
+
+* But what does that actually mean? It doesn't mean that it's better **every time**.
+
+* This 20 person $\hat{p}$ happens to be closer to the true $p = 0.55$ than the 40 person $\hat{p}$ by sheer luck.
+
+```{r, echo = FALSE}
+set.seed(1204)
+```
+
+```{r}
+mean(sample(population, size = 20) == "A")
+mean(sample(population, size = 40) == "A")
+```
+
+* Furthermore, we haven't done a great job of describing **how much we actually know** about the population. We just would say "65% seems like a good guess." How good? We don't know!
+
+* **Confidence intervals** address this problem by providing both an estimate of the parameter **and** and associated confidence level.
+
+> A confidence interval is a two-part estimate of a parameter value. The first part is a **numeric range**, and the second part is a **confidence level** which indicates how confident we are that the true value of the parameter is in that range.
+
+```{r, include = FALSE}
+set.seed(132)
+n = 20
+p_hat = mean(sample(population, size = n) == "A")
+
+p_hat + qnorm(0.995) * c(-1, 1) * p_hat * (1-p_hat) / sqrt(n)
+```
+
+Here's an example of a confidence interval:
+
+**"We are 99% confident the true proportion of voters in this small town who will vote for Candidate A is between 40.7% and 69.2%.**
+
+## Calculating A Confidence Interval
+
+> We will introduce specific formulas for regression coefficients, proportions, and means in the coming weeks. This is meant to serve as a general introduction to the background and procedure of calculating a confidence interval that we can apply to different circumstances.
+
+* Let's expand the election forecast example to **the whole country**. The true percentage of voters for Candidate A in the population is 51%, but we wouldn't know that in practice.
+
+* Let's try to estimate $p$ with a 95% confidence interval.
+
+* We'll see in a future unit that the sampling distribution of $\hat{p}$ (using $n$ individuals to estimate the true $p$) is approximately $\text{Normal}(p, \sqrt{p(1-p)/n})$.
+
+```{r, echo = FALSE}
+true_p = 0.51
+n = 1000
+stdError = sqrt(true_p * (1- true_p) / n)
+
+gnorm(true_p, stdError) +
+  geom_vline(xintercept = true_p, linetype = "dashed" , color = "red") +
+  labs(
+    x = "p-hat",
+    title = "Theoretical Sampling Distribution of p-hat",
+    subtitle = "True p = 0.51, Sample size = 1,000"
+  ) +
+  
+  annotate("text", x = 0.507, y = 10, label = "True p = 0.51", angle = 90, vjust = "bottom", color = "red", size = 8)
+```
+
+* We want to construct a region around our observed $\hat{p}$ which likely contains $p$. (We'll never know for sure, but we can make our best guess.)
+
+* First, this interval should be **centered at $\hat{p}$**, which is our best guess of $p$. We know it should be centered/symmetric because our estimate $\hat{p}$ could randomly be higher than $p$ or lower than $p$, and we don't know; so the interval has to extend both ways.
+
+* But how wide should the interval be? 
+
+* If we want to have a 95% chance that our interval contains $p$, and our interval is centered around $\hat{p}$, then the width of our interval should be the width of the centered region of the sampling distribution that contains 95% of the area.
+
+* That's a lot of words - it's easier to explain it graphically, we're looking for the width of the arrow below.
+
+```{r, echo = FALSE}
+conf.level = 0.95
+appropriate.quantile = conf.level + (1 - conf.level)/2
+leftEndpoint = true_p - qnorm(appropriate.quantile) * stdError
+rightEndpoint = true_p + qnorm(appropriate.quantile) * stdError
+
+gnorm(true_p, stdError) +
+  geom_norm_fill(true_p, stdError, a = leftEndpoint, b = rightEndpoint, alpha = 0.5) +
+  annotate("segment", x = leftEndpoint, xend = rightEndpoint, y = 1, yend = 1, arrow = arrow(ends = "both")) +
+  annotate("text", x = true_p, y = 2, label = "Contains 95% of area") +
+  labs(
+    x = "p-hat",
+    title = "Theoretical Sampling Distribution of p-hat",
+    subtitle = "True p = 0.51, Sample size = 1,000"
+  )
+```
+
+* How do we compute that length for this distribution, let alone other ones?
+
+* Take a look at the right side of that interval. This interval is **central** and the distribution is **symmetric**, so there is 2.5% area on either side of the interval. (2.5 + 95 + 2.5 = 100%).
+
+* That means there is 2.5 + 95 = 97.5% area **to the left** of the right endpoint. (The 95% region above, and the small 2.5% tail we didn't include earlier)
+
+```{r, echo = FALSE}
+gnorm(true_p, stdError) +
+  geom_norm_fill(true_p, stdError, b = rightEndpoint, alpha = 0.5) +
+  annotate("segment", x = 0.45, xend = rightEndpoint, y = 1, yend = 1, arrow = arrow(ends = "first")) +
+  annotate("text", x = true_p, y = 2, label = "Contains 97.5% of area") +
+  labs(
+    x = "p-hat",
+    title = "Theoretical Sampling Distribution of p-hat",
+    subtitle = "True p = 0.51, Sample size = 1,000"
+  )
+```
+
+* This means the right endpoint is the **97.5% quantile** of this normal distribution!
+
+```{r}
+qnorm(0.975, true_p, stdError)
+```
+
+* The general adjustment here is that if your confidence level is $C$, then the right endpoint is the $C + \frac{1-C}{2}$ quantile of the sampling distribution. (Start at $C$, and then go halfway towards 1.)
+
+* We may also refer to the confidence level as $1 - \alpha$, to establish its relationship with hypothesis testing in the next section.
+
+```{r}
+conf.level = 0.95
+qnorm(conf.level + (1 - conf.level) / 2, true_p, stdError)
+```
+
+* Remember through **standardization** we can write this in terms of a quantile from the standard normal distribution:
+
+```{r}
+true_p + qnorm(conf.level + (1 - conf.level) / 2) * stdError
+```
+
+* Finally, notice that `true_p` is the **center** of our original interval! This means that we have derived the **distance we need to go in each direction** as `qnorm(conf.level + (1 - conf.level) / 2) * stdError`!
+
+```{r, echo = FALSE}
+# I refer to "confidence level" with C here.
+offset = 0.001
+
+gnorm(true_p, stdError) +
+  geom_norm_fill(true_p, stdError, a = leftEndpoint, b = rightEndpoint, alpha = 0.5) +
+  annotate("segment", x = true_p+ offset, xend = rightEndpoint, y = 1, yend = 1, arrow = arrow(ends = "last", length = unit(.2,"cm"))) +
+  annotate("text", x = true_p + offset, y = 2, label = "qnorm(C + (1-C)/2) * SE", size = 4, hjust = "left")+
+  annotate("segment", x = leftEndpoint, xend = true_p - offset, y = 1, yend = 1, arrow = arrow(ends = "first", length = unit(.2,"cm"))) +
+  annotate("text", x = true_p - offset, y = 2, label = "qnorm(C + (1-C)/2) * SE", size = 4, hjust = "right") +
+    labs(
+    x = "p-hat",
+    title = "Theoretical Sampling Distribution of p-hat",
+    subtitle = "True p = 0.51, Sample size = 1,000"
+  )
+```
+
+* Finally, putting it all together, going out this far in each direction from whatever random $\hat{p}$ we get will, by definition, contain the true $p$ 95% of the time! (or whatever your desired confidence was)
+
+* This distance, `qnorm(C + (1-C)/2) * SE`, is called the **margin of error**.
+
+* Note that we use `qnorm` because the sampling distribution is Normal. In future examples, the sampling distribution may be different, and we would use a different function, like `qt` to calculate a quantile from the $t$ distribution.
+
+## The General Form for Confidence Intervals
+
+* More generally, confidence intervals take the following form:
+
+$$
+\text{Point Estimate } \pm \text{ Quantile Confidence Score * Standard Error of PE}
+$$
+
+* Where the **point estimate** is your estimate of the true parameter based on your data... (such as the sample proportion $\hat{p}$ for the true $p$, or the sample mean $\bar{x}$ for the true $\mu$)
+
+* ... the **quantile confidence score** is the ($C$ + (1-$C$)/2) quantile of the sampling distribution...
+
+* and the **standard error of the point estimate** is a known formula based on what point estimate you are using.
+
+> We'll derive the sampling distribution and standard error for you - you will just need to be able to plug them into this formula!
+
+*Note that if we use $1 - \alpha$ as the confidence level, the quantile confidence score uses the $1 - \alpha + \alpha/2$ quantile of the sampling distribution.*
+
+## Visualization
+
+```{r, echo = FALSE}
+visualizeProportionCI = function(true_p, sample_size, conf.level = 0.95, theory = TRUE, wald = FALSE) {
+  stdError = sqrt(true_p * (1 - true_p) / sample_size)
+  
+  # calculate true sampling distribution curve
+  samplingDistribution = tibble(
+    x = seq(true_p - 3*stdError, true_p + 3*stdError, length.out = 50),
+    y = dnorm(x, true_p, stdError)
+  )
+  
+  # calculate random point estimate, associated confidence interval
+  moeLabel = paste0("Interval width: This region contains ", 100*conf.level, "% of area")
+  point_estimate = rnorm(1, true_p, stdError)
+  if (wald) {
+    stdError = sqrt(point_estimate * (1 - point_estimate)/sample_size)
+    moeLabel = paste0("ESTIMATE: This region (on avg.) contains ", 100*conf.level, "% of area")
+  }
+  moe = qnorm(1 - (1-conf.level)/2) * stdError
+  ciLeft = point_estimate - moe
+  ciRight = point_estimate + moe
+  
+  # encode confidence interval as green if it contains the true parameter, red if it does not
+  myColor = ifelse(between(true_p, ciLeft, ciRight), "chartreuse3", "red")
+  
+  myAlpha = 0.4
+  # for more "realistic" graphing, remove the color and the helpful visuals
+  if (!theory) {
+    myColor = "black"
+    myAlpha = 0
+  }
+
+  helpfulY = dnorm(true_p, true_p, stdError)/20 # helpful margin to keep things scaled nicely graphically
+  moeY = dnorm(true_p + moe, true_p, stdError) # y level of MOE visual
+  
+  ggplot() +
+    # underlay sampling distribution
+    geom_line(aes(x, y), samplingDistribution, color = "gray", alpha = 2*myAlpha) +
+    geom_hline(yintercept = 0) +
+    
+    # add true parameter value visual
+    geom_vline(xintercept = true_p, linetype = "dashed", color = "blue", linewidth = 1.5, alpha = myAlpha) +
+    annotate("text", x = true_p - stdError/5, y = dnorm(true_p, true_p, stdError) - helpfulY, color = "blue", alpha = myAlpha, angle = 90, hjust = "right", vjust = "top", label = "True Parameter", linewidth = 6) +
+    
+    
+    # annotate margin of error visual and label
+    annotate("segment", x = true_p - moe, xend = true_p + moe, y = moeY, yend = moeY, arrow = arrow(ends = "both", length = unit(.2, "cm")), alpha = myAlpha) +
+    annotate("text", x = true_p - conf.level*moe, y = moeY + helpfulY/2, hjust = "left", vjust = "bottom", label = moeLabel, alpha = myAlpha) +
+    
+    # annotate point estimate and label
+    annotate("segment", x = point_estimate, xend = point_estimate, y = 0, yend = helpfulY*2, size = 2) +
+    annotate("text", x = point_estimate, y = -helpfulY, label = "PE", size = 4) +
+    
+    # annotate confidence interval
+    annotate("segment", x = ciLeft, xend = ciRight, y = helpfulY, yend = helpfulY, color = myColor, size = 1.5, arrow = arrow(ends = "both", length = unit(.2, "cm"))) +
+    
+    annotate("text", x = true_p + stdError, y = dnorm(true_p, true_p, stdError), label = paste0("Sampling Dist: N(", round(true_p, 2), ", ", round(stdError, 2), ")"), alpha = myAlpha) +
+    
+    theme_minimal() + 
+    theme(
+      panel.grid = element_blank(),
+      axis.text.y = element_blank(),
+      axis.text.x = element_text(size = 10)) + 
+    
+    labs(
+      x = "Potential Values of p",
+      y = ""
+    )
+}
+```
+
+* We have written a custom function, `visualizeProportionCI`, as an educational tool.
+
+* For example, here's a random point estimate and associated confidence interval of our true $p = 0.4$ with $n = 20$ at confidence level 95%:
+
+```{r}
+visualizeProportionCI(true_p = 0.4, sample_size = 20, conf.level = 0.95)
+```
+
+* Watch our interval width **decrease** (see the sampling error and the labels on the x axis decrease) as we increase sample size:
+
+```{r}
+visualizeProportionCI(true_p = 0.4, sample_size = 200, conf.level = 0.95)
+```
+
+* Finally, notice that if we were to decrease our **confidence level**, our interval would get **smaller**, and therefore be **less likely** to contain the real $p$.
+
+```{r}
+# I strongly encourage you to run these a few times in your console to watch its behavior over many runs!
+
+set.seed(1234)
+visualizeProportionCI(true_p = 0.4, sample_size = 200, conf.level = 0.6)
+visualizeProportionCI(true_p = 0.4, sample_size = 200, conf.level = 0.6)
+```
+
+* In practice, we do not know what the true value of $p$ is, so we just get a "blind" confidence interval; you can see this with the `theory = FALSE` argument to the `visualizeProportionCI` function.
+
+```{r}
+visualizeProportionCI(true_p, sample_size = 20, theory = FALSE)
+```
+
+### The Confidence Level Trade-Off
+
+* If the statistician gets to specify how much **confidence** the interval will have.. *"why don't we just make intervals with really really high confidence, maybe even 100% confidence?"*
+
+* The answer is because those intervals are **too wide to be useful**.
+
+* For example, I can give you a 100% confidence interval for any parameter - it's between negative infinity and positive infinity. 
+
+* I can do even better for a proportion - it's between 0% and 100%.
+
+> The more confidence your interval has, the wider it has to be. The wider it has to be, the less useful it becomes.
+
+* For example, our original interval was *"We are 99% confident the true proportion of voters in this small town who will vote for Candidate A is between 40.7% and 69.2%.*
+
+* To predict the winner, we'd want that interval to be fully one side or the other of 50%.
+
+* To do that, we have to make the interval **narrower** around $\hat{p}$, which means **reducing our confidence**.
+
+```{r, include = FALSE}
+set.seed(133)
+n = 20
+p_hat = mean(sample(population, size = n) == "A")
+se = p_hat * (1-p_hat) / sqrt(n)
+
+
+p_hat + qnorm(0.80) * c(-1, 1) * se
+```
+
+* *"We are 60% confident that the true proportion of voters in this small town who will vote for Candidate A is between 50.3% and 59.7%"*.
+
+* Because these intervals are only based off of 20 people, we don't have a lot of confidence in this difference.
+
+> We need to find a **balance** between how confident we are in the interval and how useful it is. In practice, many statisticians choose to create intervals with 95% or 90% confidence.
+
+## Interpretation
+
+* We always interpret confidence intervals with a statement like: 
+
+> "We are _% confident that the true proportion/mean/value of (real-life meaningful description of parameter) is between A and B."
+
+* It is not quite correct to say that "there is a _% chance that the parameter is in this range"; it either is, or it isn't, we just don't know.
+
+# Hypothesis Testing
+
+* Confidence intervals above allow us to **estimate the value** of a parameter.
+
+* Another frequent problem is not to directly estimate the value of a parameter, but simply show that the parameter is likely to be **not equal to**, or **greater than**, or **less than** some specific special value.
+
+* We can use the same knowledge of **sampling distributions** to address this very related problem - we'll start with one of the first historical examples of statistical inference.
+
+## The Lady Tasting Tea Experiment
+
+* The ["Lady Tasting Tea" experiment](https://en.wikipedia.org/wiki/Lady_tasting_tea) was an important historical development for statistical design, conducted by Ronald Fisher in 1913. (*Ronald Fisher is an extremely important figure responsible for much of modern statistics!*)
+
+* A colleague of Fisher's named Muriel Bristol claimed she could tell whether the tea had been added before or after the milk to her cup just by tasting it.
+
+* Fisher wanted to devise a statistical test to assess the strength of her claim with data.
+
+* If we make some assumptions...
+
+1. She gets every cup correct (success) or incorrect (failure).  
+2. Her successes and failures are independent of each other.
+3. The number of cups is pre-specified (n = 8).
+4. She is just as likely to identify a tea-first cup correctly as a milk-first cup, with some constant probability $p$.
+
+Then, the number of correct cups out of 8, call this $X$, follows the $Binom(8, p)$ distribution.
+
+* Fisher wishes to assess if Muriel's **true $p$**, the chance of correctly identifying the first ingredient, is **better than random guessing**.
+
+## Null and Alternative Hypotheses
+
+* Just like confidence intervals above, we can only hope to make a statement about $p$ with high confidence here, rather than proving anything definitively.
+
+* If Muriel were indeed just guessing randomly, that would mean $p = 0.5$; a 50/50 shot of getting it right.
+
+* If Muriel truly does have this ability, then $p > 0.5$. We aren't claiming she guesses correctly every time, just that she can guess **more accurately than random guessing**.
+
+---
+
+* The concept of a **null** and **alternative hypothesis** rise out of these statements.
+
+> The **null** hypothesis is usually of the form $\text{parameter} = \text{Some Important Value}$. It is the thing we wish to **attack** or **disprove**.
+
+> The **alternative** hypothesis is of the form $\text{parameter} \neq \text{or} > \text{or} < \text{Same Important Value As Null}$. It is the thing we wish to **show is likely true**.
+
+* Even though bolstering the alternative hypothesis is our main goal, we will do this by attacking the null hypothesis.
+
+## The Big Idea: Contradiction
+
+* Hypothesis testing works through a logical mechanism called **contradiction**. If you have taken a math logic course on proofs that has used the term contradiction before, I am misusing the term slightly. This is because in statistical inference, we can't *prove* anything persay, only show things are extremely unlikely.
+
+> We cannot prove directly that the true value $p > 0.5$. We will **instead** set out to **show the statement $p = 0.5$ is so unlikely to be true given our observed data** in a way that gains evidence for our actual goal of showing $p > 0.5$.
+
+---
+
+##### Real Life Example of Reasoning by Statistical Inference
+
+* You are playing a game of darts with a partner who you don't know. They they have never played darts before, but proceeds to hit three bullseyes in a row.
+
+* You wonder if they *have*, in fact, played darts before. You do this by saying "If my partner really has never played before, how likely is it they would get three bullseyes in a row?"
+
+* The probability of getting three bullseyes on one's first time playing is extremely low.
+
+* However, they did get the three bullseyes, so we **infer** it's very likely they have played darts before.
+
+* We haven't **proven** anything - it is possible they are telling the truth and just got extremely lucky. However, there would need to be an extremely unlikely event for our inference to be wrong.
+
+---
+
+##### Back to the Lady Tasting Tea
+
+* If Muriel is guessing randomly, and $p = 0.5$ (i.e. the **null hypothesis is true**), then we know the probability distribution of $X$ is $\text{Binom}(8, 0.5)$.
+
+```{r}
+gbinom(8, 0.5)
+```
+
+* Say Muriel got 6 cups right out of 8. We wish to show that the observed level of success is very unlikely by random chance, which would lead us to the conclusion that her true $p$ is higher than 0.5.
+
+* Because we're interested in showing $p > 0.5$, we have to consider how likely it is to get **6 or more right** by random chance.
+
+* That's a simple `pbinom`:
+
+```{r}
+1 - pbinom(5, 8, 0.5)
+```
+
+* In other words, **by randomly guessing, Muriel would have a 14% chance of getting 6 or more right.**
+
+## P-Values and Thresholds
+
+* This probability is called a "p-value", not to be mistaken with $p$ or $\hat{p}$.
+
+> A **p-value** is the probability of observing a statistic **as or more extreme** than what you really did given that the **null hypothesis is true**.
+
+> Low p-values lead us to **doubt the null hypothesis**, and lends credibility to **the alternative hypothesis**.
+
+---
+
+* How low does a p-value have to be for us to doubt the null hypothesis?
+
+* There is a larger philosophical debate in the statistical community whether that is even the right way to think about it, but a common standard comes from a 1925 book by, you guessed it, Ronald Fisher.
+
+> A common standard for "significant" p-values, and the one we will use in this class, is that they must be below 0.05 to reject the null hypothesis, such that our "false rejection" rate is 1 in 20.
+
+* This, of course, does not mean that p-values of 0.06 are to be ignored and discarded.
+
+* Fisher suggested holding the data to this 0.05 standard because it would mean that, in the long run, at least 19 out of 20 p-values this low would be genuine detections of parameters deviating from important values, rather than just a very unlucky or lucky event making it seem that way.
+
+---
+
+* In reality, Muriel got all 8 randomized cups right.
+
+```{r}
+1 - pbinom(7, 8, 0.5)
+```
+
+* The odds of getting 8 or more (so just 8) cups right out of 8 are quite low, leading Fisher to believe Muriel's claim.
+
+* We would interpret this as:
+
+> We find extremely strong evidence that Muriel can tell whether milk or tea was poured into her cup first at a better rate than random chance (p-value = 0.004, single proportion test).
+
+* Notice this is not a **definitive** statement; it just says there is extremely strong evidence.
+
+* Notice we do not try to **estimate the value of $p$**; we just determine that it is very likely to be higher than $p > 0.5$. That is the key difference between a confidence interval and a hypothesis test.
+
+*Note: In the real experiment, Muriel knew there were 4 milk-first and 4 tea-first cups, which complicates the distributions. We ignore this detail for simplicity.*
+
+## To Regression and Beyond
+
+* The formulas for our point estimates and standard errors, as well as our sampling distributions, are quickly going to become more complicated than the ones we've seen in this lecture.
+
+* However, we now know the **guiding principles** for how to compute confidence intervals, p-values, and how to interpret both. These will carry us through the rest of the specific scenarios we see this semester.
+
+For example, the next series of lectures focuses on regression - here's a sneak peek!
+
+---
+
+* We hope to estimate a parameter $\beta_1$, where $Y_i = \beta_0 + \beta_1 * X_i + \epsilon_i$ for $i = 1, ... n$ such that $\epsilon_i \sim N(0, \sigma^2)$.
+
+* Our point estimate is $\hat{\beta_1} = r * \frac{s_y}{s_x}$.
+
+* Its sampling distribution is $t(df = n - 2)$, and the standard error of that distribution is:
+
+$$
+SE(\hat{\beta}_1) = \sqrt{\frac{\sum_{i = 1}^n (y_i - \hat{y}_i)^2/(n-2)}{\sum_{i = 1}^n (x_i - \overline{x})^2}}
+$$
+
+* Therefore, using the general confidence interval formula:
+
+$$
+\text{Point Estimate } \pm \text{ Quantile Confidence Score * Standard Error of PE}
+$$
+
+* We can estimate the true $\beta_1$ with $C$ confidence with the interval:
+
+$$
+\hat{\beta_1} \pm \text{qt(C + (1-C)/2, df = n-2)} * SE(\hat{\beta}_1)
+$$
+
+The point here is not to overwhelm you with notation - it is to show you that **all confidence intervals (and hypothesis tests)** in this class will follow the exact same form. It is just a matter of what the different elements look like, but they all get put together in exactly the same way.
+
+
+
+
