@@ -1,0 +1,178 @@
+---
+title: "Homework 7"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE,
+                      warning = FALSE, error = TRUE,
+                      fig.height = 3)
+library(tidyverse)
+```
+
+# Preliminaries
+
+- This file should be in `STAT240/homework/hw07` on your local computer.
+
+# Problem 1
+
+The weight of adult male grizzly bears in the continental United States is well approximated by a normal distribution with mean 510 pounds and standard deviation 45 pounds. The weight of adult female grizzly bears in the continental United States is well approximated by a normal distribution with mean 315 pounds and standard deviation 37 pounds.
+
+Suppose a male grizzly bear that is 441 pounds is observed. What would be the approximate weight of a female grizzly bear with the same weight percentile as this male grizzly bear?
+
+```{r}
+# Write your code here!
+
+```
+
+
+# Problem 2
+
+The lifespan of a certain type of tire is approximately normal, with mean 39 and standard deviation 2.5 (units are in thousands of miles).
+  
+**(a)** What is the probability that a random tire will last longer than 40,000 miles?
+
+```{r}
+# Write your code here!
+```
+
+**(b)** What is the 95th percentile of a single tire's lifespan?
+
+```{r}
+# Write your code here!
+```
+
+**(c)** Take a random sample of 4 tires.  What is the probability that the average lifespan of the four tires will be greater than 40,000 miles?
+
+```{r}
+# Write your code here!
+```
+
+
+**(d)** What is the 95th percentile for the average lifespan of four tires?  
+```{r}
+# Write your code here!
+```
+
+**(e)** Explain why the answers to (a) and (b) are so different from the answers to (c) and (d).
+
+> Replace this text with your response.
+
+
+# Problem 3
+
+Suppose you are playing a coin flipping game with a friend, where you suspect the coin your friend provided is not a fair coin.  In fact, you think the probability the coin lands heads is less than 0.5.  To test this, you flip the coin 100 times and observe the coin lands heads 30 times.
+  
+If you assume the coin is fair (i.e., the probability of the coin landing heads is 0.5), what is the probability of observing 30 heads or fewer?
+
+```{r}
+# Write your code here!
+```
+
+Calculate the previous probability, but use a normal approximation to achieve a numerical value. What is the error in this approximation?
+
+```{r}
+# Write your code here!
+```
+
+How small would $p$ need to be (rounded to the nearest 0.01) for the probability of observing 30 or fewer heads to be at least 0.05?
+
+*Hint: You could determine $p$ by trial and error, but there is also a quicker solution using `tibble()`.*
+
+```{r}
+# Write your code here!
+```
+
+
+# Problem 4
+
+The code below does the following: 
+
+- Draw `n` points from a population called `pop`
+- Calculate the mean of the `n` points
+- Repeat this `iterations` times to get a large number of sample means
+
+```{r, eval = FALSE}
+replicate(iterations, mean(sample(pop, n, replace = T)))
+```
+
+Perform this operation three times with 10000 iterations each.  Do this with $n = 5$, $n = 10$, and $n = 50$. Use `right_skewed` below as your population, `pop`.
+
+Then, make three density plots to compare the three sampling distributions.  What do you notice as $n$ increases?
+
+```{r}
+right_skewed <- c(rep(0, 60), rep(1, 25), rep(2, 10), rep(3, 5))
+```
+
+> Replace this text with your response.
+
+# Problem 5
+
+Continue the analysis of the right-skewed population from problem 4.  Now, perform the sampling process three times, each with $n = 50$.  Do this with 50 iterations, 500 iterations, and 50000 iterations.  
+
+Then, make three density plots to compare the three sampling distributions.  What do you notice as the number of iterations increases?
+
+```{r}
+right_skewed <- c(rep(0, 60), rep(1, 25), rep(2, 10), rep(3, 5))
+
+```
+
+> Replace this text with your response.
+
+
+# Problem 6
+
+For each of the three prompts, explain which condition will result in a **narrower** confidence interval.  If the confidence level would not change, explain why.
+
+- Having a **larger** confidence level (smaller alpha) versus having a **smaller** confidence level (larger alpha)
+
+> Replace this text with your response.
+
+- Having **larger** estimation error (a.k.a "sampling error") versus having **smaller** estimation error
+
+> Replace this text with your response.
+
+- Having a **larger** point estimate versus having a **smaller** point estimate
+
+> Replace this text with your response.
+
+# Problem 7
+
+The code below calculates the Z critical value to build a 95% confidence interval.  Edit the code to instead calculate the critical value for **98%** confidence.
+
+```{r}
+qnorm(0.975) # Critical Value for a 95% confidence interval; edit it to produce critical value for a 98% confidence interval.
+```
+
+Next, generalize this operation to any confidence level.  Uncomment and edit the code below to return the critical value for a (1-alpha) confidence interval for any choice of alpha.
+
+```{r}
+# For example, a 90% CI
+alpha <- 0.1
+
+# Write your code here, based off alpha
+```
+
+
+# Problem 8
+
+For Halloween, you have purchased a big bag of candy made up of equal amounts of KitKats, Hershey's, Almond Joys, and Reese's candy bars.
+
+**(a)** A small child reaches in and pulls out three Reese's candy bars.  What is the probability that all three of their three candies were Reese's by random chance?  (Assume candy bar draws are independent and all have equal probability of being a Reese's.)
+
+```{r}
+# Write your code here!
+```
+
+**(b)** A different small child reaches in and takes seven Reese's candy bars and one other candy bar.  What is the probability that seven or more of their eight candies were Reese's by random chance?
+
+```{r}
+# Write your code here!
+```
+
+**(c)** Intuitively, which of the two situations is more "suspicious"?  Do the probabilities match your intuition?
+
+> Replace this text with your response.
+
+
+
