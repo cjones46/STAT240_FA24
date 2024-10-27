@@ -1,0 +1,499 @@
+---
+title: "week07-binomial and normal"
+output: html_document
+date: "2024-10-16"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+source("../../scripts/ggprob.R")
+```
+
+# Sec 006 10/16
+
+```{r}
+# For 10 coin flips. You want to find the probability of getting 4 heads
+
+dbinom(4, 10, 0.5)
+
+```
+
+```{r}
+# For 1 coin flips. You want to find the probability of getting 1 heads
+
+dbinom(1, 1, 0.5)
+```
+
+# Sec 003 10/16
+
+```{r}
+dbinom(0:10, 10, 0.5)
+
+dbinom(1, 1, 0.5)
+```
+
+```{r}
+set.seed(29900)
+rbinom(100, 10, 0.5)
+
+rbinom(100, 1, 0.5)
+
+rbinom(100, 2, 0.5)
+```
+
+# Sec 005 10/16
+
+```{r}
+# probability of getting 2 head when a coin is flipped 10 times
+
+dbinom(2, 10, 0.5) # using the dbinom function
+
+choose(10, 2) * (0.5)^2 * (0.5)^8 # using the formula
+
+dbinom(1, 1, 0.5)
+```
+
+# Sec 006 10/18
+
+```{r}
+# Create a data set with 100 observations for 10 coin flips (X will be the number of heads)
+
+data = rbinom(1000, 10, 0.5)
+mean_s = mean(data)
+variance_s = var(data)
+mean_s
+variance_s 
+
+
+# Find the mean of Binom(10, 0.5)
+
+mean_d = 10*0.5
+variance_d = 10*0.5*0.5
+mean_d 
+variance_d
+
+dbinom(8, 10, 0.5)
+mean(data==8)
+```
+
+Graph for binomial distribution
+
+```{r}
+gbinom(10, 0.5)
+```
+
+```{r}
+# Probability of getting atmost 3 heads
+
+pbinom(3, 10, 0.5) # gives you the added up prob to the left of x
+
+# Probability of getting atleast 3 heads
+
+pbinom(3, 10, 0.5, lower.tail = FALSE) # gives you the added up prob to the right of x
+
+1 - pbinom(3, 10, 0.5)
+```
+
+```{r}
+# The number of heads such that it is above 70% of the usual number of heads
+
+qbinom(0.7, 10, 0.5) # an approximation of the smallest number such that that prob is reached
+
+pbinom(6, 10, 0.5)
+pbinom(5, 10, 0.5)
+```
+
+# Sec 003 10/18
+
+```{r}
+# Data for flipping a rock which has a prob of 20% of landing face up. repeat the experiment 100 times where you flip the rock 10 times to see how many times it lands face up.
+
+set.seed(2400)
+data <- rbinom(100, 10, 0.2) 
+
+data
+
+mean(data) 
+var(data)
+```
+
+```{r}
+# You are flipping a coin 10 times. Find the probability of getting atmost 3 heads
+
+pbinom(3, 10, 0.5) # P(X <= 3)
+
+dbinom(0, 10, 0.5) + dbinom(1, 10, 0.5) + dbinom(2, 10, 0.5) + dbinom(3, 10, 0.5) 
+
+sum(dbinom(0:3, 10, 0.5))
+```
+
+```{r}
+# You are flipping a coin 10 times. Find the probability of getting atleast 3 heads
+
+pbinom(3, 10, 0.5, lower.tail = FALSE)
+
+1 - pbinom(3, 10, 0.5)
+
+sum(dbinom(4:10, 10, 0.5))
+```
+
+```{r}
+# Graph the distribution of Binom(10, 0.2)
+
+gbinom(10, 0.2) # this is not an inbuilt r function. So you have to use the source ar ggprob.R 
+
+ggplot(tibble(x=data), aes(x = x)) + geom_histogram()
+```
+
+```{r}
+# You are flipping a coin 10 times. Find the number of heads such that it is above 70% of the usual number of heads
+
+
+
+qbinom(0.7, 10, 0.5) # this gives an approx or least possible value such that P(X<= x) = 0.7
+
+pbinom(6, 10, 0.5)
+pbinom(5, 10, 0.5)
+```
+
+# Sec 005 10/18
+
+mean: $E(X)=\mu = n\cdot p$
+
+variance: $\sigma^2 = n \cdot p \cdot (1-p)$
+
+```{r}
+data <- rbinom(100, 10, 0.5)
+data
+
+mean(data)
+var(data)
+
+n = 10
+p = 0.5
+
+mean_dist = n*p
+mean_dist
+
+variance_dist = n*p*(1-p)
+variance_dist
+```
+
+-   `dbinom(x, size, prob)` where d = density, gives $P(X=x)$
+-   `pbinom(x, size, prob)` where p = probability, gives p such that $P(X\leq x)= p$
+-   `rbinom(n, size, prob)` where r = random, generates random points from the binom(size, prob)
+-   `qbinom(p, size, prob)` where q = quantile, gives approx or the smallest value of `x` such that $P(X\leq x) = p$
+
+```{r}
+# You are flipping a coin 10 times. Find the probability of getting atmost 3 heads
+
+pbinom(3, 10, 0.5) # P(X <= 3)
+dbinom(0, 10, 0.5) + dbinom(1, 10, 0.5) + dbinom(2, 10, 0.5) +dbinom(3, 10, 0.5)
+sum(dbinom(0:3, 10, 0.5))
+```
+
+```{r}
+# You are flipping a coin 10 times. Find the probability of getting atleast 3 heads
+
+pbinom(3, 10, 0.5, lower.tail = FALSE)
+1 - pbinom(3, 10, 0.5)
+```
+
+```{r}
+gbinom(10, 0.5)
+
+ggplot(data = tibble(x = rbinom(1000, 10, 0.5)), aes(x = x)) + geom_histogram()
+```
+
+```{r}
+# You are flipping a coin 10 times. Find the number of heads such that it is above 70% of the usual number of heads
+
+qbinom(0.7, 10, 0.5) # approx or it gives the smallest value of x such that P(X<= x) = 0.7 
+
+pbinom(6, 10, 0.5)
+pbinom(5, 10, 0.5)
+```
+
+
+
+## Sec 006 Monday 10/21
+
+Find the density at the point $x=16$ when $X \sim N(10, 6)$.
+
+```{r}
+dnorm(16, 10, 6)
+```
+
+Find the area to the right and left of $x=16$ when $X \sim N(10, 6)$.
+
+```{r}
+pnorm(16, 10, 6) # prob to the right of 16
+1 - pnorm(16, 10, 6) 
+pnorm(16, 10, 6, lower.tail = F)
+```
+
+```{r}
+gnorm(10, 6)+
+  geom_norm_density(10, 6, a = NULL, b = 16, color = "red") +
+  geom_norm_fill(10, 6, a = NULL, b = 16, color = "red") +
+  geom_vline(xintercept = 10+c(-2, 2)*6)
+```
+
+```{r}
+pbinom(4, 10, 0.5)
+pbinom(4.1, 10, 0.5)
+
+pbinom(5, 10, 0.5)
+pbinom(6, 10, 0.5)
+
+pnorm(4, 10, 5)
+pnorm(4.1, 10, 5)
+
+pnorm(6, 10, 5)
+```
+
+```{r}
+ggplot() +
+  geom_norm_density(10, 5, color = "red") +
+  geom_norm_density(10, 3, color = "blue") +
+  geom_norm_density(10, 10, color = "green")
+```
+
+# Sec 003 Monday 10/21
+
+
+```{r}
+gbinom(10, 0.5) +
+  geom_binom_density(10, 0.5, a = NULL, b = 4, color = "red") +
+  geom_binom_density(10, 0.5, a = 8, b = NULL, color = "green")
+```
+
+Normal Distribution:
+
+- density at a point (P(X=x)): dnorm() 
+
+```{r}
+dnorm(16, 10, 6)
+```
+
+- probability to the left of a point x $(P(X\leq x))$: pnorm()
+
+```{r}
+pnorm(16, 10, 6) # P(X <= 16)
+```
+
+- probability to the right of a point x $(P(X\geq x))$: 1 - pnorm(), pnorm(..., lower.tail = F)
+
+```{r}
+1 - pnorm(16, 10, 6)
+pnorm(16, 10, 6, lower.tail = F)
+```
+
+- given q, the smallest x value such that P(X <= x) = q
+
+```{r}
+qnorm(0.5, 10, 6) # gives the mean since in normal distribution the mean lies at the center of the distribution
+```
+
+```{r}
+ggplot() +
+  geom_norm_density(10, 3, color = "red") +
+  geom_norm_density(10, 5, color = "blue") +
+  geom_norm_density(10, 7, color = "green")
+```
+
+# Sec 005 Monday 10/21
+
+```{r}
+gbinom(10, 0.5) +
+  geom_binom_density(10, 0.5, a = NULL, b = 4, color = "red") +
+  geom_binom_density(10, 0.5, a = 8, b = NULL, color = "green")
+```
+
+
+```{r}
+gnorm(10, 6) # graph of the N(10, 6)
+```
+
+
+```{r}
+ggplot() +
+  geom_norm_density(10, 3, color = "red") +
+  geom_norm_density(10, 5, color = "blue") +
+  geom_norm_density(10, 7, color = "green")
+```
+
+- density at a point x, P(X = x): dnorm()
+
+```{r}
+dnorm(16, 10, 6) # this f(16) or an approximation of P(X=16)
+```
+
+- probability to the left of a point x, $P(X \leq x)$: pnorm()
+
+```{r}
+pnorm(16, 10, 6) # area to the left of 16
+
+gnorm(10, 6) +
+  geom_norm_fill(10, 6, b = 16, fill = "blue")
+```
+- probability to the right of a point x, $P(X \geq x)$, 1 - pnorm(), pnorm(..., lower.tail = FALSE)
+
+```{r}
+1 - pnorm(16, 10, 6) # area to the right of 16
+pnorm(16, 10, 6, lower.tail = F)
+```
+
+
+```{r}
+pnorm(16, 10, 6)
+pnorm(16.0001, 10, 6)
+```
+
+
+- given a prob p, gives an approx value of x, such that $P(X \leq x) = p$: qnorm()
+
+```{r}
+qnorm(0.5, 10, 6)
+qnorm(0.45, 10, 6)
+pnorm(9.24, 10, 6)
+```
+
+- generates random values from the distribution $N(\mu, \sigma)$: rnorm()
+
+```{r}
+rnorm(10, 10, 6)
+```
+
+
+```{r}
+x = 16
+mu = 10
+sigma = 6
+
+z = (x-mu)/sigma
+z
+
+pnorm(16, 10, 6)
+pnorm(z, 0, 1)
+```
+
+
+# Sec 006 Wednesday 10/23
+
+
+```{r}
+x = 85.1
+mu = 80
+sigma = 5.1
+z = (x - mu)/sigma
+z
+
+pnorm(85.1, 80, 5.1)
+
+gnorm(80, 5.1) +
+  geom_norm_fill(80, 5.1, b = 85.1, color = "red")
+
+
+```
+
+```{r}
+gnorm(0, 1) +
+  geom_norm_fill(0, 1, b = 1, color = "red")
+pnorm(1, 0, 1)
+```
+
+```{r}
+random_binom = tibble(x =  replicate(n = 10000, mean(rbinom(10, 10, 0.5))))
+
+head(random_binom)
+
+gbinom(10, 0.5) +
+  geom_density(data = random_binom, aes(x))
+
+random_binom_summarized = random_binom %>% summarise(mean = mean(x), sd = sd(x))
+random_binom_summarized
+```
+```{r}
+random_exp = tibble(x =  replicate(n = 100000, mean(rexp(1000, 0.7))))
+
+ggplot() +
+  geom_density(data = random_exp, aes(x))
+```
+
+# Sec 003 - Wednesday 10/23
+
+
+```{r}
+random_binom = tibble(x = replicate(10000, mean(rbinom(10, 10, 0.5))))
+
+head(random_binom, 20)
+
+gbinom(10, 0.5) +
+  geom_density(data = random_binom, aes(x))
+
+random_binom %>% summarise(mean = mean(x), sd = sd(x))
+```
+
+```{r}
+random_unif = tibble(x = replicate(10000, mean(runif(100, 2, 5))))
+
+head(random_unif)
+
+ggplot() +
+  geom_density(data = random_unif, aes(x))
+```
+
+
+# Sec 005 Wednesday 10/23
+
+```{r}
+random_binom = tibble(x = replicate(10000, mean(rbinom(10, 10, 0.5))))
+
+head(random_binom, 20)
+
+gbinom(10, 0.5) +
+  geom_density(data = random_binom, aes(x), color = "red")
+```
+
+```{r}
+random_unif = tibble(x = replicate(100000, mean(runif(100, 2, 5))))
+
+head(random_unif, 20)
+
+ggplot() +
+  geom_density(data = random_unif, aes(x), color = "red")
+```
+
+```{r}
+n = 100
+p = 0.98
+mu = n*p
+sigma = sqrt(n*p*(1-p))
+
+gbinom(n, p, scale=TRUE) +
+  geom_norm_density(mu, sigma, color = "red") +
+  theme_minimal()
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
