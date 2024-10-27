@@ -1,0 +1,355 @@
+---
+title: "Section 12: Linear Regression"
+author: "Student's Name Here"
+date: "2024-10-11"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, error = TRUE)
+```
+
+```{r}
+library(tidyverse)
+```
+
+## Correlation
+
+A scatterplot shows a downward trend between year and freeze duration.
+
+```{r}
+monona <- read_csv("../../data/lake-monona-winters-2024.csv")
+
+ggplot(monona, aes(x = year1, y = duration)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = F)
+```
+
+We can calculate correlation with the `cor` function.
+
+```{r}
+x <- monona$year1
+y <- monona$duration
+
+cor(x, y)
+cor(y, x)
+```
+
+
+### Correlation examples
+
+```{r}
+# Hide this chunk - just for the purpose of making example plots
+
+set.seed(2023)
+x1 = seq(-2,2,0.05)
+y0 = rnorm(length(x1))
+y1 = x1^2
+x2 = x1[x1>0]
+y2 = y1[x1>0]
+x3 = x1[x1<0]
+y3 = y1[x1<0]
+x4 = x1
+y4 = x4 + rnorm(length(x4),0,0.3)
+x5 = x1
+y5 = x5 + rnorm(length(x5),0,1)
+x6 = x1[x1 > -1]
+y6 = exp(3*x6)/10 + rnorm(length(x6), 0, 5)
+
+cor_plot = function(x,y)
+{
+  ggplot(tibble(x,y), aes(x=x, y=y)) +
+    geom_point() +
+    geom_smooth(se = FALSE, method = "lm") +
+    geom_vline(xintercept = mean(x), color = "red", linetype = "dashed") +
+    geom_hline(yintercept = mean(y), color = "red", linetype = "dashed") +
+    ggtitle(str_c("r ≈ ", round(cor(x,y),2))) +
+  theme_bw() +
+  theme(text = element_text(size = 20)) 
+}
+```
+
+Correlation 0 corresponds to no linear relationship.  This can be a horizontal line or some other shape.
+
+```{r}
+cor_plot(x1, y0)
+
+cor_plot(x1, y1)
+```
+
+Correlation near 1 or -1 indicates that a line fits the data well.  This does not necessarily imply a true linear relationship.
+
+```{r}
+cor_plot(x4, y4)
+cor_plot(-x4, y4)
+
+cor_plot(x2, y2)
+```
+
+A correlation of 0.7 indicates that a line fits the data somewhat well.  Again, there maybe some other underlying relationship.
+
+```{r}
+cor_plot(x5, y5)
+
+cor_plot(x6, y6)
+```
+
+
+
+## Linear modeling
+
+What is the relationship between a baseball team's winning percentage and the latitude of its stadium?
+
+```{r}
+set.seed(20240406)
+fake_latitude <- tibble(
+  win_perc = runif(25, 0, 1),
+  latitude = runif(25, 25, 48)
+)
+
+ggplot(fake_latitude, aes(latitude, win_perc)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = F) +
+  labs(title = "Winning Percentage vs. Latitude of Home Stadium",
+       subtitle = "(Not real data)",
+       y = "Winning Percentage",
+       x = "Latitude (degrees)")
+```
+
+Now, consider predicting the winning percentage based on average wages.
+
+```{r}
+set.seed(20240406)
+fake_wages <- tibble(
+  wages = rnorm(25, 5, 2),
+  win_perc = wages* rnorm(25, 1, 0.5),
+  win_perc_adj = (win_perc - min(win_perc))/max(win_perc - min(win_perc))
+)
+
+ggplot(fake_wages, aes(wages, win_perc_adj)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = F) +
+  labs(title = "Winning Percentage vs. Wages",
+       subtitle = "(Not real data)",
+       y = "Winning Percentage",
+       x = "Wages (Millions of $")
+```
+
+
+### Exercise
+
+```{r}
+riley <- read_table("../../data/riley.txt")
+riley_2_8 <- riley %>% 
+  filter(age >= 2*12 & age <= 8*12)
+
+y <- riley_2_8$height
+x <- riley_2_8$age
+
+# Find estimates for beta_0 and beta_1
+# You'll need to find correlation and mean/sd of x and y
+
+```
+
+We can fit a linear model automatically with `lm`.
+
+```{r}
+lm(height ~ age, data = riley_2_8)
+
+# It's helpful to save the result to reference it later
+height_mod <- lm(height ~ age, data = riley_2_8)
+
+summary(height_mod)
+
+ggplot(riley_2_8, aes(x = age, y = height)) +
+  geom_point() +
+  geom_smooth(se = FALSE, method = "lm", fullrange = T) +
+  ylab("Height (inches)") +
+  xlab("Age (months)")
+```
+
+We can also do this for our Lake Monona data.
+
+```{r}
+lake_mod <- lm(duration ~ year1, data = monona)
+```
+
+
+## Assumptions
+
+We evaluate the assumptions (i.e., validate the linear model fit) by studying the residuals.  For ease of graphing, we can add the residuals to our data.
+
+```{r}
+resid(lake_mod)
+
+monona %>% 
+  mutate(residuals = resid(lake_mod)) %>% 
+  select(year1, duration, residuals) %>% 
+  head()
+```
+
+
+### Linearity
+
+```{r}
+# This is just a helpful function so I don't have to type this out every time;
+# feel free to use it yourself or not as you like
+
+resid_plot <- function(data) {
+  # assumes the columns are named "x" and "y" respectively
+  data %>%
+    mutate(resid = resid(lm(y~x, data))) %>% 
+    ggplot(aes(x, resid)) +
+    geom_point() +
+    geom_hline(yintercept = 0)
+}
+```
+
+There should be no obvious curved patterns in a residual plot.
+
+```{r}
+set.seed(2024040)
+linear_data <- tibble(
+  x = runif(100, 0, 10),
+  y = 0.05 * (x - 5) + rnorm(100, sd = 0.5)
+)
+
+nonlinear_data <- tibble(
+  x = runif(100, 0, 10),
+  y = 0.05 * (x - 5)^2 + rnorm(100, sd = 0.5)
+)
+```
+
+```{r}
+resid_plot(nonlinear_data) +
+  ggtitle("Linearity Violated: Curved Pattern Present")
+
+resid_plot(linear_data) +
+  ggtitle("Linearity Satisfied: No Curved Pattern Present")
+```
+
+
+### Normality
+
+The points in a residual plot should be evenly scattered around the center horizontal line at 0.
+
+```{r}
+set.seed(20240407)
+nonnormal_data <- tibble(
+  x = runif(100, 0, 10),
+  y = 0.05 * (x - 5) + sample(c(-2, 2), 100, replace = TRUE) * rnorm(100, mean = 1, sd = 0.5)
+)
+
+set.seed(20240407)
+nonnormal_data2 <- tibble(
+  x = runif(100, 0, 10),
+  y = 2*x + rgamma(100, 1) - 1
+)
+```
+
+```{r}
+resid_plot(nonnormal_data) +
+  ggtitle("Normality Violated: Points Don't Tend Towards Center")
+
+resid_plot(nonnormal_data2) +
+  ggtitle("Normality Around 0 Violated: Non-Symmetric")
+
+resid_plot(linear_data) +
+  ggtitle("Normality Satisfied: Residuals Symmetric Around 0")
+```
+
+
+### Constant variance
+
+The residual plot should show no relationship between x and the spread of residuals.  We don't want to see a "megaphone" shape.
+
+```{r}
+set.seed(20240407)
+heteroskedastic_data <- tibble(
+  x = runif(100, 0, 10),
+  y = x + rnorm(100, sd = 0.5 * x)
+)
+
+heteroskedastic_data2 <- tibble(
+  x = runif(100, 0, 10),
+  y = x + rnorm(100, sd = 0.5 * (10-x))
+)
+
+```
+
+
+```{r}
+resid_plot(heteroskedastic_data) +
+  ggtitle("Constant Variance Violated: Spread Increases with X")
+
+resid_plot(heteroskedastic_data2) +
+  ggtitle("Constant Variance Violated: Spread Decreases with X")
+
+resid_plot(linear_data) +
+  ggtitle("Constant Variance Satisfied: Equal Spread Across X")
+```
+
+
+### Monona data
+
+Let's verify the fit of the linear model on the lake Monona data.
+
+```{r}
+monona %>% 
+  mutate(residuals = resid(lake_mod)) %>% 
+ggplot(aes(x = year1, y = residuals)) +
+  geom_point() +
+  geom_hline(yintercept = 0)
+```
+
+
+## Prediction
+
+How tall was Riley at age 78 months?
+
+```{r}
+30.25 + (0.25 * 78)
+
+# or
+
+predict(height_mod, newdata = tibble(age = 78))
+```
+
+Graphically:
+
+```{r}
+new_x <- 78
+new_y  <- 30.25 + (0.25 * new_x)
+
+ggplot(riley_2_8, aes(x = age, y = height)) +
+  geom_point() +
+  # fullrange = T extends the blue line past the X range of the existing points
+  geom_smooth(se = FALSE, method = "lm", fullrange = T) +
+  geom_point(aes(x = new_x, y = new_y), color="red", size=4) + 
+  geom_vline(xintercept = new_x, color="red", linetype="dashed") +
+  geom_hline(yintercept = new_y, color = "red", linetype = "dashed") +
+  ylab("Height (inches)") +
+  xlab("Age (months)")
+```
+
+
+### Monona data
+
+According to the linear model, what will be the duration of the 2026-2027 freeze? (year1 = 2026)
+
+```{r}
+lake_mod <- lm(duration ~ year1, data = monona)
+
+```
+
+
+We have to be mindful when doing prediction.  Extrapolation can be dangerous!
+
+```{r}
+# How long will the freeze in 2400 be?
+
+535.125 + -0.223 * 2400
+```
+
+
+
