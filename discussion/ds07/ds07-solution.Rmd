@@ -100,7 +100,7 @@ pnorm(1, 0, 1) - pnorm(-1, 0, 1)
 
 # Event D
 
-pnorm(1.5, 0, 1)^2
+pnorm(1.5, 0, 1, lower.tail = FALSE)^2
 ```
 
 > Thus the probability of the events is in the order, D > C > A > B
