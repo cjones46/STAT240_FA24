@@ -1,0 +1,160 @@
+---
+title: "Discussion 8"
+output: html_document
+---
+
+# Preliminaries
+
+- This file should be in `STAT240/discussion/ds08` and the script `ggprob.R` should be in `STAT240/scripts` on your local computer.
+
+- This assignment should be completed in your **assigned Canvas groups**. Only one person has to submit on behalf of the group. You may submit whatever you have at the end of discussion section for full credit.
+
+# Present Group Members
+
+Please **write the names of the present group members** here.
+
+> Present Group Members:
+
+> Absent Group Members: 
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, 
+                      error = TRUE, 
+                      warning = FALSE, 
+                      message = FALSE)
+library(tidyverse)
+source("../../scripts/ggprob.R")
+```
+
+
+# Problem 1
+
+Thompson and Thompson is a steel bolts manufacturing company. The diameter of their current steel bolts follow a normal distribution and have a mean of 149 millimeters, and a standard deviation of 7 millimeters.
+
+If a random sample of 39 steel bolts is selected, what is the probability that the sample mean would be greater than 150.8 millimeters? Round your answer to four decimal
+places.
+
+```{r}
+# Write your code here!
+```
+
+
+# Problem 2
+
+Jared scored a 92 on a test with a mean of 88 and a standard deviation of 2.7. His friend Jasper took a different test with a mean of 82 and a standard deviation of 1.8.
+
+**Part a** What is Jared's percentile on the test?
+
+```{r}
+# Write your code here!
+```
+
+
+**Part b** Find Jasper's test scores such that they both have the same percentile.
+
+```{r}
+# Write your code here!
+```
+
+
+# Problem 3
+
+A 95% confidence interval for the average amount of money spent per week on gas by Madison drivers is (43.25, 45.35). Choose the appropriate interpretation for the confidence interval.
+
+A) We are 95% confident that the mean amount of money spent per week on gas by
+all Wisconsin drivers is between the endpoints of the confidence interval.
+
+B) We are 5% confident that the mean amount of money spent per week on gas by all
+Madison drivers is between the endpoints of the confidence interval.
+
+C) There is a 95% chance that the mean amount of money spent per week on gas by
+all Madison drivers is between the endpoints of the confidence interval.
+
+D) We are 95% confident that the mean amount of money spent per week on gas by
+all Madison drivers is between the endpoints of the confidence interval.
+
+> Write your answer here!
+
+# Problem 4
+
+Write code to do the following:
+
+- Draw `n` points from $\text{Binom}(5, 0.98)$
+- Calculate the `mean` of the n points
+- Repeat this `iterations` times to get a large number of sample means  
+
+Simulate the above operation three times with with `n = 100`, `𝑛=500`, and `𝑛=1000`. There should be 10000 iterations of each. Then, make three density plots to compare the sampling distributions. What do you notice as $n$ increases?
+
+
+```{r eval=FALSE}
+# Copy this code into a new chunk and use it three times with different values of n
+# Notice how this chunk has eval = FALSE, meaning it will not run when the file is knit
+
+n_i <- replicate(10000, mean(rbinom(n, 10, 0.5)))
+ggplot(data = NULL, aes(x = n_i)) + 
+  geom_density() +
+  labs(title = paste0("Sample Mean, n = ", n, ", 10000 Iterations"))
+```
+
+```{r}
+# Write your code here!
+```
+
+# Problem 5
+
+Heights in a population of American adult males are approximately normal with a mean of 70 inches and a standard deviation of 3 inches.
+
+**Part a** What percentage of American adult males are taller than two meters tall? (One meter equals 39.37 inches.)
+
+```{r}
+# Write your code here!
+```
+
+> Replace this text with your response.
+
+**Part b** What is the 95th percentile of American adult male height?
+
+```{r}
+# Write your code here!
+```
+
+> Replace this text with your response.
+
+**Part c** If we took a random sample of 250 men, how likely is it that the sample mean of their heights would be within 0.5 inches of the population mean of 70 inches (between 69.5 and 70.5 inches)?
+
+```{r}
+# Write your code here!
+```
+
+> Replace this text with your response.
+
+
+# Problem 6
+
+Consider $\text{Binom}(n, 0.98)$ with `n = 10`, `n =100`, and `n =1000`. For which value of `n` can we approximate the above distribution with the Normal distribution. Plot the density of the binomial and the corresponding normal distribution to support your conclusion.
+
+```{r eval=FALSE}
+# Copy this code into a new chunk and use it three times with different values of n
+# Notice how this chunk has eval = FALSE, meaning it will not run when the file is knit
+
+n = ???
+p = 0.98
+mu_approximation = ???
+sigma_approximation = ???
+
+gbinom(n, p, scale = T) +
+  geom_norm_density(mu_approximation, sigma_approximation, color = "red") +
+  theme_minimal()
+```
+
+```{r}
+# Write your code here!
+```
+
+
+
+
+
+
