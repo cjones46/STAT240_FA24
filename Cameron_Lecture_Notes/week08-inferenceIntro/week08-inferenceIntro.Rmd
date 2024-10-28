@@ -625,6 +625,16 @@ Then, the number of correct cups out of 8, call this $X$, follows the $Binom(8, 
 
 ##### Back to the Lady Tasting Tea
 
+* Our null and alternative hypotheses are:
+
+$$
+H_0: p = 0.5
+$$
+
+$$
+H_A: p > 0.5
+$$
+
 * If Muriel is guessing randomly, and $p = 0.5$ (i.e. the **null hypothesis is true**), then we know the probability distribution of $X$ is $\text{Binom}(8, 0.5)$.
 
 ```{r}
