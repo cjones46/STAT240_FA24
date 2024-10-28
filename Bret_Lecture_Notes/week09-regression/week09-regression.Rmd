@@ -1,0 +1,1027 @@
+---
+title: "STAT 240: Intro to Linear Regression"
+author: "Bret Larget"
+date: "Fall 2024"
+output: rmdformats::readthedown
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
+                      error = TRUE, fig.height = 4)
+library(tidyverse)
+source("../../scripts/ggprob.R")
+```
+
+# Overview
+
+## Learning Outcomes
+
+* These lectures will teach you how to:
+    - Assess the strength of a linear relationship visually and with the correlation coefficient
+    - Understand the linear regression model and evaluate its assumptions
+
+*The inference topics below will be covered in a "part 2" file:*
+    - Compute a confidence interval for a linear regression coefficient
+    - Carry out a hypothesis test for a linear regression coefficient
+    - Conceptualize and construct prediction and confidence intervals around a regression line
+    
+## Preliminaries
+
+1. Download the file `week09-regression.Rmd` into `STAT240/lecture/week09-regression`.
+2. Download the file `ggprob.R` into `STAT240/scripts` if you have not already.
+3. Download the file `lake-monona-winters-2024.csv` into `STAT240/data` if you have not already.
+4. Download the file `riley.txt` into `STAT240/data`.
+
+# Motivation: The Relationship between Two Continuous Variables
+
+* An extremely common real-life problem concerns how changing one variable affects another.
+
+* Whether your predictors and outcomes are discrete or continuous changes how you approach this problem.
+    * When your **outcome is discrete**, we have to use complex methods such as logistic regression that are out of the scope of this introductory class, so we will only consider continuous outcomes here, which have more straightforward inference techniques.
+    
+* This unit on linear regression will consider a **continuous** predictor and its effect on a **continuous** outcome.
+
+* After that, in our inference on means unit, we will learn how to assess the relationship between the most simple categorical predictor, a **binary** variable, and a continuous outcome.
+
+* Either way, we can **restructure the real-life problem** as a question about the **parameter of a probability distribution**.
+
+---
+
+## Data: Lake Mendota Winter Freezes
+
+* As a case study to explore linear regression with, we return to the Lake Monona freeze data from the ggplot unit.
+
+```{r}
+monona = read_csv("../../data/lake-monona-winters-2024.csv")
+```
+
+* We will try to assess the relationship between `year1` (the year in which the winter freeze begins) and `duration` (the number of days Lake Monona was closed due to ice coverage).
+
+## A Visual Assessment
+
+```{r}
+ggplot(monona, aes(year1, duration)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = F)
+```
+
+* Overlaying a `geom_smooth`, which is constrained to be straight with the argument `method = "lm"`, shows that the data has a general downward trend.
+
+* In fact, the slope of the line produced by `geom_smooth(method = "lm")` is the main object of interest in this unit.
+
+* However, just because the data has a general downward trend does NOT mean each year's closure gets shorter than the last; there is plenty of **point-to-point variation around the main trend**.
+
+> How do we **quantify** how strong the (linear) relationship is between two continuous variables? The answer is with the **correlation coefficient**, $r$.
+
+* To answer these questions with statistical inference, we must first learn about the concept of **correlation** and the **correlation coefficient**.
+
+# Introduction to Correlation
+
+## The Correlation Coefficient, $r$
+
+- The **correlation coefficient**, referred to as $r$, is a measure of the strength of a linear relationship between two continuous variables.
+
+- It does not constitute statistical inference on its own - it is just a **descriptive statistic** - but it does have use on its own, and will eventually show up in inference formulas.
+
+* You are not expected to memorize or use this formula; you will use the R command `cor`; but it is worth analyzing briefly.
+
+$$
+r = \mathsf{Corr}(x,y) = \frac{1}{n-1}\sum_{i=1}^n
+\left(\frac{x_i - \bar{x}}{s_x} \right)
+\left(\frac{y_i - \bar{y}}{s_y} \right)
+$$
+
+* Important properties of this formula:
+
+> $\mathsf{Corr}(x,y) = \mathsf{Corr}(y,x)$, because you can multiply in any order.
+
+> $r$ is unitless; so changing the scale of $x$ or $y$ (e.g. multiplying by or adding a constant, changing units such as feet to inches) does not change the correlation.
+
+> $r$ is always in the range [-1, 1], where -1 represents a set of points which lay perfectly on a line with a negative slope, 0 represents a set of points with no evidence at all for a non-horizontal relationship, and 1 represents a set of points which lay perfectly on a line with a positive slope.
+
+> $r$ only assesses the strength of a LINEAR relationship, not any other type of curved or piecewise relationship.
+
+* In the lakes plot above, the lake duration tends to decrease as year increases, so we expect a relatively strong negative correlation coefficient, but not quite perfectly -1.
+
+### Calculation with cor(x,y)
+
+- The built-in R function `cor()` calculates the correlation coefficient between two **vectors**.
+
+- We need to extract these vectors out of the existing dataframe; either with the `$` operator or with the `pull()` command.
+
+```{r}
+x = monona %>% pull(year1) # equivalent to monona$year1
+y = monona %>% pull(duration) # equivalent to monona$duration
+cor(x,y)
+```
+
+## More Correlation Examples
+
+```{r, echo = FALSE}
+set.seed(2023)
+x1 = seq(-2,2,0.05)
+y0 = rnorm(length(x1))
+y1 = x1^2
+x2 = x1[x1>0]
+y2 = y1[x1>0]
+x3 = x1[x1<0]
+y3 = y1[x1<0]
+x4 = x1
+y4 = x4 + rnorm(length(x4),0,0.3)
+x5 = x1
+y5 = x5 + rnorm(length(x5),0,1)
+x6 = x1[x1 > -1]
+y6 = exp(3*x6)/10 + rnorm(length(x6), 0, 5)
+
+cor_plot = function(x,y)
+{
+  ggplot(tibble(x,y), aes(x=x, y=y)) +
+    geom_point() +
+    geom_smooth(se = FALSE, method = "lm") +
+    geom_vline(xintercept = mean(x), color = "red", linetype = "dashed") +
+    geom_hline(yintercept = mean(y), color = "red", linetype = "dashed") +
+    ggtitle(str_c("r ≈ ", round(cor(x,y),2))) +
+  theme_bw() +
+  theme(text = element_text(size = 20)) 
+}
+```
+
+#### r near 0
+
+```{r, fig.height = 4, echo = FALSE}
+cor_plot(x1, y0)
+```
+
+> $r$ near 0 indicates a non-horizontal linear relationship does NOT fit the data well.
+
+```{r, fig.height = 4, echo = FALSE}
+cor_plot(x1, y1)
+```
+
+> Once again, $r$ near 0 indicates a non-horizontal linear relationship does NOT fit the data well. $r$ is ignorant to any non-linear (curved) relationship in the data, and only focuses on the possibility of a straight line.
+
+#### r near 1
+
+```{r, fig.height = 4, echo = FALSE}
+cor_plot(x4, y4)
+```
+
+> r near 1 indicates a positive linear relationship fits the data well.
+
+```{r, fig.height = 4, echo = FALSE}
+cor_plot(x2, y2)
+```
+
+> Once again, $r$ near 1 indicates a positive linear relationship fits the data well. But that doesn't mean that a linear relationship is necessarily the underlying truth! This data is clearly being generated by a non-linear process, but $r$ is ignorant to that.
+
+#### r near -1
+
+```{r, fig.height = 4, echo = FALSE}
+cor_plot(-x4, y4)
+```
+
+> $r$ near -1 implies that a negative linear relationship fits the data well.
+
+```{r, fig.height = 4, echo = FALSE}
+cor_plot(x3, y3)
+```
+
+> $r$ near -1 implies that a negative linear relationship fits the data well... but $r$ is ignorant to any non-linear relationship, which is clearly present in this example.
+
+#### r near 0.7
+
+```{r, fig.height = 4, echo = FALSE}
+cor_plot(x5, y5)
+```
+    
+> $r$ near 0.7 indicates a positive linear relationship fits the data somewhat well.
+    
+```{r, fig.height = 4, echo = FALSE}
+cor_plot(x6, y6)
+```   
+
+> $r$ near 0.7 indicates a positive linear relationship fits the data somewhat well, but a curved relationship may actually be the underlying truth.
+
+### Correlation Takeaways
+
+* $r$ is a measure of the strength of a (non-horizontal) linear relationship between two continuous variables.
+    - Negative values indicate a downward sloping relationship, and positive values indicate an upward sloping relationship.
+
+* A high or low $r$ alone does NOT guarantee there really is an underlying non-horizontal linear relationship.
+
+* **Graph your data!**
+
+# Introduction to Regression
+
+* The correlation coefficient is just the tip of the iceberg in assessing a linear relationship between two continuous variables.
+
+> **Linear regression** is the branch of statistical inference which estimates and assesses the strength of a true, underlying linear relationship between a **response** variable and one or more **predictors**.
+
+*Alternative terminology for the response variable includes the dependent variable or the outcome, or often just $Y$.*
+
+*Alternative terminology for the predictors include the independent variable(s), the covariate(s), or often just $X$.* 
+
+* In this class, we will only investigate the simplest case of linear regression; one continuous response and one continuous predictor.
+    - However, linear regression is an extremely deep branch of statistics; and regression is not just limited to linear regression either.
+    
+* Just like all statistical inference, we will be creating confidence intervals for and running hypothesis tests on a **population parameter of interest**, but that parameter will not be as simple as a proportion or a mean.
+
+---
+
+## Motivation
+
+* In the above section on the correlation coefficient, we stress that it seeks a **non-horizontal** linear relationship. Why is a horizontal linear relationship unhelpful?
+
+* Let's circle back to one of the motivating questions for this lecture series: "Does knowing X allow us to make a better prediction about the value of Y?"
+
+* A horizontal linear relationship corresponds to **X giving you no additional information about Y**.
+
+* For example, consider trying to predict a baseball team's winning percentage with something completely unhelpful: the latitude of its home stadium.
+
+```{r}
+set.seed(20240406)
+made_up = tibble(
+  win_perc = runif(25, 0, 1),
+  latitude = runif(25, 25, 48)
+)
+
+ggplot(made_up, aes(latitude, win_perc)) +
+  geom_point() +
+  labs(title = "Winning Percentage vs. Latitude of Home Stadium",
+       y = "Winning Percentage",
+       x = "Latitude (degrees)",
+       caption = "Disclaimer: Not real data.")
+```
+
+* I tell you that I have another new baseball team whose latitude is 30 degrees. **What is your best prediction for the winning percentage of this new team?**
+
+* Since the latitude doesn't tell you anything, you would be forced to just predict the average winning percentage; approximately 50%.
+
+* What would your prediction be for a new team at latitude of 40 degrees? 50% again; same for any other latitude value. **When X tells you nothing, your prediction for Y is always just the average Y value.**
+
+```{r}
+ggplot(made_up, aes(latitude, win_perc)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = F) +
+  labs(title = "Winning Percentage vs. Latitude of Home Stadium",
+       subtitle = "With Prediction Line; Basically horizontal means X is useless!",
+       y = "Winning Percentage",
+       x = "Latitude (degrees)",
+       caption = "Disclaimer: Not real data.")
+```
+
+* This is why a horizontal relationship is **unhelpful**; it means that **knowing X did not allow us to make a better prediction than not knowing X**.
+
+* Now let's switch up the circumstances. Consider predicting the winning percentage of a baseball team by its total wages.
+
+* If a team spent **average** wages, you would still predict the average winning percentage, 50%. But if a team had higher wages? You would predict a higher winning percentage! In this situation, **knowing X allowed us to make a better prediction than if we didn't know X**.
+
+```{r}
+set.seed(20240406)
+made_up_again = tibble(
+  wages = rnorm(25, 5, 2),
+  win_perc = wages* rnorm(25, 1, 0.5),
+  win_perc_adj = (win_perc - min(win_perc))/max(win_perc - min(win_perc))
+)
+
+ggplot(made_up_again, aes(wages, win_perc_adj)) +
+  geom_point() +
+  geom_smooth(se = F, method = "lm", alpha = 0.5) +
+  labs(title = "Winning Percentage vs. Wages",
+       y = "Winning Percentage",
+       x = "Wages (Hundreds of millions of $,\nI don't really know, this isn't real data anyway)")
+```
+
+* Thus, **non-horizontal linear relationships** show us that one variable helps us to explain how another changes. (This example showed a positive relationship, but a negative one is useful too! For example, cigarette usage versus life expectancy.)
+
+---
+
+* A common theme of this course is to turn broad, plain-language questions into those about statistical parameters. How can we turn "is there a relationship between these two variables" into a mathematical question? 
+
+* With the above example in mind, this question can be re-written as: "Is the **slope of the underlying linear relationship equal to zero**, or is it something else?"
+
+> We **assume** that the two variables have some true underlying linear relationship, in the form $Y = mX + b$. We are interested in the value of $m$, the slope, and particularly whether or not it is 0.
+
+> We will not write $Y = mX + b$, that is just the form most are familiar with. We instead will write $Y = \beta_0 + \beta_1*X$, such that $\beta_1$ is the slope of interest.
+
+*Note: $\beta_0$ and $\beta_1$ are often called "coefficients" because of how linear regression is structured in linear algebra/matrix form. This language will come up repeatedly in how R names these values and associated commands.*
+
+# The Least-Squares Regression Line
+
+* We make the **assumption** that the two variables have an underlying linear relationship. This assumption is probably not *technically* true for any given set of data, **but it is very useful if you are willing to accept the assumption as close enough to reality.**
+
+* We can't know the true values of $\beta_0$ and $\beta_1$, we can only hope to estimate them. However, there is not an immediately obvious point estimate from our sample, like estimating the population mean $\mu$ with the sample mean $\bar{X}$.
+
+* However, we still need to estimate them. We seek to produce estimates of $\beta_0$ and $\beta_1$ which give the **best predictions** of $Y$ for the given values of $X$ when we plug them into the regression equation. 
+    - Call these estimates of the intercept and slope respectively $\hat{\beta_0}$ and $\hat{\beta_1}$.
+
+* A point we have been glossing over here is what we mean by the **best** prediction. If we can say that one set of predictions is "better" than another, there must be some metric that we are comparing them by.
+
+* Consider that we predict a vector of real $Y$ values with a set of predictions, $\hat{Y}$. Values of $\hat{Y}$ which are closer to the real $Y$ are better.
+
+* Therefore, we should seek a set of predictions (e.g. values of $\hat{\beta_0}$ and $\hat{\beta_1}$) which gives us the SMALLEST distance between $Y$ and $\hat{Y}$.
+    - The distance between $Y$ and $\hat{Y}$ are called the **residuals**, and are a very important part of linear regression.
+
+* Instead of the difference $|Y - \hat{Y}|$, however, we will try to minimize the squared difference $(Y - \hat{Y})^2$. This is why it is called the **least-squares** regression line.
+
+* The motivation for this decision comes from centuries of statistical theory beyond the scope of this course; the short answer is that the **estimators which minimize the sum of squared residuals are both simple and extremely effective**, much more so than if we tried to minimize $|Y - \hat{Y}|$.
+
+---
+
+* Once we have our estimates $\hat{\beta_0}$ and $\hat{\beta_1}$, our predictions of $Y$ will be: 
+
+$$
+\hat{Y} = \hat{\beta_0} + \hat{\beta_1} * X
+$$
+
+* $\hat{Y}$, $Y$, and $X$ are all vectors of length `n`. Every data point has a real $X$ value, a real $Y$ value, and a predicted response value $\hat{Y}$.
+
+* We seek to minimize:
+
+$$
+\text{Sum of squared residuals} = \sum_{i = 1}^n (Y_i - \hat{Y_i})^2
+$$
+
+---
+
+* The algebra/calculus to derive the estimates which minimize the sum of squared residuals is beyond the scope of this course. However, you are expected to know and use the final results.
+
+* The slope and intercept estimates which produce the best predictions (minimize the sum of squared residuals) are:
+
+$$
+\hat{\beta}_1 = r * \frac{s_y}{s_x}
+$$
+
+$$
+\hat{\beta}_0 = \bar{y} - \hat{\beta}_1 * \bar{x}
+$$
+
+
+## Dissecting the Estimate Formulas
+
+* The estimate of the slope, $\hat{\beta}_1 = r \times \frac{s_y}{s_x}$, is based on the correlation between $X$ and $Y$, and the standard deviations of each.
+
+* $r$ captures the strength of the linear relationship and its direction.
+
+* $s_y$ in the numerator captures the fact that if $Y$ varies over a large range (e.g. data is "tall"), we will need a *higher* slope for our regression line to fit the data well.
+
+* $s_x$ in the denominator captures the fact that if $X$ varies over a large range (e.g. data is "wide", but not the "wide" like in pivoting, just in the scatter plot visually) then we will need a *lower* slope for our regression line to fit the data well.
+
+---
+
+* The estimate of the intercept, $\hat{\beta}_0 = \bar{y} - \hat{\beta}_1 \bar{x}$ is based on the estimate of the slope; and there is good reason for this.
+
+* The "best" intercept is the one which calibrates the line to go through the center of the data; namely, the ordered pair $(\bar{x}, \bar{y})$.
+
+* The construction of $\hat{\beta}_0$ ensures this **always** happens:
+
+$$
+\hat{Y} = \hat{\beta_0} + \hat{\beta_1} * X
+$$
+
+$$
+\hat{Y} = \bar{y} - \hat{\beta}_1 * \bar{x} + \hat{\beta_1} * X
+$$
+
+$$
+\hat{Y} \text{at $X = \bar{X}$} = \bar{y} - \hat{\beta}_1 * \bar{x} + \hat{\beta_1} * \bar{x}
+$$
+
+$$
+\hat{Y} \text{at $X = \bar{X}$} = \bar{y}
+$$
+
+---
+
+## Example Manual Calculation
+
+* The following graph shows a plot of height in inches versus age in months of a boy from age 2 years to 8 years.
+
+```{r}
+riley = read_table("../../data/riley.txt")
+df = riley %>% 
+  filter(age >=2*12 & age <=8*12)
+```
+
+```{r}
+ggplot(df, aes(x = age, y = height)) +
+  geom_point() +
+  geom_smooth(se = FALSE, method = "lm") +
+  ylab("Height (inches)") +
+  xlab("Age (months)") +
+  ylim(c(30, 55)) + scale_x_continuous(breaks = c(0, 40, 60), limits = c(0, 100))
+```
+
+* The slope looks to be about 1/4; when $X$ goes up by 20 (40 to 60), $Y$ goes up by about 5 (40 to 45).
+
+* Also, extrapolating (following a trend beyond its existing range) the prediction line to the left, towards the y-axis, it looks like the intercept (the predicted value of $Y$ when $X$ is 0) should be about 30. 
+
+* Along the way in our calculation, we note positive linear relationship fits this data extremely well, so we expect a high correlation coefficient - not 1, since it isn't perfect, but darn close.
+
+```{r}
+y = df %>% pull(height) # Equivalent to df$height
+x = df %>% pull(age) # Equivalent to df$age
+
+r = cor(x, y)
+r 
+
+beta_hat_1 = r * sd(y) / sd(x)
+beta_hat_0 = mean(y) - beta_hat_1 * mean(x)
+
+c(beta_hat_1, beta_hat_0)
+```
+
+* Therefore, for a given `age`, the best prediction of `height` is $\hat{Y} \approx 30 + 0.25 *$ `age`.
+
+## Example Calculation in R, with lm()
+
+* Like `t.test`, R has a command to calculate these estimates for you; this command is `lm()`, standing for "**linear model**".
+
+* `lm()` is an extremely versatile command designed to handle many of the most common cases of linear regression.
+
+* We will only scratch the surface of the things you can do with it.
+
+* The first and only mandatory argument to `lm()` is a formula of the form `y ~ x`, where `y` is the **response variable** and `x` is the **predictor variable**.
+
+**Make sure you have this order correct! Response variable ~ Predictor Variable!**
+
+```{r}
+# If you already have the vectors "pull"ed out of the dataframe, you can just plug those in as they are!
+lm(y ~ x)
+```
+
+
+```{r}
+# But lm() also gives you the convenient "data" argument, where you can pass in a dataframe, and provide it the names of columns so you don't have to extract them.
+lm(height ~ age, data = df)
+```
+
+### Extensions of lm(); coef() and summary()
+
+* `lm()` is doing way more in the background than just printing the coefficient estimates; but that is all it does if you don't *save the results*.
+
+```{r}
+model_object = lm(height ~ age, data = df)
+```
+
+* `model_object`, the stored results of `lm()`, contains many important values, including the coefficients.
+
+* To see more information, we can pass `model_object` into `summary()`.
+
+```{r}
+# We could have also written summary(lm(height ~ age, data = df))
+summary(model_object)
+```
+
+* There is almost an overwhelming amount of information here, but the "coefficients" table in the middle is a gold mine of wonderful information.
+
+* There are point estimates for both the intercept and slope, with associated standard errors, and information about a hypothesis test that we'll circle back to.
+
+---
+
+* To grab just the two coefficient estimates from all this information, we can run the model object through the `coef()` command.
+
+```{r}
+# Extract just the two estimates of the coefficients
+estimates = coef(model_object)
+estimates
+```
+
+* This gives us a vector that we can index into with `[#]` to extract the individual values.
+
+```{r}
+beta_hat_0 = estimates[1]
+beta_hat_1 = estimates[2]
+
+beta_hat_0
+beta_hat_1
+```
+
+* Once again, we arrive at the predictive model: for a given `age`, the best prediction of `height` is $\hat{Y} \approx 30 + 0.25 *$ `age`.
+
+# Making Predictions
+
+* Now that we have this predictive model (which we know to be the "best" linear model), we can answer questions like:
+
+> Predict the boy's height at age = 100 months (8 years, 4 months).
+
+* From above, with $\hat{\beta}_0 \approx 30$ and $\hat{\beta}_1 \approx 0.25$, the prediction is $\hat{y} = 30 + 0.25 * 100 \approx 55$.
+
+```{r}
+new_x = 100
+y_hat = beta_hat_0 + beta_hat_1 * new_x
+
+y_hat # Note: the "name" of the number sometimes persists when you use estimates from coef(). You can ignore the name if it carries through. 
+```
+
+- Graphically, if you continue the regression line to $x = 100$, its height will be $y \approx 55$.
+
+```{r}
+## Visualization of this prediction
+ggplot(df, aes(x = age, y = height)) +
+  geom_point() +
+  # fullrange = T extends the blue line past the X range of the existing points
+  geom_smooth(se = FALSE, method = "lm", fullrange = T) +
+  geom_point(aes(x=new_x, y=beta_hat_0 + new_x*beta_hat_1), color="red", size=4) + 
+  geom_vline(xintercept = new_x, color="red", linetype="dashed") +
+  geom_hline(yintercept = y_hat, color = "red", linetype = "dashed") +
+  ylab("Height (inches)") +
+  xlab("Age (months)")
+```
+
+## Through Standardized Units
+
+* There is also a **standardized** way to consider these predictions.
+
+* To arrive at this equation, we plug in our estimates:
+
+$$
+\hat{\beta}_1 = r * \frac{s_y}{s_x}
+$$
+
+$$
+\hat{\beta}_0 = \bar{y} - \hat{\beta}_1 * \bar{x}
+$$
+
+...into the predictive equation:
+
+$$
+\hat{Y} = \hat{\beta_0} + \hat{\beta_1} * X
+$$
+
+...which gives:
+
+$$
+\hat{Y} = \bar{y} - r * \frac{s_y}{s_x} * \bar{x} + r * \frac{s_y}{s_x} * X
+$$
+
+---
+
+* We can algebraically rearrange this to get:
+
+$$
+\hat{Y} = \bar{y} + r * s_y * \frac{X - \bar{X}}{s_x}
+$$
+
+> If $X$ is $z$ standard deviations ($s_x$) away from its mean, then $\hat{Y}$ will be $r*z$ standard deviations ($s_y$) away from its mean ($\bar{Y}$).
+
+* More extreme $X$ values will lead to more extreme $Y$ values in the direction (and magnitude) of the correlation coefficient.
+
+or, equivalently, 
+
+$$
+\frac{\hat{Y} - \bar{y}}{s_y} = r * \frac{X - \bar{X}}{s_x}
+$$
+
+> The standardized score of $\hat{Y}$ is r * the standardized score of $X$, which is $\frac{x - \bar{x}}{s_x}$.
+
+---
+
+- The value $x = 100$ is $z = (100 - \bar{x}/s_x)$ standard deviations from its mean.
+
+- Therefore, $\hat{y}$ for $x = 100$ is $r*z$ standard deviations away from its mean.
+
+```{r}
+z = (100 - mean(x))/sd(x)
+
+# Prediction through standardized units
+mean(y) + r * z * sd(y)
+```
+
+## Back to the Lake Monona Data
+
+- Let's try this with the Lake Monona data
+
+```{r}
+ggplot(monona, aes(year1, duration)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = F)
+```
+
+```{r}
+# Manual calculation of slope and intercept
+x = monona$year1
+y = monona$duration
+
+r = cor(x, y)
+
+beta_hat_1 = r * sd(y) / sd(x)
+beta_hat_0 = mean(y) - beta_hat_1 * mean(x)
+
+beta_hat_0
+beta_hat_1
+```
+
+```{r}
+# Using lm()
+lm(duration ~ year1, data = monona)
+```
+
+* Predict the duration Lake Monona will be closed in the 2026-2027 winter.
+
+```{r}
+# Straightforward plug-in
+y_hat = beta_hat_0 + beta_hat_1 * 2026
+y_hat
+```
+
+```{r}
+# Through standard units
+z = (2026 - mean(x)) / sd(x)
+mean(y) + r * z * sd(y)
+```
+
+##### Sidenote: Extrapolation
+
+* The calculation we did above has an implicit assumption; that our linear model is valid beyond the range of the existing data.
+
+> Using a model to make predictions for new X values **beyond the range of the existing data** is called **extrapolation**.
+
+> Extrapolation requires you to **assume** the modeled relationship is valid beyond the X values observed in your data. Whether this is valid depends on the circumstances of your data and how far away the new X value is.
+
+* It is easy to blindly trust the "83 days" prediction above, but what if we tried to predict the number of days of closure in the 2400-2401 winter?
+
+```{r}
+beta_hat_0 + beta_hat_1 * 2400
+```
+
+* Obviously, the lake cannot be closed for a negative number of days, and this prediction is not valid.
+
+* But **where is the line** between the 2025-2026 prediction being valid and the 2400-2401 prediction being invalid?
+
+* There is no mathematical "line" when predictions stop being valid - it is all about whether you are **willing to accept** the linear relationship as being **close enough to reality to be useful**, given the circumstances of the data and just how far away the new X point is.
+
+# The Model and Assumptions
+
+* In order to study our parameter of interest, $\beta_1$, we need to give it an exact definition - what is the thing we are studying, how does it relate to our observed data or the process that generates it?
+
+* That statement is called a **model**. For example, $X \sim Binom(10, p)$ is a model, that relates our observed data (X, the number of successes) to our unknown parameter of interest $p$.
+    - A model should always have your unknown parameter of interest in it.
+    
+* **Models** carry with them certain **assumptions** that need to be checked.
+    - The model above, $X \sim Binom(10, p)$, makes the four BINS assumptions which need to be checked.
+
+---
+
+* Our data in regression is a vector of response data $Y$, and a vector of predictor data $X$. Both of them have to have the same length, $n$, because the values in the $i$th point ($X_i, Y_i$) are connected; every $X$ has to have a $Y$.
+
+* In plain English, we might say that **every value $Y_i$ comes from the same linear function of its corresponding $X_i$** e.g. $Y_i = \beta_0 + \beta_1 * X_i$ for $i = 1,...,n$.
+
+## Accounting for Variability
+
+* This is close to our final model... but it misses a fundamental point about the linear relationships we are trying to study.
+
+* Clearly, real data does not fall exactly on a straight line. If it was, this whole thing would be really easy.
+
+* We have always talked about the **underlying** linear relationship, around which there can be some **variability**.
+
+* We do NOT assert that our real data will look like this:
+
+```{r}
+example = tibble(
+  x = runif(10, 0, 10),
+  y = 2 + 3*x
+)
+
+ggplot(example, aes(x, y)) +
+  geom_point(size = 3) +
+  geom_smooth(se = F, method = "lm")
+```
+
+* We instead assume that this line is where the $Y$ values will end up **on average**, but in reality, we observe some **normally distributed error around this true line**.
+
+```{r}
+set.seed(20230407)
+ggplot(example, aes(x + rnorm(10, sd = 3), y)) +
+  geom_point(size = 3) +
+  geom_smooth(se = F, method = "lm")
+```
+
+* You can think of this as: **at each point of $X$, the values of $Y$ are generated from a normal distribution centered around the height of the true regression line at that $X$.**
+
+```{r, echo = FALSE}
+true_distribution = tibble(
+  y = rep(0:30, 2),
+  x = rep(c(2, 6), each = 31),
+  density = dnorm(y, mean = 2+3*x, sd = 3)
+)
+```
+
+* Here's a graph which overlays how likely the $Y$ value is to be at each location for $X = 2$ and $X = 6$; at a normal distribution around the regression line.
+
+```{r, echo = FALSE}
+set.seed(20230407)
+ggplot(example, aes(x + rnorm(10, sd = 3), y)) +
+  geom_point() +
+  
+  geom_rect(data = true_distribution, mapping = aes(xmin = x - 0.2, xmax = x + 0.2, ymin = y - 0.5, ymax = y + 0.5, fill = density)) +
+  scale_fill_viridis_c(option = "inferno") +
+geom_abline(slope = 3, intercept = 2, color = "blue") 
+```
+
+* Important points to take away here are:
+
+> The true line dictates where the Y values will be on average, but there is random variation around that true line.
+
+> The standard deviation/spread of the normal distribution around the true line does not change as you move up and down the X line; e.g. its standard deviation is constant/independent of X.
+
+*This is often referred to as the "constant variance" assumption, since variance was more useful to the people who named it, but constant variance/constant standard deviation are the same thing.*
+
+* With this image in mind, a natural first guess is $Y_i \sim N(\beta_0 + \beta_1 * X_i, \sigma)$, which generates each $Y_i$ according to a normal distribution centered at the true regression line, as we see above. $\sigma$ is the true, unknown standard deviation of the errors around the true line.
+
+* However, to change this into a more convenient form, we will "un-shift" the normal distribution by taking the mean out.
+
+## The Model
+
+* We model linear regression as:
+
+$$
+Y_i = \beta_0 + \beta_1 * X + \varepsilon_i \text{, for } i = 1,...n
+$$
+$$
+\text{where }\varepsilon_i \sim N(0, \sigma)
+$$
+
+* We recognize $\beta_0 + \beta_1*X$ as our standard slope-intercept form, but we now have this new term, $\varepsilon_i \sim N(0, \sigma)$, pronounced "epsilon-i".
+
+* This new term is called the **error** term. It is a true, unknown parameter for **each point**, which captures **how far off the true line each point is.**
+
+* We **assume** is normally distributed with an expected value of 0; e.g., points vary equally above and below the line; and a standard deviation of $\sigma$, another true, unknown parameter which controls how wide the error variation is around the true line.
+
+---
+
+**Sidenote: The Signal and the Noise**
+
+*This is not an official thing that we would ever test you on, but it is one of my favorite statistical concepts, and it might be helpful in understanding inference, so I thought I would share it!*
+
+* This error term is also sometimes referred to as the **random noise**.
+
+* The reason for calling it "noise" goes back to an old metaphor about statistical inference.
+
+* Consider trying to talk to someone using a walkie-talkie or radio.
+
+* The thing you really care about is their voice, what they are saying - the **signal**. This is analogous to the real statistical relationship, the real parameters you are interested in.
+
+* However, there is often an obstacle to extracting the signal - this walkie-talkie or radio has some static feedback/noise also being played at the same time (the error/variation around the true regression line).
+
+* We would love for the noise to be much quieter than the signal. But as the noise gets louder and louder (more variation) it becomes harder to extract the voice (the true line).
+
+*Nate Silver, a prominent political data scientist and election predictor, has an excellent book on prediction called The Signal and The Noise that I highly recommend!*
+
+---
+
+## The Assumptions
+
+* There are **three** assumptions implicit in this model. Unfortunately, we don't have a catchy "BINS"-like acronym this time around.
+
+> 1) The relationship between X and Y is actually linear, as opposed to a curved/non-linear relationship.
+
+> 2) The errors are normally distributed around 0.
+
+> 3) The errors have constant variance/standard deviation, which does not change with X.
+
+# Checking Assumptions with Residual Plots
+
+* All three of the above assumptions can be checked with one graph,  called a **residual plot**. 
+
+* Recall that a **residual** is the distance between the real $Y_i$ and the predicted $\hat{Y}_i$ for the $i$th point in your data.
+
+* A **residual** is the observed, sample-based estimate of the true, unknown **error** $\varepsilon_i$.
+
+> A residual plot graphs your $X$ variable on the horizontal like usual, but instead of $Y$ on the vertical axis, it plots the residuals, $Y_i - \hat{Y}_i$.
+
+## Obtaining the Residuals
+
+* How do we obtain the residuals and add them to our dataframe for plotting? Through the object returned by `lm()`!
+
+```{r}
+# remember, response ~ predictor!
+model = lm(duration ~ year1, data = monona)
+```
+
+* Just like we can extract the "coefficient" estimates from the model object with `coef()`, we can extract the residuals with `resid()`.
+
+* Like `coef()`, this has returned a "named vector", where we can ignore the names.
+
+```{r}
+resid(model)
+```
+
+* We can add the residuals as a new column in our dataframe called `resid` with a simple `mutate()`.
+
+```{r}
+monona %>% 
+  mutate(residuals = resid(model)) %>% 
+  select(year1, duration, residuals) %>% 
+  head()
+```
+
+---
+
+* We can also augment the **predicted values** $\hat{Y}$ onto our data frame with similar commands; the base R command to extract the predictions from a model object is `predict()`, with the helpful `modelr` shortcut function `add_predictions()`.
+
+```{r}
+# The predicted Y values, "Y-Hat"
+predict(model)
+```
+
+```{r}
+monona %>% 
+  mutate(
+    residuals = resid(model),
+    predictions = predict(model)) %>% 
+  select(year1, duration, predictions, residuals) %>% 
+  head()
+```
+
+
+## Creating the Plot
+
+> A residual plot keeps our **original, unedited** $X$ variable on the horizontal axis, and puts the **residuals** on the $Y$ axis.
+
+* It will be helpful in evaluating the assumptions of linear regression (the whole point of making a residual plot) to add a horizontal line at x = 0.
+
+```{r}
+# As a reminder if you've skipped ahead to this section, model = lm(duration ~ year1, data = monona)
+
+monona %>% 
+  mutate(residuals = resid(model)) %>% 
+# Relatively straightforward scatter plot
+ggplot(aes(x = year1, y = residuals)) +
+  geom_point() +
+  geom_hline(yintercept = 0)
+```
+
+> Like the binomial BINS assumptions, evaluating linear regression assumptions is a very subjective endeavor, often with unclear results; especially on real data. 
+
+* For this reason, we will first look at some small examples where the violations are exaggerated to be obvious, before returning to the real plot above, where violations may not be obvious.
+
+## Assessing A1: Linearity
+
+> If the residuals show an obvious non-linear pattern, the linearity assumption is violated.
+
+```{r, echo = FALSE}
+# This is just a helpful function so I don't have to type this out every time; feel free to use it yourself if you'd like
+
+createResidualPlot = function(data) {
+  # assumes the columns are named "x" and "y" respectively
+  data %>%
+    mutate(resid = resid(lm(y~x, data))) %>% 
+    ggplot(aes(x, resid)) +
+    geom_point() +
+    geom_hline(yintercept = 0)
+}
+```
+
+```{r, echo = FALSE}
+set.seed(20240407)
+linear_data = tibble(
+  x = runif(100, 0, 10),
+  y = 0.05 * (x - 5) + rnorm(100, sd = 0.5)
+)
+
+nonlinear_data = tibble(
+  x = runif(100, 0, 10),
+  y = 0.05 * (x - 5)^2 + rnorm(100, sd = 0.5)
+)
+```
+
+* Here is an example residual plot where **linearity is violated**:
+
+```{r, echo = FALSE}
+createResidualPlot(nonlinear_data) +
+  ggtitle("Linearity Violated; Curved Pattern Present")
+```
+
+* Recall that `geom_smooth()` by default will curve if that is the best fit to the data. We often use this to our advantage when assessing linearity; if you can't tell if there's a curve pattern, add a `geom_smooth`, but don't constrain it to be straight! If it curves significantly, then linearity is violated.
+
+```{r, echo = FALSE}
+createResidualPlot(nonlinear_data) +
+  ggtitle("Linearity Violated; Curved Pattern Present") +
+  geom_smooth(se = F)
+```
+
+* Here is an example where **the linearity assumption is reasonable**, because we see **no obvious non-linear pattern.*
+
+```{r, echo = FALSE}
+createResidualPlot(linear_data) +
+  ggtitle("Linearity Satisfied; No Curved Pattern Present")
+  geom_smooth(se = F)
+```
+
+* The `geom_smooth()` line generally follows the center line. Some variation is expected due to randomness, that is totally okay.
+
+## Assessing A2: Normal Errors Around 0
+
+*Note: In practice, we usually assess normality with a different method called a quantile-quantile ("q-q") plot, which is better at detecting smaller deviations from normality. However, it is still visible with a residual plot.*
+
+* This assumption is a two-parter, but they tend to be violated or satisfied together, so I have combined them into one.
+
+> If the points don't tend to be near the line on average, then the normal errors around 0 assumption is violated.
+
+> If the points aren't evenly spread in both directions around 0, then the normal errors around 0 assumption is violated.
+
+```{r, echo = FALSE}
+set.seed(20240407)
+nonnormal_data = tibble(
+  x = runif(100, 0, 10),
+  y = 0.05 * (x - 5) + sample(c(-2, 2), 100, replace = TRUE) * rnorm(100, mean = 1, sd = 0.5)
+)
+```
+
+* Here is an example where **normal errors are violated**. The points don't tend to cluster towards the line, most of the points are away from the line. (This suggests that 0 is not the most likely value, as it would be in a normal distribution of errors.)
+
+```{r, echo = FALSE}
+createResidualPlot(nonnormal_data) +
+  ggtitle("Normality Around 0 Violated; Points Don't Tend Towards Center")
+```
+
+* If they were normally distributed, then outliers (away from the central line) would be uncommon.
+
+* Another way this assumption can go wrong is if the residuals are significantly asymmetric; skewed in one direction or the other.
+
+* For example, the below residual plot shows that most of the residuals are negative. (These residuals still average to 0 because of the larger positive ones, but it is not symmetric.)
+
+```{r}
+set.seed(20240407)
+nonnormal_data2 = tibble(
+  x = runif(100, 0, 10),
+  y = 2*x + rgamma(100, 1) - 1
+)
+
+createResidualPlot(nonnormal_data2) +
+  ggtitle("Normality Around 0 Violated",
+          subtitle = "Spread is not Symmetric")
+```
+
+* Our familiar "satisfactory" residual plot satisfies this normal errors around 0 assumption, generally, points tend to stay close to the line, with outliers uncommon, AND the spread is even in both directions.
+
+```{r, echo = FALSE}
+createResidualPlot(linear_data) +
+  ggtitle("Normality Around 0 Satisfied", subtitle = "Points Tend Towards Center, Evenly in Both Directions")
+```
+
+## Assessing A3: Constant Variance/SD
+
+> If the spread of the residuals around the center line increases or decreases as you move horizontally across the plot (e.g. the points "fan out" or "funnel in"), then constant variance is violated.
+
+*We won't test you on this, but the fancy term for constant variance is "homoskedasticity"; the fancy term for a violation of this (e.g. non-constant variance) is "heteroskedasticity".*
+
+* When we write $\varepsilon_i \sim N(0, \sigma)$ in our model, this assumption reflects the fact that $\sigma$ is just a single number, not dependent on $X$ at all, for example, $N(0, \sigma + X_i)$ or $N(0, \sigma * X_i)$.
+
+* In the below example, the variance of the errors around the center line increases with $X$, indicating a violation of constant variance.
+
+```{r, echo = FALSE}
+set.seed(20240407)
+heteroskedastic_data = tibble(
+  x = runif(100, 0, 10),
+  y = x + rnorm(100, sd = 0.5 * x)
+)
+
+createResidualPlot(heteroskedastic_data) +
+  ggtitle("Constant Variance Violated",
+          subtitle = "Spread of Errors Increases with X; Points 'Fan Out'")
+```
+
+* And here's the other common way the assumption can be violated; the variance decreases with $X$, or the points "funnel in":
+
+```{r, echo = FALSE}
+set.seed(20240407)
+heteroskedastic_data2 = tibble(
+  x = runif(100, 0, 10),
+  y = x + rnorm(100, sd = 0.5 * (10-x))
+)
+
+createResidualPlot(heteroskedastic_data2) +
+  ggtitle("Constant Variance Violated",
+          subtitle = "Spread of Errors Decreases with X; Points 'Funnel In'")
+```
+
+* Finally, our familiar satisfactory plot fits the bill again; the spread does not change as you move horizontally.
+
+```{r}
+createResidualPlot(linear_data) +
+  ggtitle("Constant Variance Satisfied", subtitle = "Points show no obvious spreading out or funnelling in from left to right")
+```
+
+*One could argue there is a slight "tightening" of the data to the right side, but it is not obvious... even in these fake examples, unclear results are inevitable!*
+
+## Real Example: Lake Monona Data
+
+* Let's return to the residual plot from the real Lake Monona data and try to assess all three assumptions.
+
+```{r}
+# See: "Creating the Plot" section
+monona %>% 
+  mutate(residuals = resid(model)) %>% 
+ggplot(aes(x = year1, y = residuals)) +
+  geom_point() +
+  geom_hline(yintercept = 0)
+```
+
+> **Linearity** is satisfied; the residuals don't show an obvious curve pattern.
+
+> **Normal errors around 0** is satisfied; the residuals tend towards the central line, with large outliers uncommon, and they are symmetric.
+
+> **Constant variance** is satisfied; the residuals do NOT fan out or funnel in as you increase X (year).
+
