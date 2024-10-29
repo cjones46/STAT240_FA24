@@ -1,0 +1,303 @@
+---
+title: "Homework 6"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE,
+                      warning = FALSE, error = TRUE,
+                      fig.height = 3)
+library(tidyverse)
+source("../../scripts/ggprob.R")
+```
+
+# Preliminaries
+
+- This file should be in `STAT240/homework/hw06` on your local computer.
+
+# Problem 1
+
+For each of the following questions, say whether the random variable is reasonably approximated by a binomial random variable or not, and explain your answer. If the variable is binomial, identify $n$ the number of trials and $p$ the probability of success.  If it is not binomial, identify which of the "BINS" assumptions is violated.
+
+(a) A fair die is rolled until a 1 appears, and $X$ denotes the number of rolls.
+
+> Not binomial, since there is not a fixed number of trials.*
+
+(b) Twenty of the different Badger basketball players each attempt 1 free throw and $X$ is the total number of successful attempts.
+
+> Not binomial, since the probability of success isn't the same between players.*
+
+(c) A die is rolled 50 times. Let $X$ be the face that lands up most often.
+
+> Not binomial, since the outcome is not a number of pre-defined successes.*
+
+(d) In a bag of 10 batteries, I know 2 are old. Let $X$ be the number of old batteries I choose when taking a sample of 4 to put into my calculator.
+
+> Not binomial. A large sample size (4) relative to population size (10) means sampling without replacement will affect probability, so the probability of success is not the same.*
+
+(e) It is reported that 20% of Madison homeowners have installed a home security system. Let $X$ be the number of homes without home security systems installed in a random sample of 100 houses in the Madison city limits.
+
+> Binomial! 100 fixed trials, S = no home security installed, $p = 0.80$, $1-p = 0.20$, n = 100.  The number of homes is so large, we can assume independence between homes in a random sample of just 100.
+
+
+# Problem 2
+
+Create a data frame with the following columns.
+Each row corresponds to a single $\text{Binom}(n, p)$ distribution. The first two columns are the parameters of the distribution.
+
+- `n`, which is always equal to 100
+- `p`, which ranges from 0 to 1 by 0.01 $(0, 0.01, 0.02, \ldots , 0.99, 1)$
+- `mu`, the mean
+- `sigma`, the standard deviation
+- `q90`, the 0.9 quantile (or 90th percentile)
+
+```{r}
+binoms <-  tibble(
+  n = 100,
+  p = seq(0, 1, 0.01),
+  mu = n*p,
+  sigma = sqrt(n*p*(1-p)),
+  q90 = qbinom(0.9, n, p))
+```
+
+Create line plots of the following:
+- $\sigma$ versus $p$
+- 90th percentile versus $n$
+
+
+```{r}
+ggplot(binoms, aes(x = p, y = sigma)) +
+  geom_line() +
+  xlab("n") +
+  ylab("sigma") +
+  ggtitle("Binomial Standard Deviation versus p)")
+```
+
+```{r}
+ggplot(binoms, aes(x = p, y = q90)) +
+  geom_line() +
+  xlab("n") +
+  ylab("0.90 Quantile") +
+  ggtitle("Binomial Quantile versus n")
+```
+
+How does the standard deviation change with $p$?
+
+> The standard deviation is largest when $p = 0.5$.  It gets smaller as $p$ gets closer to 0 and closer to 1.
+
+Comment on the relationship between the 90th percentile and $n$.
+
+> As $n$ increases, the 90th percentile q90 does as well.  However, this is a jagged and not smooth line, since the binomial is discrete, so there are "jumps" between different integers.
+
+
+
+# Problem 3
+
+The random variable $X$ has the $\text{Binom}(100, 0.2)$ distribution.
+  
+- Find an integer $a$ so that $P(X \le a) \ge 0.5$ and $P(X \ge a) \ge 0.5$.
+- Show the values of $a$, $P(X \le a)$, and $P(X \ge a)$.
+
+> We need to find the 50th percentile of $X$ with `qbinom`.
+
+```{r}
+qbinom(0.5, 100, 0.2)
+```
+
+> So $P(X \le 20)$ is at least 0.5.  Using pbinom, we can verify that both $P(X \le 20)$ and $P(X \ge 20)$ are both more than 0.5.
+
+```{r}
+# P(X <= 20)
+pbinom(20, 100, 0.2)
+
+# P(X >= 20)
+pbinom(19, 100, 0.2, lower.tail = F)
+```
+
+
+# Problem 4
+
+A student decided to guess randomly on their True/False quiz.  The number of questions they answer correctly is $\text{Binom}(10, 0.5)$.  Write code with `dbinom`, `pbinom`, or `qbinom` to calculate that value or probability.
+
+- "I know I must have gotten at least one question right!"
+
+```{r}
+# Probability of at least one correct answer
+1 - dbinom(0, 10, 0.5)
+# or 
+pbinom(0, 10, 0.5, lower.tail = F)
+```
+
+- "I probably got 3 - 5 of the questions right."
+
+```{r}
+# Probability of 3 - 5 (inclusive) correct answers
+pbinom(5, 10, 0.5) - pbinom(2, 10, 0.5)
+```
+
+- "I feel lucky.  The answers I picked are better than 90% of my other attempts!"
+
+```{r}
+# 90th percentile
+qbinom(0.9, 10, 0.5)
+```
+
+Explain why the 90th percentile is not 9. 
+
+> The percentile is calculated based on the probabilities of the different values in the population, not the 90th percentile of the values themselves.  We can see that 7 is the smallest value of x such that $P(X \le x)$ is at least 0.9.
+
+```{r}
+pbinom(7, 10, 0.5)
+
+pbinom(6, 10, 0.5)
+```
+
+
+# Problem 5
+
+Match the four binomial distributions given below to the appropriate graph in `p5_choices.png`. Briefly justify your choices.
+
+- Binom(12, 0.5)
+
+> Graph C.  It must be one of the top 3 graphs, since the upper 3 have values from 0 to 12.  For the probability to be 0.5, the graph of the distribution would have to be symmetric.
+
+- Binom(12, 0.6)
+
+> Graph B.  The probability is shifted slightly to the right of Graph C (e.g. 7 has more probability than 6) which reflects the fact that we have the same n but a larger p.
+
+- Binom(10, 0.1)
+
+> Graph D.  It must be one of the lower 3 graphs, since they have values from 0 to 10.  Graph D has its probabilities very concentrated on the left side of the graph near 0 and 1.
+
+- Binom(10, 0.3)
+
+> Graph E.  The probability is shifted to the right compared to Graph D, but it is still primarily on the left side of the graph.  It can't be Graph F because F is perfectly symmetric.
+
+![](p5_choices.png)
+
+
+
+# Problem 6
+
+Are the following statements true for Binomial distributions, Normal distributions, or both?
+
+- This distribution is always symmetric.
+
+> This is only true for Normal distributions.  Binomial RVs are skewed left or right depending on whether the success probability $p$ is closer to 0 or 1.
+
+- If you know the two parameters of this distribution, you can calculate its mean, any probability, or any quantile.
+
+> This is true for both.  The parameters ($n$ and $p$ for binomial, $\mu$ and $\sigma$ for normal) uniquely define the random variable and anything can be calculated from these values. 
+
+- If $\mu$ is the mean of the distribution, then the probability distribution graphically reaches its maximum at $\mu$.
+
+> This is true of the normal distribution, which has its peak centered at $\mu$.  A binomial is defined in terms of discrete values, and it is possible for $\mu$ to not be discrete and therefore impossible.
+
+- If $\mu$ is the mean of the distribution, then it is possible for the probability of getting exactly $\mu$ on a random draw to be 0.
+
+> This is true for both.  Since a normal RV is continuous, the probability of getting a specific value (including $\mu$) is 0.  We can't define probabilities at a point.  For a binomial RV that has a non-integer mean, it is impossible to get a draw equal to the mean.
+
+```{r}
+# Find P(Normal = 0) = P(0 <= Normal <= 0)
+pnorm(0) - pnorm(0)
+
+# Find P(Binom = 2.4).  2.4 is the mean of Binom(6, 0.4)
+dbinom(2.4, 6, 0.4)
+```
+
+
+# Problem 7
+
+Use `pnorm` to find the probabilities highlighted below on a N(0, 1) curve.
+
+```{r, echo = F}
+gnorm(0, 1) +
+  geom_norm_fill(0, 1, b = -1, fill = "dodgerblue") +
+  geom_vline(xintercept = -1) +
+  annotate("text", x = -1.5, y = .35, label = "x = -1")
+```
+
+> To find the area below a value, use pnorm's default functionality.
+
+```{r}
+pnorm(-1)
+```
+
+\vspace{1cm}
+
+```{r, echo = F}
+gnorm(0, 1) +
+  geom_norm_fill(0, 1, a = 1, fill = "dodgerblue") +
+  geom_vline(xintercept = 1) +
+  annotate("text", x = 1.5, y = .35, label = "x = 1")
+```
+
+> To find an area above, use subtraction or lower.tail = F.
+
+```{r}
+1 - pnorm(1)
+# or
+pnorm(1, lower.tail = F)
+```
+
+\vspace{1cm}
+
+```{r, echo = F}
+gnorm(0, 1) +
+  geom_norm_fill(0, 1, a = 0.5, b = 2, fill = "dodgerblue") +
+  geom_vline(xintercept = 0.5) +
+  geom_vline(xintercept = 2) +
+  annotate("text", x = 1.1, y = .35, label = "x = 0.5") +
+  annotate("text", x = 2.5, y = .35, label = "x = 2")
+```
+
+> To find an area between two points, subtract two calls to pnorm.
+
+```{r}
+pnorm(2) - pnorm(0.5)
+```
+
+\vspace{1cm}
+
+```{r, echo = F}
+gnorm(0, 1) +
+  geom_norm_fill(0, 1, b = -0.75, fill = "dodgerblue") +
+    geom_norm_fill(0, 1, a = 0.75, fill = "dodgerblue") +
+  geom_vline(xintercept = -0.75) +
+  geom_vline(xintercept = 0.75) +
+  annotate("text", x = -1.5, y = .35, label = "x = -0.75") +
+  annotate("text", x = 1.5, y = .35, label = "x = 0.75")
+```
+
+> We can add two calls to pnorm or take advantage of the fact that the curve is symmetric around 0.
+
+```{r}
+pnorm(-0.75) + pnorm(0.75, lower.tail = F)
+# or
+2 * pnorm(-0.75)
+```
+
+
+# Problem 8
+
+Let $X_1$ and $X_2$ be two draws from $X \sim N(10, 4)$. Order the five events below based on which events are least to most likely to occur.
+
+- Event A: $X_1$ > 15
+- Event B: $X_1$ = 15
+- Event C: $X_1$ < 15
+- Event D: $X_1$ > 15 AND $X_2$ > 15
+- Event E: $X_1$ > $X_2$
+
+> Since $X$ is continuous, event B is impossible, since we can't define probabilities at a specific point.  We can find the probabilities of events A and C using pnorm.
+
+```{r}
+# Event A
+pnorm(15, 10, 4, lower.tail = F)
+
+# Event C
+pnorm(15, 10, 4)
+```
+
+> $P(A) = 0.106$ and $P(C) = 0.894$.  If event D happens, then that means we draw a value above 15 two times in a row, so $P(D) = 0.106 \cdot 0.106 = 0.011$.  Finally, $P(E)$ is 0.5 by symmetry.  We have B < D < A < E < C.
+
+
