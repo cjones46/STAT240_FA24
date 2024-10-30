@@ -1,0 +1,78 @@
+---
+output: html_document
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE,
+                      warning = FALSE,
+                      error = TRUE, fig.height = 3,
+                      fig.width = 4)
+
+library(tidyverse)
+source("../../scripts/ggprob.R")
+```
+
+
+### Lake Monona Case Study
+
+#### Read the data
+
+```{r}
+monona = read_csv("../../data/lake-monona-winters-2024.csv")
+```
+
+
+#### Visual Exploration
+
+```{r}
+ggplot(monona, aes(x = year1, y = duration)) +
+  geom_line() +
+  geom_point() + 
+  geom_smooth(method = "lm", se = FALSE) +
+  geom_smooth(se = FALSE, color = "red")
+```
+
+### Add mean values
+
+```{r}
+monona_sum = monona %>% 
+  select(year1, duration) %>% 
+  summarize(across(year1:duration, list(mean = mean, sd = sd)),
+            r = cor(year1, duration))
+
+monona_sum
+
+ggplot(monona, aes(x = year1, y = duration)) +
+#  geom_line() +
+  geom_point() + 
+  geom_smooth(method = "lm", se = FALSE) +
+  geom_hline(yintercept = monona_sum$duration_mean,
+             color = "red",
+             linetype = "dashed") +
+  geom_vline(xintercept = monona_sum$year1_mean,
+             color = "red",
+             linetype = "dashed")
+```
+
+### Standardization
+
+```{r}
+prob1 = monona %>% 
+  mutate(z_x = (year1 - mean(year1))/ sd(year1),
+         z_y = (duration - mean(duration))/ sd(duration)) %>% 
+  select(year1, duration, z_x, z_y)
+```
+
+### Visualize
+
+```{r}
+ggplot(prob1, aes(x = z_x, y = z_y)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  geom_hline(yintercept = 0,
+             color = "red", linetype = "dashed") +
+  geom_vline(xintercept = 0,
+             color = "red",
+             linetype = "dashed")
+```
+
