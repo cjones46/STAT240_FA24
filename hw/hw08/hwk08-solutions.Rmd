@@ -1,0 +1,214 @@
+---
+title: "Homework 8"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE,
+                      warning = FALSE, error = TRUE,
+                      fig.height = 3)
+library(tidyverse)
+```
+
+# Preliminaries
+
+- This file should be in `STAT240/homework/hw08` on your local computer.
+- Download `happiness_2019.csv` to `STAT240/data`.
+
+# Problem 1
+
+You wish to show that your roommate is not home. You check the main areas of your apartment (skipping things like closets or storage rooms) and do not find them.
+
+**(a)** Thinking of this as an inference problem, what are the appropriate null and alternative hypotheses?
+
+> We are specifically trying to gather information about the roommate not being home, so that must be our alternative hypothesis.  H_0: roommate is home, H_A: roommate is not home.
+
+**(b)** Thinking of this as an inference problem, which of the following is the appropriate conclusion?
+
+- The probability that we do not find them in the main areas, given that they are NOT home, is 100%. This is not a low p-value, so we fail to disprove that our roommate is home.
+
+> This is incorrect, because it is possible that the roommate is home but is not in one of the main areas.
+
+- If they are not home, there is a 100% chance we do not find them. We did not find them, so they are not home.
+
+> This is incorrect for the same reason as the previous statement.  It is possible that they are home, but we failed to find them.
+
+- The probability that we do not find them in the main areas, given that they ARE home, is very low. Since we did not find them, that means they are probably not home.
+
+> This is correct.  We have not definitively proven that they are not home, but we have evidence that they are not home.
+
+- If they ARE home, the probability of finding them in the main areas is high. This is not a low p-value, so we fail to disprove that our roommate is home.
+
+> This is incorrect because the p-value corresponds to what we actually observe.  We did not find them, which is unlikely if they actually are home.  This is a low p-value.
+
+
+# Problem 2
+
+We wish to test whether the average person is shorter than the average NBA player. We have data for the whole population of NBA players and know their average height to be 6'6" (78 inches). Let the average height of a non-player be $\mu$.
+
+**(a)** What are the null and alternative hypotheses for this test?
+
+> To find evidence of the average person being shorter, we use H_A: $\mu < 78$, where $\mu$ is the average height in inches.  The null is then H_0: $\mu = 70$.
+
+**(b)** The Central Limit Theorem says the sample mean of n individuals is approximated by  $N\Big(\mu, \; \frac{\sigma}{\sqrt{n}}\Big)$, where $\mu$ and $\sigma$ are the expectation and standard deviation of the population. Assume $\sigma$, the standard deviation of all non-player heights, is 4 inches. If the null hypothesis was true, what is the distribution of the sample mean of the heights of 5 non-players? 
+
+> The distribution of the sample mean is $\bar{X} \sim N\Big(\mu, \; \frac{\sigma}{\sqrt{n}}\Big) = N\Big(78, \; \frac{4}{\sqrt{5}}\Big)$
+
+# Problem 3
+
+We wish to test whether the average person is shorter than the average NBA player. We have data for the whole population of NBA players and know their average height to be 6'6" (78 inches). Let the average height of a non-player be $\mu$.
+
+**(a)** We sample 5 non-players and get the heights (70, 61, 63, 65, 72). What is the sample mean? What is the probability of getting a sample mean smaller than this on the distribution from problem 2?
+
+```{r}
+sample_hts <- c(70, 61, 63, 65, 72)
+mean(sample_hts)
+```
+
+> The sample mean height is 66.2 inches.  The probability of observing 66.2 or less on the normal sampling distribution assuming $\mu = 78$ is extremely small.
+
+```{r}
+pnorm(66.2, 78, 4/sqrt(5))
+```
+
+
+**(b)** What do we conclude about the average height of non-players compared to the average height of an NBA player? Are we completely 100% certain of that conclusion?
+
+> If the average person is as tall as the average NBA player, then observing a sample mean of 66.2 is incredibly unlikely.  Thus, we have strong evidence that the average person is shorter than the average NBA player.  We cannot be 100% certain of this conclusion, but a smaller p-value gives us more certainty.
+
+# EXAM 2 CONTENT STOPS HERE. Any content below will not be on Exam 2.
+
+# Problem 4
+
+Match the six values of correlation to the scatterplots in `p4_choices.png`. Briefly justify your choices.
+
+- $r = -0.85$
+
+> Graph C shows $r = -0.85$. There is a strong, but not perfect, negative correlation.
+
+- $r = -0.74$
+
+> Graph D shows $r = -0.74$. There a negative correlation that is not quite as strong as shown in graph C.
+
+- $r = 0.08$
+
+> Graph B shows $r = 0.08$.  There is no clear linear relationship between x and y, so correlation is approximately 0.
+
+- $r = 0.44$
+
+> Graph F shows $r = 0.44$.  There is a visible positive trend between x and y, but it is not very strong.
+
+- $r = 0.98$
+
+> Graph A shows $r = 0.98$.  There is a very strong positive relationship between x and y, but there is still a bit of random scatter present.
+
+- $r = 1$
+
+> Graph E shows $r = 1$.  There is a perfect linear relationship with no random error.
+
+![](p4_choices.png)
+
+
+# Problem 5
+
+The [Happiness index](https://www.kaggle.com/datasets/sougatapramanick/happiness-index-2018-2019) data contains information on the happiness index of different countries from 2018-2019.  We will focus on the happiness index (`Score`) and GDP per capita of countries in 2019.
+
+```{r}
+happiness <- read_csv("../../data/happiness_2019.csv")
+
+# Remove spaces from column names
+names(happiness) <- make.names(names(happiness))
+```
+
+**(a)** Create a scatterplot of GDP per capita (x) versus happiness index (y) and calculate the correlation between length and weight.  Comment on the strength and magnitude of the linear relationship, and whether a linear model seems to be appropriate
+
+```{r}
+happiness %>%
+  ggplot(aes(x = GDP.per.capita, y = Score)) +
+  geom_point()
+
+x <- happiness$GDP.per.capita
+y <- happiness$Score
+
+cor(x, y)
+```
+
+> Both the scatterplot and correlation indicate a fairly strong positive linear relationship.  Visually, the points are scattered around a line, so a linear model seems like a good fit for this data.
+
+**(b)** Calculate the slope and intercept of a least-squares linear regression model for GDP per capita versus happiness index.  Do this "by hand" and check your work with `lm`.  Interpret the coefficients in context.
+
+```{r}
+r <- cor(x, y)
+xbar <- mean(x); ybar <- mean(y)
+s_x <- sd(x); s_y <- sd(y)
+
+est_slope <- r * (s_y / s_x)
+est_intercept <- ybar - (xbar * est_slope)
+
+c(est_slope, est_intercept)
+```
+
+> The linear model is $\hat{y}_i = 3.4 + 2.22(x_i)$.  3.4 is the therotical happiness score for a country with 0 GDP per capital, and 2.22 is the expected increase in happiness score for 1 unit increase in GDP per capita.  We get the same results with `lm`.
+
+```{r}
+happiness_mod <- lm(Score ~ GDP.per.capita, data = happiness)
+
+happiness_mod
+```
+
+
+# Problem 6
+
+Perform a residual analysis of the happiness linear model to assess the fit.  Build a scatterplot of residuals and comment on the three assumptions:
+
+- Linearity
+- Normality
+- Constant variance
+
+```{r}
+happiness %>%
+  mutate(residuals = resid(happiness_mod)) %>%
+  ggplot(aes(x = GDP.per.capita, y = residuals)) +
+  geom_point() +
+  geom_hline(yintercept = 0)
+```
+
+> Linearity: There are no curved patterns in the scatterplot of residuals, so the relationship between x and y appears to be linear.
+
+> Normality: Most of the points are close to the line, with a few points scattered away from the line in a symmetric way.  So, the residuals appear to be normal.
+
+> Constant variance: The scztter of the residuals around the line is roughly constant for all values of x.
+
+
+# Problem 7
+
+Using your linear model, predict the happiness index for theoretical countries with 0.75, 1.25, and 2 GDP per capita.  Which of these predictions would you consider to be the least reliable, and why?
+
+```{r}
+gdp <- c(0.75, 1.25, 2)
+
+# Using predict function
+predict(happiness_mod, newdata = tibble(GDP.per.capita = gdp))
+
+# By hand
+3.4 + (2.22 * gdp)
+```
+
+
+> The predictions for happiness index are approximately 5.065, 6.175, and 7.84.  I am most skeptical of the prediction at x = 2 GDP per capita, because that value is well outside the range of our original data.  We have only verified that the linear model is correct for values of x within [0, 1.684].  Predicting at a value of 2 is extrapolation.
+
+
+# Problem 8
+
+What are the conclusions we can make about the relationship between GDP per capita and happiness index, based on the linear model?  Does money buy happiness?
+
+> Based on our linear model, we can say that countries with higher GDP per capita generally tend to have a higher happiness index.  However, we cannot make any conclusions about causality between the two variables.  It is possible that high GDP and high happiness are both related to other aspects of the country (e.g. more stable government and more social support).
+
+
+
+
+
+
+
+
+
