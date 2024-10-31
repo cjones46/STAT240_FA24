@@ -1,0 +1,276 @@
+---
+title: "Section 13: Linear Regression Inference"
+author: "Student's Name Here"
+date: "2024-10-11"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, error = TRUE)
+```
+
+```{r}
+library(tidyverse)
+source("../../scripts/ggprob.R")
+```
+
+## CI for slope
+
+The `summary` output of a linear model contains many useful values.
+
+- "Residual standard error" is $S$, which estimates $\sigma$.
+- Coefficient table shows standard error of slope (and intercept)
+
+```{r}
+riley <- read_table("../../data/riley.txt")
+riley_2_8 <- riley %>% 
+  filter(age >= 2*12 & age <= 8*12)
+
+height_mod <- lm(height ~ age, data = riley_2_8)
+summary(height_mod) 
+# Point estimate: 0.25
+# Estimated standard error: 0.0027
+
+n <- nrow(riley_2_8)
+qt(0.975, df = n - 2)
+# Critical value: 2.143
+
+c(0.25 - 2.143*0.0027, 0.25 + 2.143*0.0027)
+```
+
+### Exercise 
+
+Build a 98% CI for the slope of the Lake Monona model.
+
+```{r}
+monona <- read_csv("../../data/lake-monona-winters-2024.csv")
+lake_mod <- lm(duration ~ year1, data = monona)
+
+```
+
+
+## Hypothesis test for slope
+
+The direction of a p-value calculation is according to the alternative hypothesis.
+
+```{r, echo = FALSE}
+gnorm() +
+  geom_vline(xintercept = 1, lwd = 1.5, lty = 5) +
+  ggtitle("Null distribution + test statistic")
+
+gnorm() +
+  geom_vline(xintercept = 1, lwd = 1.5, lty = 5) +
+  geom_norm_fill(a = 1, fill = "dodgerblue") +
+  geom_norm_fill(b = -1, fill = "dodgerblue") +
+  ggtitle("Two-sided p value")
+
+gnorm() +
+  geom_vline(xintercept = 1, lwd = 1.5, lty = 5) +
+  geom_norm_fill(b = 1, fill = "dodgerblue") +
+  ggtitle("Two-sided p value")
+
+gnorm() +
+  geom_vline(xintercept = 1, lwd = 1.5, lty = 5) +
+  geom_norm_fill(a = 1, fill = "dodgerblue") +
+  ggtitle("Two-sided p value")
+```
+
+Let's test whether the Lake Monona slope is negative.  $H_0: \beta_1 \ge 0$ versus $H_A: \beta_1 < 0$.  We get an observed test statistic of -8.63, which is very extreme.
+
+```{r}
+n <- nrow(monona)
+
+# By default, pt finds a lower probability
+pt(-8.36, df = n-2)
+```
+
+What if it was two-sided?  We would have the same test statistic and null distribution, but a different p-value.  This matches the `summary` output.
+
+```{r}
+2*pt(-8.36, df = n-2)
+
+summary(lake_mod)
+```
+
+
+## Prediction intervals
+
+```{r}
+lions <- read_csv("../../data/lions.csv") %>% 
+  rename(black = proportion.black)
+
+# Fit a linear model with x = age, y = black
+ggplot(lions, aes(age, black)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = F)
+
+lion_mod <- lm(black ~ age, data = lions)
+summary(lion_mod)
+```
+
+What would be the predicted % black on a 5 year old lion?
+
+```{r}
+predict(lion_mod, newdata = tibble(age = 5))
+
+ggplot(lions, aes(x = age, y = black)) +
+  geom_point() +
+  geom_smooth(se = FALSE, method = "lm") +
+  geom_point(aes(x=5, y=0.069696 + 5*0.058591), color="red", size=4) + 
+  geom_vline(xintercept = 5, color="red", linetype="dashed") +
+  geom_hline(yintercept = 0.069696 + 5*0.058591, color = "red", linetype = "dashed")
+```
+
+
+### Linear model simulation
+
+The position of the line varies across samples.  Take an (x, y) population with true intercept 5 and true slope 10.
+
+```{r, echo = FALSE}
+simulateBestFitLines <- function(B = 100, real_beta_0 = 5, real_beta_1 = 10, error_sigma = 5, n = 50) {
+
+# Set up an empty dataframe in which to store our estimates
+estimates = tibble(beta_hat_0 = numeric(0), beta_hat_1 = numeric(0))
+
+# Do the following B times:
+for (i in 1:B) {
+  # Generate n random points from the real beta 0, real beta 1, and error variation
+  simulated_data = tibble(
+    x = runif(n, 0, 10),
+    y = real_beta_0 + real_beta_1 * x + rnorm(n, sd = error_sigma)
+  )
+  # Compute estimates beta hat 0 and beta hat 1 from that fake data, write them down
+  estimates[i,] = t(as_tibble(coef(lm(y ~ x, simulated_data))))
+}
+
+# unfortunately geom_abline() doesn't take slope and intercept as variable aesthetics, so I am forced to plot segments instead
+estimates_for_plotting = estimates %>% 
+  mutate(x = 0,
+         xend = 10,
+         y = beta_hat_0,
+         yend = beta_hat_0 + beta_hat_1 * 10)
+
+# Plotting code
+ggplot(estimates_for_plotting) +
+  # The estimated lines
+  geom_segment(aes(x=x, xend=xend, y=y, yend=yend)) +
+  # The real line
+  geom_abline(slope = real_beta_1, intercept = real_beta_0, color = "red", linewidth = 1.5, linetype = 5) +
+  labs(
+    title = paste0(B, " estimates of true line: ", real_beta_0, " + ", real_beta_1, "*X"),
+    subtitle = paste0("With n = ", n, ", error variation = ", error_sigma)
+  ) +
+  theme(plot.title = element_text(size = 20),
+        plot.subtitle = element_text(size = 15))
+}
+```
+
+Here's an example of 100 different regression lines fit on 100 theoretical samples from the population.
+
+```{r}
+simulateBestFitLines(error_sigma = 10)
+```
+
+As $\sigma$ is larger, the estimate for the linear model will have more uncertainty.
+
+```{r}
+simulateBestFitLines(error_sigma = 20)
+```
+
+```{r}
+simulateBestFitLines(error_sigma = 50)
+```
+
+
+### geom_smooth
+
+The `geom_smooth` function is actually calculating lots of thin CIs around the fitted line.
+
+```{r}
+ggplot(lions, aes(age, black)) +
+  geom_point() +
+  geom_smooth(method = "lm")
+```
+
+In practice, we can use `predict` to build the CIs for us.
+
+```{r}
+predict(lion_mod, newdata = tibble(age = 1:10))
+
+lion_CIs <- predict(lion_mod, newdata = tibble(age = 1:13),
+               interval = "confidence")
+
+lion_CIs
+```
+
+```{r}
+ggplot(lions, aes(age, black)) +
+  geom_point() +
+  geom_line(data = as_tibble(lion_CIs), mapping = aes(x = 1:13, y = lwr), color = "darkgreen") +
+  geom_line(data = as_tibble(lion_CIs), mapping = aes(x = 1:13, y = upr), color = "darkgreen") +
+  geom_smooth(method = "lm") +
+  labs(
+    title = "Lion Ages vs. % nose black",
+    subtitle = "With Confidence Regression Interval in Green"
+  )  +
+  theme(plot.title = element_text(size = 20),
+        plot.subtitle = element_text(size = 15))
+```
+
+
+### Predicting a new value
+
+Let's build prediction intervals instead of confidence intervals.  These are wider due to the variability of predicting a new value.
+
+```{r}
+lion_PIs <- predict(lion_mod, newdata = tibble(age = 1:13),
+               interval = "prediction")
+
+lion_PIs
+```
+
+In a scatterplot, the lines formed by the PIs contain approximately 95% of the points.
+
+```{r}
+ggplot(lions, aes(age, black)) +
+  geom_point() +
+  geom_line(data = as_tibble(lion_PIs), mapping = aes(x = 1:13, y = lwr)) +
+  geom_line(data = as_tibble(lion_PIs), mapping = aes(x = 1:13, y = upr)) +
+  labs(
+    title = "Lion Ages vs. % nose black",
+    subtitle = "With Prediction Intervals"
+  ) +
+  theme(plot.title = element_text(size = 20),
+        plot.subtitle = element_text(size = 15))
+```
+
+Comparison of CIs and PIs:
+
+```{r}
+ggplot(lions, aes(age, black)) +
+  geom_point() +
+  geom_line(data = as_tibble(lion_PIs), mapping = aes(x = 1:13, y = lwr)) +
+  geom_line(data = as_tibble(lion_PIs), mapping = aes(x = 1:13, y = upr)) +
+  geom_line(data = as_tibble(lion_CIs), mapping = aes(x = 1:13, y = lwr), color = "darkgreen") +
+  geom_line(data = as_tibble(lion_CIs), mapping = aes(x = 1:13, y = upr), color = "darkgreen") +
+  geom_smooth(method = "lm") +
+  labs(
+    title = "Lion Ages vs. % nose black",
+    subtitle = "With Prediction Intervals in Black, Confidence Regression Interval in Green"
+  )  +
+  theme(plot.title = element_text(size = 20),
+        plot.subtitle = element_text(size = 15))
+```
+
+
+## Coefficient of determination
+
+The lion model has coefficient of determination 0.6238, which is the square of the correlation 0.7899.
+
+```{r}
+summary(lion_mod)
+
+cor(lions$age, lions$black)
+```
+
+
