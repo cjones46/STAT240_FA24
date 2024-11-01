@@ -384,11 +384,11 @@ $$
 $$
 
 $$
-\hat{Y} \text{at $X = \bar{X}$} = \bar{y} - \hat{\beta}_1 * \bar{x} + \hat{\beta_1} * \bar{x}
+(\hat{Y} \text{at $x = \bar{x}$}) = \bar{y} - \hat{\beta}_1 * \bar{x} + \hat{\beta_1} * \bar{x}
 $$
 
 $$
-\hat{Y} \text{at $X = \bar{X}$} = \bar{y}
+(\hat{Y} \text{at $X = \bar{x}$}) = \bar{y}
 $$
 
 ---
@@ -435,7 +435,7 @@ c(beta_hat_1, beta_hat_0)
 
 ## Example Calculation in R, with lm()
 
-* Like `t.test`, R has a command to calculate these estimates for you; this command is `lm()`, standing for "**linear model**".
+* R has a command to calculate these estimates for you; this command is `lm()`, standing for "**linear model**".
 
 * `lm()` is an extremely versatile command designed to handle many of the most common cases of linear regression.
 

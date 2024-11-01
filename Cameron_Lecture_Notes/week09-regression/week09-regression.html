@@ -1847,11 +1847,11 @@ through the center of the data; namely, the ordered pair <span class="math inlin
 \hat{Y} = \bar{y} - \hat{\beta}_1 * \bar{x} + \hat{\beta_1} * X
 \]</span></p>
 <p><span class="math display">\[
-\hat{Y} \text{at $X = \bar{X}$} = \bar{y} - \hat{\beta}_1 * \bar{x} +
+(\hat{Y} \text{at $x = \bar{x}$}) = \bar{y} - \hat{\beta}_1 * \bar{x} +
 \hat{\beta_1} * \bar{x}
 \]</span></p>
 <p><span class="math display">\[
-\hat{Y} \text{at $X = \bar{X}$} = \bar{y}
+(\hat{Y} \text{at $X = \bar{x}$}) = \bar{y}
 \]</span></p>
 <hr />
 </div>
@@ -1903,9 +1903,9 @@ close.</p></li>
 <div id="example-calculation-in-r-with-lm" class="section level2">
 <h2>Example Calculation in R, with lm()</h2>
 <ul>
-<li><p>Like <code>t.test</code>, R has a command to calculate these
-estimates for you; this command is <code>lm()</code>, standing for
-“<strong>linear model</strong>”.</p></li>
+<li><p>R has a command to calculate these estimates for you; this
+command is <code>lm()</code>, standing for “<strong>linear
+model</strong>”.</p></li>
 <li><p><code>lm()</code> is an extremely versatile command designed to
 handle many of the most common cases of linear regression.</p></li>
 <li><p>We will only scratch the surface of the things you can do with
