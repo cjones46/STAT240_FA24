@@ -1,0 +1,220 @@
+---
+title: "Discussion 8 - solution"
+output: html_document
+---
+
+# Preliminaries
+
+- This file should be in `STAT240/discussion/ds08` and the script `ggprob.R` should be in `STAT240/scripts` on your local computer.
+
+- This assignment should be completed in your **assigned Canvas groups**. Only one person has to submit on behalf of the group. You may submit whatever you have at the end of discussion section for full credit.
+
+# Present Group Members
+
+Please **write the names of the present group members** here.
+
+> Present Group Members:
+
+> Absent Group Members: 
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, 
+                      error = TRUE, 
+                      warning = FALSE, 
+                      message = FALSE)
+library(tidyverse)
+source("~/Desktop/STAT 240/scripts/ggprob.R")
+```
+
+
+# Problem 1
+
+Thompson and Thompson is a steel bolts manufacturing company. The diameter of their current steel bolts follow a normal distribution and have a mean of 149 millimeters, and a standard deviation of 7 millimeters.
+
+If a random sample of 39 steel bolts is selected, what is the probability that the sample mean would be greater than 150.8 millimeters? Round your answer to four decimal
+places.
+
+```{r}
+x = 150.8
+n = 39
+mu = 149
+sigma = 7
+sigma_sample = sigma/sqrt(n)
+pnorm(x, mu, sigma_sample, lower.tail = F)
+```
+
+
+# Problem 2
+
+Jared scored a 92 on a test with a mean of 88 and a standard deviation of 2.7. His friend Jasper took a different test with a mean of 82 and a standard deviation of 1.8.
+
+**Part a** What is Jared's percentile on the test?
+
+```{r}
+x1 = 92
+mean1 = 88
+sd1 = 2.7
+
+pnorm(92, 88, 2.7)
+```
+
+
+**Part b** Find Jasper's test scores such that they both have the same percentile.
+
+```{r}
+qnorm(0.9307608, 82, 1.8) # One way
+
+# Second way
+z1 = (x1 - mean1)/sd1
+x2 = z1*1.8 + 82
+x2
+```
+
+
+# Problem 3
+
+The 95% confidence interval of the amount of money spent per week on gas by a sample of 500 Madison drivers is (43.25, 45.35). Provide an interpretation for the confidence interval.
+
+A) We are 95% confident that the mean amount of money spent per week on gas by
+all Wisconsin drivers is between the endpoints of the confidence interval.
+
+B) We are 5% confident that the mean amount of money spent per week on gas by all
+Madison drivers is between the endpoints of the confidence interval.
+
+C) There is a 95% chance that the mean amount of money spent per week on gas by
+all Madison drivers is between the endpoints of the confidence interval.
+
+D) We are 95% confident that the mean amount of money spent per week on gas by
+all Madison drivers is between the endpoints of the confidence interval.
+
+> D) We are 95% confident that the mean amount of money spent per week on gas by
+all Madison drivers is between the endpoints of the confidence interval.
+
+
+# Problem 4
+
+Write code to do the following:
+
+- Draw `n` points from $\text{Binom}(5, 0.98)$
+- Calculate the `mean` of the n points
+- Repeat this `iterations` times to get a large number of sample means  
+
+Simulate the above operation three times with with `n = 100`, `𝑛=500`, and `𝑛=1000`. There should be 10000 iterations of each. Then, make three density plots to compare the sampling distributions. What do you notice as $n$ increases?
+
+
+```{r eval=FALSE}
+# change this code accordingly for your simulation
+
+n_i <- replicate(10000, mean(rbinom(i, 10, 0.5)))
+ggplot(data = NULL, aes(x = n_i)) + 
+  geom_density() +
+  labs(title = "Sample Mean, n = i, 10000 Iterations")
+```
+
+
+
+```{r}
+n_100 <- replicate(10000, mean(rbinom(100, 5, 0.98)))
+
+ggplot(data = NULL, aes(x = n_100)) + 
+  geom_density() +
+  labs(title = "Sample Mean, n = 100, 10000 Iterations")
+
+n_500 <- replicate(10000, mean(rbinom(500, 5, 0.98)))
+
+ggplot(data = NULL, aes(x = n_500)) + 
+  geom_density() +
+  labs(title = "Sample Mean, n = 500, 10000 Iterations")
+
+n_1000 <- replicate(10000, mean(rbinom(1000, 5, 0.98)))
+
+ggplot(data = NULL, aes(x = n_1000)) + 
+  geom_density() +
+  labs(title = "Sample Mean, n = 1000, 10000 Iterations")
+```
+
+# Problem 5
+
+Heights in a population of American adult males are approximately normal with a mean of 70 inches and a standard deviation of 3 inches.
+
+**Part a** What percentage of American adult males are taller than two meters tall? (One meter equals 39.37 inches.)
+
+```{r}
+1 - pnorm(2*39.37, 70, 3)
+```
+
+> Only about 0.18% of American adult males are taller than two meters.
+
+**Part b** What is the 95th percentile of American adult male height?
+
+```{r}
+qnorm(0.95, 70, 3)
+```
+
+> The 95th percentile of height is about 74.9 inches tall.
+
+**Part c** If we took a random sample of 250 men, how likely is it that the sample mean of their heights would be within 0.5 inches of the population mean of 70 inches (between 69.5 and 70.5 inches)?
+
+```{r}
+pnorm(70.5, 70, 3/sqrt(250)) - pnorm(69.5, 70, 3/sqrt(250))
+```
+
+> The probability is over 99% that the sample mean is within 0.5 inches of the population mean of 70 inches.
+
+
+# Problem 6
+
+Consider $\text{Binom}(n, 0.98)$ with `n = 10`, `n =100`, and `n =1000`. For which value of `n` can we approximate the above distribution with the Normal distribution. Plot the density of the binomial and the corresponding normal distribution to support your conclusion.
+
+
+```{r eval=FALSE}
+# change this code accordingly for your simulation
+
+n = 10
+p = 0.5
+mu = n*p
+sigma = sqrt(n*p*(1-p))
+
+gbinom(n, p, scale = T) +
+  geom_norm_density(mu, sigma, color = "red") +
+  theme_minimal()
+```
+
+
+
+```{r}
+n1 = 10
+p = 0.98
+mu1 = n1*p
+sigma1 = sqrt(n1*p*(1-p))
+
+gbinom(n1, p, scale = T) +
+  geom_norm_density(mu1, sigma1, color = "red") +
+  theme_minimal()
+
+n2 = 100
+p = 0.98
+mu2 = n2*p
+sigma2 = sqrt(n2*p*(1-p))
+
+gbinom(n2, p, scale = T) +
+  geom_norm_density(mu2, sigma2, color = "red") +
+  theme_minimal()
+
+n3 = 1000
+p = 0.98
+mu3 = n3*p
+sigma3 = sqrt(n3*p*(1-p))
+
+gbinom(n3, p, scale = T) +
+  geom_norm_density(mu3, sigma3, color = "red") +
+  theme_minimal()
+```
+
+
+
+
+
+
