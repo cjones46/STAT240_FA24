@@ -48,7 +48,7 @@ We wish to test whether the average person is shorter than the average NBA playe
 
 **(a)** What are the null and alternative hypotheses for this test?
 
-> To find evidence of the average person being shorter, we use H_A: $\mu < 78$, where $\mu$ is the average height in inches.  The null is then H_0: $\mu = 70$.
+> To find evidence of the average person being shorter, we use H_A: $\mu < 78$, where $\mu$ is the average height in inches.  The null is then H_0: $\mu = 78$.
 
 **(b)** The Central Limit Theorem says the sample mean of n individuals is approximated by  $N\Big(\mu, \; \frac{\sigma}{\sqrt{n}}\Big)$, where $\mu$ and $\sigma$ are the expectation and standard deviation of the population. Assume $\sigma$, the standard deviation of all non-player heights, is 4 inches. If the null hypothesis was true, what is the distribution of the sample mean of the heights of 5 non-players? 
 
