@@ -1,0 +1,309 @@
+---
+title: "week09-regression"
+output: html_document
+date: "2024-10-30"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+
+# Sec 005 Wednesday 10/30
+
+```{r}
+riley <- read_table("~/Desktop/STAT 240/data/riley.txt")
+mendota <- read_csv("~/Desktop/STAT 240/data/lake-mendota.csv")
+```
+
+
+
+
+
+```{r}
+height <- riley$height
+age <- riley$age 
+
+r = cor(height, age)
+r
+
+ggplot(riley, aes(x = age, y = height)) + geom_point() + geom_smooth(method = "lm", se = F)
+```
+
+```{r}
+beta_1_hat <- r * sd(height)/ sd(age)
+beta_1_hat
+beta_0_hat <- mean(height) - beta_1_hat*mean(age)
+beta_0_hat
+```
+
+
+```{r}
+?lm 
+
+lm(height~age)
+lm(height~age, data = riley)
+```
+
+# Sec 005 Wednesday 10/30
+
+```{r}
+riley <- read_table("~/Desktop/STAT 240/data/riley.txt")
+```
+
+
+```{r}
+x <- riley$age
+y <- riley$height
+r <- cor(x,y)
+r
+beta_1_hat <- r * sd(y) / sd(x)
+beta_1_hat
+beta_0_hat <- mean(y) - beta_1_hat*mean(x)
+beta_0_hat
+```
+
+```{r}
+ggplot(mapping = aes(x = x, y = y)) + geom_smooth(method = "lm", se = F) + geom_point()
+```
+
+```{r}
+?lm
+lm(y~x)
+lm(height~age, data = riley)
+```
+
+# Sec 005 Wednesday 10/30
+
+```{r}
+riley <- read_table("~/Desktop/STAT 240/data/riley.txt")
+```
+```{r}
+x <- riley$age
+y <- riley$height
+
+r = cor(x, y)
+r
+
+beta_1_hat <- r * sd(y) / sd(x)
+beta_1_hat
+beta_0_hat <- mean(y) - beta_1_hat*mean(x)
+beta_0_hat
+```
+
+```{r}
+?lm
+lm(y~x)
+lm(height~age, data = riley)
+```
+
+```{r}
+ggplot(mapping = aes(x = x, y = y)) +
+  geom_smooth(method = "lm", se = F) +
+  geom_point()
+```
+
+# Sec 006 Friday 11/1
+
+```{r}
+riley <- riley %>% filter(age >=2*12 & age <=8*12)
+ggplot(riley, aes(x = age, y = height)) +
+  geom_point() +
+  geom_smooth(method = "lm")
+
+lm(height~age, data = riley)
+model_riley <- lm(height~age, data = riley)
+summary(model_riley)
+```
+
+```{r}
+coef(model_riley)
+```
+
+
+
+```{r}
+y_hat = 30.2493290+ (0.2505185)*100 
+y_hat
+```
+
+```{r}
+y_hat = 30.2493290+ (0.2505185)*(50*12) 
+y_hat
+```
+
+
+```{r}
+ggplot(mendota, aes(x = year1, y = duration)) +
+  geom_point() +
+  geom_smooth(method = "lm")
+```
+```{r}
+model_mendota <- lm(duration~year1, data = mendota)
+coef(model_mendota)
+```
+
+```{r}
+y_hat <- 478.8654837 + (-0.1944539)*2025
+y_hat
+```
+
+```{r}
+x <- mendota$year1
+y <- mendota$duration
+
+r = cor(x, y)
+r
+
+beta_1_hat <- r * sd(y) / sd(x)
+beta_1_hat
+beta_0_hat <- mean(y) - beta_1_hat*mean(x)
+beta_0_hat
+```
+
+```{r}
+residual <- resid(model_mendota)
+
+ggplot(mapping = aes(x = x, y = residual)) +
+  geom_point() +
+  geom_hline(yintercept = 0)
+```
+
+# Sec 003 Friday 11/1
+
+
+```{r}
+riley <- riley %>% filter(age >=2*12 & age <=8*12)
+ggplot(riley, aes(x = age, y = height)) +
+  geom_point() +
+  geom_smooth(method = "lm")
+
+lm(height~age, data = riley)
+model_riley <- lm(height~age, data = riley)
+```
+
+
+```{r}
+summary(model_riley)
+```
+```{r}
+coef(model_riley)
+```
+
+## Extrapolation
+
+```{r}
+y_pred <- 30.2493290 +  0.2505185 * 100
+y_pred
+
+
+```
+
+```{r}
+y_pred <- 30.2493290 +  0.2505185 * (49*12)
+y_pred
+```
+
+```{r}
+ggplot(mendota, aes(x = year1, y = duration)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = F)
+```
+
+
+
+
+```{r}
+model_mendota <- lm(duration~year1, data = mendota)
+coef(model_mendota)
+```
+
+```{r}
+y_pred <- 478.8654837 + (-0.1944539)*2024
+y_pred
+
+y_pred <- 478.8654837 + (-0.1944539)*2500
+y_pred
+```
+
+## Residual plot
+
+```{r}
+residual <- resid(model_mendota)
+residual
+
+ggplot(mapping = aes(x = mendota$year1, y = residual)) +
+  geom_point() +
+  geom_hline(yintercept = 0)
+```
+
+# Sec 005 Friday 11/1
+
+
+```{r}
+riley <- riley %>% filter(age >=2*12 & age <=8*12)
+
+ggplot(riley, mapping = aes(x = age, y = height)) + 
+  geom_point() +
+  geom_smooth(method = "lm", se = F)
+```
+
+```{r}
+model_riley <- lm(height~age, riley)
+
+summary(model_riley)
+```
+
+```{r}
+coef(model_riley)
+```
+
+> Predict Riley's height when he is 100 months old
+
+```{r}
+y_pred <- 30.2493290 + 0.2505185 * 100
+y_pred
+
+y_pred <- 30.2493290 + 0.2505185 * (50*12) # not an ideal prediction because it's too far in the future
+y_pred
+```
+
+## Extrapolation: Given a valid model you can predict the values of y with the help of the coefficients given a value of X.
+
+```{r}
+ggplot(mendota, mapping = aes(x = year1, y = duration)) + 
+  geom_point() +
+  geom_smooth(method = "lm", se = F)
+```
+
+```{r}
+model_mendota <- lm(duration~year1, data = mendota)
+summary(model_mendota)
+```
+
+```{r}
+y_pred <- 478.86548 + (-0.19445)*(2024)
+y_pred
+
+y_pred <- 478.86548 + (-0.19445)*(2500)
+y_pred
+```
+
+```{r}
+residual <-  resid(model_mendota)
+head(residual)
+```
+## Residual plots
+
+```{r}
+ggplot(mapping = aes(x = mendota$year1, y = residual)) +
+  geom_point() +
+  geom_hline(yintercept = 0)
+```
+
+
+
+
+
+
+
