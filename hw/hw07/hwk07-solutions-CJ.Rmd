@@ -1,0 +1,250 @@
+---
+title: "Homework 7"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE,
+                      warning = FALSE, error = TRUE,
+                      fig.height = 3)
+library(tidyverse)
+```
+
+# Preliminaries
+
+- This file should be in `STAT240/homework/hw07` on your local computer.
+
+# Problem 1
+
+The weight of adult male grizzly bears in the continental United States is well approximated by a normal distribution with mean 510 pounds and standard deviation 45 pounds. The weight of adult female grizzly bears in the continental United States is well approximated by a normal distribution with mean 315 pounds and standard deviation 37 pounds.
+
+Suppose a male grizzly bear that is 441 pounds is observed. What would be the approximate weight of a female grizzly bear with the same weight percentile as this male grizzly bear?
+
+> The standardized score for the 441 pound male is $\frac{441-510}{45} = -1.533.$  Using the mean and standard deviation, we can convert this value to a weight of a female grizzly bear.  $-1.533(37) + 315 = 258.28$.  A male grizzly bear weighing 441 pounds corresponds to a female grizzly bear weighing about 258.28 pounds.  We can also do this with R.
+
+```{r}
+pnorm(441, 510, 45) %>%
+  qnorm(mean = 315, sd = 37)
+```
+
+
+# Problem 2
+
+The lifespan of a certain type of tire is approximately normal, with mean 39 and standard deviation 2.5 (units are in thousands of miles).
+  
+**(a)** What is the probability that a random tire will last longer than 40,000 miles?
+
+> Use `pnorm` to find the probability above 40 on the original tire lifespan distribution.  Set `lower.tail = F` to find a probability in the upper tail.
+
+```{r}
+pnorm(40, 39, 2.5, lower.tail = F)
+```
+
+**(b)** What is the 95th percentile of tire lifespan?
+
+> Use `qnorm` to find the value that has area 0.95 to the left on the tire distribution.
+
+```{r}
+qnorm(0.95, 39, 2.5)
+```
+
+**(c)** Take a random sample of 4 tires.  What is the probability that the average lifespan of the four tires will be greater than 40,000 miles?
+
+> Now, we are working with the sampling distribution, $\bar{X}$.  This has distribution $N\Big(\mu, \frac{\sigma}{\sqrt{n}}\Big) = N(39, 2.5/\sqrt{4})$.  We need to repeat the above problems on this new normal distribution.
+
+```{r}
+pnorm(40, 39, 2.5/sqrt(4), lower.tail = F)
+```
+
+
+**(d)** What is the 95th percentile for the average lifespan of four tires?  
+
+```{r}
+qnorm(0.95, 39, 2.5/sqrt(4))
+```
+
+**(e)** Explain why the answers to (a) and (b) are so different from the ansewrs to (c) and (d).
+
+> We are more likely to see a single tire last longer than 40k miles when compared to the average lifespan.  The sampling distribution has less spread around the mean of 39, resulting in "tail" values being less likely.  Similarly, the 95th percentile of $\bar{X}$ is closer to 39 than the 95th percentile of the original distribution.
+
+
+# Problem 3
+
+Suppose you are playing a coin flipping game with a friend, where you suspect the coin your friend provided is not a fair coin.  In fact, you think the probability the coin lands heads is less than 0.5.  To test this, you flip the coin 100 times and observe the coin lands heads 30 times.
+  
+If you assume the coin is fair (i.e., the probability of the coin landing heads is 0.5), what is the probability of observing 30 heads or fewer, calculated using an exact model?
+
+```{r}
+pbinom(30, 100, 0.5)
+```
+
+> This is a very small probability.
+
+Calculate the previous probability, but use a normal approximation to achieve a numerical value. What is the error in this approximation?
+
+> The binomial is approximated by a normal with mean $np = 50$ and standard deviation $\sqrt{np(1-p)} = \sqrt{25}$.
+
+```{r}
+pnorm(30, 50, sqrt(25))
+```
+
+> The probability is small and is similar to the exact probability in (a).  The difference between the exact and approximate probabilities is only $7.6\times 10^{-6}$.
+
+```{r}
+pbinom(30, 100, 0.5) - pnorm(30, 50, sqrt(25))
+```
+
+
+How small would $p$ need to be (rounded to the nearest 0.01) for the probability of observing 30 or fewer heads to be at least 0.05?
+
+*Hint: You could determine $p$ by trial and error, but there is also a quicker solution using `tibble()`.*
+
+> Let's make a table of $P(X \le 30)$ for the different choices of $p$.
+
+```{r}
+prob3c <- tibble(n = 100,
+                p = seq(0.01, 0.5, 0.01),
+                p35 = pbinom(35, n, p)) %>% 
+  filter(p35 >= 0.05) %>% 
+  slice_max(p)
+
+prob3c
+```
+
+> The probability of heads $p$ would need to be 0.43 or smaller.
+
+# Problem 4
+
+The code below does the following: 
+
+- Draw `n` points from a population called `pop`
+- Calculate the mean of the `n` points
+- Repeat this `iterations` times to get a large number of sample means
+
+```{r, eval = FALSE}
+replicate(iterations, mean(sample(pop, n, replace = T)))
+```
+
+Perform this operation three times with 10000 iterations each.  Do this with $n = 5$, $n = 10$, and $n = 50$. Use `right_skewed` below as your population, `pop`.
+
+Then, make three density plots to compare the three sampling distributions.  What do you notice as $n$ increases?
+
+```{r}
+right_skewed <- c(rep(0, 60), rep(1, 25), rep(2, 10), rep(3, 5))
+
+n_5 <- replicate(10000, mean(sample(right_skewed, 5, replace = T)))
+n_10 <- replicate(10000, mean(sample(right_skewed, 10, replace = T)))
+n_50 <- replicate(10000, mean(sample(right_skewed, 50, replace = T)))
+
+ggplot(data = NULL, aes(x = n_5)) + 
+  geom_density() +
+  labs(title = "Sample Mean, n = 5, 10000 Iterations")
+
+ggplot(data = NULL, aes(x = n_10)) + 
+  geom_density() +
+  labs(title = "Sample Mean, n = 10, 10000 Iterations")
+
+ggplot(data = NULL, aes(x = n_50)) + 
+  geom_density() +
+  labs(title = "Sample Mean, n = 50, 10000 Iterations")
+```
+
+> As $n$ increases, the shape of the sampling distribution of the mean becomes less skewed, more symmetric, and more like a normal bell curve.
+
+# Problem 5
+
+Continue the analysis of the right-skewed population from problem 4.  Now, perform the sampling process three times, each with $n = 50$.  Do this with 50 iterations, 500 iterations, and 50000 iterations.  
+
+Then, make three density plots to compare the three sampling distributions.  What do you notice as the number of iterations increases?
+
+```{r}
+right_skewed <- c(rep(0, 60), rep(1, 25), rep(2, 10), rep(3, 5))
+
+iter_50 <- replicate(50, mean(sample(right_skewed, 50, replace = T)))
+iter_500 <- replicate(500, mean(sample(right_skewed, 50, replace = T)))
+iter_50000 <- replicate(50000, mean(sample(right_skewed, 50, replace = T)))
+
+ggplot(data = NULL, aes(x = iter_50)) + 
+  geom_density() +
+  labs(title = "Sample Mean, n = 50, 50 Iterations")
+
+ggplot(data = NULL, aes(x = iter_500)) + 
+  geom_density() +
+  labs(title = "Sample Mean, n = 50, 500 Iterations")
+
+ggplot(data = NULL, aes(x = iter_50000)) + 
+  geom_density() +
+  labs(title = "Sample Mean, n = 50, 50000 Iterations")
+```
+
+> The three graphs show the same approximate shape and center, but the sampling distribution becomes clearer and more well-defined as we have a greater number of iterations.  Running a simulation more times gives us a better approximation.
+
+
+# Problem 6
+
+For each of the three prompts, explain which condition will result in a **narrower** confidence interval.  If the confidence level would not change, explain why.
+
+- Having a **larger** confidence level (smaller alpha) versus having a **smaller** confidence level (larger alpha)
+
+> Having a smaller confidence level (thus larger alpha) will result in a narrower interval.  In this case, we are sacrificing confidence for the sake of having a more precise interval.  If the interval is smaller, we are less confident that it successfully covers the actual parameter.
+
+- Having **larger** estimation error (a.k.a "sampling error") versus having **smaller** estimation error
+
+> Having a smaller estimation error will result in a narrower interval.  When the statistic does a better job of estimating the parameter, we don't need our interval to be as wide.
+
+- Having a **larger** point estimate versus having a **smaller** point estimate
+
+> The point estimate does not affect the confidence level, only the midpoint of the interval.
+
+# Problem 7
+
+The code below calculates the Z critical value to build a 95% confidence interval.  Edit the code to instead calculate the critical value for **98%** confidence.
+
+```{r}
+qnorm(0.975)
+
+# 98% confidence: use the alpha/2 = 0.02/2 = 0.01 critical value
+qnorm(0.99)
+```
+
+Next, generalize this operation to any confidence level.  Uncomment and edit the code below to return the critical value for a (1-alpha) confidence interval for any choice of alpha.
+
+```{r}
+# For example, a 90% CI
+alpha <- 0.1
+
+qnorm(1 - alpha/2)
+
+# This will also work but it will give you a negative critical value
+
+qnorm(alpha/2)
+```
+
+
+# Problem 8
+
+For Halloween, you have purchased a big bag of candy made up of equal amounts of KitKats, Hershey's, Almond Joys, and Reese's candy bars.
+
+**(a)** A small child reaches in and pulls out three Reese's candy bars.  What is the probability that all three of their three candies were Reese's by random chance?  (Assume candy bar draws are independent and all have equal probability of being a Reese's.)
+
+> Under these assumptions, the number of Reese's candies picked out of three is Binom(3, 0.25).  The probability of getting all 3 Reese's by chance is 0.0156, which is not very likely, but still completely plausible.
+
+```{r}
+pbinom(2, 3, 0.25, lower.tail = F)
+```
+
+**(b)** A different small child reaches in and takes seven Reese's candy bars and one other candy bar.  What is the probability that seven or more of their eight candies were Reese's by random chance?
+
+> Now, we are working with Binom(8, 0.25).  The probability is only 0.0004, which is much less likely than three out of three Reese's bars above.
+
+```{r}
+pbinom(6, 8, 0.25, lower.tail = F)
+```
+
+**(c)** Intuitively, which of the two situations is more "suspicious"?  Do the probabilities match your intuition?
+
+> I am more suspicious of the child that took more candy but nonetheless has almost entirely Reese's.  When they are taking a bigger sample of candy, it becomes an even bigger concidence to have randomly picked the same type of candy for 7 out of 8 pulls.  This is reflected in the fact that the probability in (b) is much smaller than the probability in (a).
+
+
+
+
