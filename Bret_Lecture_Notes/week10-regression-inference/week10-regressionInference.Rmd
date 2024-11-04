@@ -1,0 +1,723 @@
+---
+title: "STAT 240: Linear Regression: Inference"
+author: "Bret Larget"
+date: "Fall 2024"
+output: rmdformats::readthedown
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
+                      error = TRUE, fig.height = 4)
+library(tidyverse)
+source("../../scripts/ggprob.R")
+```
+
+# Overview
+
+## Learning Outcomes
+
+* These lectures will teach you how to:
+    - Compute a confidence interval for a linear regression coefficient
+    - Carry out a hypothesis test for a linear regression coefficient
+    - Conceptualize and construct prediction and confidence intervals around a regression line
+    
+## Preliminaries
+
+1. Download the file `week10-regression.Rmd` into `STAT240/lecture/week10-regression`.
+2. Download the file `ggprob.R` into `STAT240/scripts` if you have not already.
+3. Download the file `lake-monona-winters-2024.csv` into `STAT240/data` if you have not already.
+4. Download the file `lions.csv` into `STAT240/data`.
+  
+
+# Confidence Intervals for Beta-1
+
+* Recall our general form for a confidence interval:
+
+$$
+(\text{Point Estimate}) \pm (\text{ Quantile Confidence Score}) \times (\text{Standard Error of PE})
+$$
+
+* Our **point estimate** is our sampled-based single number which estimates the parameter of interest, the true $\beta_1$ from the model.
+    - This will be $\hat{\beta}_1 = r * \frac{s_y}{s_x}$.
+    
+* Our **quantile confidence score** ("critical value") is the $C + \frac{1-C}{2}$ quantile of the **sampling distribution** (which we don't know yet).
+
+* Our **standard error** is a known formula capturing the variability of the point estimate (which we don't know yet).
+
+## Sampling Distribution and Standard Error
+
+* The derivation of the standard error and sampling distribution of $\hat{\beta}_1$ are beyond the scope of this course.
+
+* However, you will be asked to use the results.
+
+> The sampling distribution associated with $\hat{\beta}_1$ is the $t$ distribution, with degrees of freedom $n-2$.
+
+*We will learn more about the t-distribution in just a second!*
+
+* This means that the quantile confidence score for a **C = 95%** confidence interval for $\hat{\beta}_1$ will be `qt(0.975, df = n - 2)`.
+
+---
+
+* The formula for the standard error of $\hat{\beta}_1$ is known- however, **we will not ask you to compute** this standard error by hand, **you can just use `summary(lm(...))` to obtain it.**
+
+* For the curious, the formula for the standard error of $\hat{\beta}_1$ is:
+
+$$
+\text{SE}(\hat{\beta}_1) = \sqrt{\frac{\sum_{i = 1}^n (y_i - \hat{y}_i)^2/(n-2)}{\sum_{i = 1}^n (x_i - \overline{x})^2}}
+= \frac{ \hat{\sigma} }{\sqrt{n} \times \sigma_x}
+$$
+
+where:
+
+- $\displaystyle\hat{\sigma} = \sqrt{ \frac{\sum_{i = 1}^n (y_i - \hat{y}_i)^2}{n-2}}$
+- $\displaystyle\sigma_x = \sqrt{ \frac{\sum_{i = 1}^n (x_i - \overline{x})^2}{n} }$
+
+* However, we will often just obtain its value by running `summary()` on an `lm()` object and using our eyes to extract the standard error. 
+
+```{r}
+monona = read_csv("../../data/lake-monona-winters-2024.csv")
+
+model_object = lm(duration ~ year1, data = monona)
+
+summary(model_object)
+
+sigma(model_object)
+```
+
+* $\text{SE}(\hat{\beta}_1)$ in the above output is `0.02667`, the number to the right of our estimate of the slope, $\hat{\beta}_1$ =`-0.22298` (from the coefficients table in the middle of the output).
+
+## Full Example
+
+* We now have all the pieces to construct our final confidence interval for $\beta_1$.
+
+$$
+\hat{\beta}_1 \pm \text{qt(C + (1-C)/2, df = n-2)*(SE from lm() output)}
+$$
+
+* By hand, we could calculate:
+
+```{r}
+x = monona$year1
+y = monona$duration
+C = 0.95 # 95% confidence interval
+n = nrow(monona)
+
+r = cor(x, y)
+beta_hat_1 = r * sd(y) / sd(x) # We could have also just done coef(model_object)[1], or used our eyes to get the number -0.22298 from the summary table
+se = 0.02667 # copied from lm() output above; don't worry about calculating by hand, just use lm()
+
+t_crit = qt(C + (1-C)/2, df = n - 2)
+
+## Notice this is a little bit larger than z_crit = 1.96
+t_crit
+
+moe = t_crit*se
+
+left = beta_hat_1 - moe
+right = beta_hat_1 + moe
+
+c(left, right)
+```
+
+* When interpreting a confidence interval for the "true slope", it is hard to avoid mathematical jargon - so we instead report the slope in terms of a one-unit change in X leading to some range of changes in Y. 
+
+> We are 95% confident that every year that passes, the expected duration of Lake Monona closing due to ice changes decreases by somewhere between 0.275 and 0.17 days.
+
+> This rate is also between 1.70 and 2.75 days per decade.
+
+*This interval constitutes strong evidence the true slope is not 0; i.e. there is strong evidence for a negative relationship between our two variables! In fact, a 95% confidence interval that doesn't contain some value $\theta_{\text{test}}$ is equivalent to getting a p-value lower than 0.05 for $H_0: \theta = \theta_{\text{test}}$. Note that $\theta$ is just a general way to write any parameter of interest, like $\mu$, $p$, or $\beta_1$.*
+
+*This underlying connection between confidence intervals and p-values means that we can use confidence intervals to make the same conclusions that p-values do!*
+
+##### Sidenote: The t Distribution
+
+> The $t$ distribution is a continuous distribution which has one parameter, the degrees of freedom.
+
+> It is always centered around 0 and the degrees of freedom controls its spread - higher values of "df" lead to less spread.
+
+> As the degrees of freedom increases towards infinity, the $t$ distribution approaches the standard normal distribution. See this process visually [here](https://rpsychologist.com/d3/tdist/).
+
+> However, its "tails are heavier" than N(0,1) - meaning more extreme values are more likely on the $t$ distribution.
+
+# Hypothesis Testing: Formal Steps
+
+* Last week, we went over the general idea behind hypothesis testing.
+
+* Putting this into practice more formally, every hypothesis test has six steps.
+
+## Step 1: Model Statement
+
+> State the statistical **model** for the data, and check any relevant assumptions.
+
+* The **model** should relate your parameter of interest - be it $\beta_1$, $p$, or $\mu$, or a difference - to your data.
+
+* For example, $X \sim Binom(100, p)$ relates our observed data ($X$, the number of successes) to our parameter of interest $p$.
+
+* In linear regression, our model is:
+
+$$
+Y_i = \beta_0 + \beta_1 * X + \varepsilon_i \text{, for } i = 1,...n
+$$
+
+$$
+\text{where }\varepsilon_i \sim N(0, \sigma)
+$$
+
+* and we check the residual plot assumptions we went over last week.
+
+## Step 2: State Hypotheses 
+
+$H_0$ should be a statement about a parameter with $=$, and $H_A$ should be another statement about that same parameter with $>$, $<$, or $\neq$.
+
+The value we check against usually corresponds to something meaningful in real life. For example, checking if $p = 0.5$ is checking for/against random chance in Binomial distributions, and $\beta_1 = 0$ is checking for/against no relationship between two continuous variables.
+
+## Step 3: Identify Test Statistic and Null Distribution
+
+> A **test statistic** is some statistic from your sample whose distribution is known when the null hypothesis is assumed true.
+
+> Its distribution, when the null hypothesis is assumed true, is called the **null distribution**, or **null sampling distribution**.
+
+* In previous examples, we have known that $X \sim Binom(n, p)$, where $n$ is known and the null hypothesis gives us $p$.
+
+* But what is the test statistic whose distribution is known for $\beta_1$? We are about to learn that!
+
+## Step 4: Identify Outcomes from Data and Alternative Hypothesis
+
+* From the data, we calculate a value of the test statistic.
+
+> If $H_a$ is $>$, the relevant outcomes are **starting from the observed test statistic and everything to its right**.
+
+> If $H_a$ is $<$, the relevant outcomes are **starting from the observed test statistic and everything to its left**.
+
+> If $H_a$ is $\neq$, the relevant outcomes are **all outcomes as far or further from the center than the observed test statistic**.
+
+##### Sidenote: "Getting it Right/Wrong"
+
+* Because one-sided ($>$ or $<$) hypothesis tests always take area to the right or left respectively, we can either be "rewarded" for an accurate hypothesis or "punished" for an inaccurate hypothesis.
+
+* For example, we observe a point estimate that is larger than the null value.
+
+```{r, echo = FALSE}
+gnorm() +
+  geom_vline(xintercept = 1)
+```
+
+* If we had **hypothesized ahead of time it would be larger**, we "got it right", and are rewarded with a smaller p-value. 
+
+```{r, echo = FALSE}
+gnorm() +
+  geom_vline(xintercept = 1) +
+  geom_norm_fill(a = 1)
+```
+
+* If we had **hypothesized ahead of time it would be smaller**, we "got it wrong", and are punished with a larger p-value.
+
+```{r, echo = FALSE}
+gnorm() +
+  geom_vline(xintercept = 1) +
+  geom_norm_fill(b = 1)
+```
+
+* The two-sided hypothesis $\neq$ considers all outcomes more extreme than the observed test statistic in either direction.
+
+* This makes it a "safe guess" if you don't have a prior idea which direction the effect is in.
+
+* For symmetric distributions, it will be double the "correct guess" p-value, but much less than the "incorrect guess" p-value.
+
+```{r, echo = FALSE}
+gnorm() +
+  geom_vline(xintercept = 1) +
+  geom_hline(yintercept = dnorm(1)) +
+  geom_norm_fill(a = 1) +
+  geom_norm_fill(b = -1)
+```
+
+## Step 5: Calculate P-Value
+
+> The **p-value** is the total probability of **the outcomes in step 4** on **the null distribution from step 3**.
+
+## Step 6: Interpret in Context
+
+> Low p-values lead us to reject the null hypothesis (traditionally p-values < 0.05), while higher p-values mean we have **failed to reject** the null hypothesis.
+
+*Note that we never say we have disproven or proven the null! Hypothesis tests pose the question, "is my data compatible with the null hypothesis?" A no to that question is helpful, but a yes doesn't really prove anything.*
+
+# Hypothesis Testing for Beta-1 Example
+
+> Conduct a hypothesis test to assess the evidence that there is a NEGATIVE linear relationship between year and duration of Lake Monona closures.
+
+## Step 1: Model Statement
+
+$$
+Y_i = \beta_0 + \beta_1 * X + \varepsilon_i \text{, for } i = 1,...n
+$$
+
+$$
+\text{where }\varepsilon_i \sim N(0, \sigma)
+$$
+
+* At this point, we check the three linear regression assumptions with a residual plot, just like we would consider BINS for any model involving the binomial distribution.
+
+```{r}
+ggplot(monona, aes(x = year1, y = resid(model_object))) +
+  geom_point() +
+  geom_hline(yintercept = 0)
+```
+
+> **Linearity** is satisfied; the residuals don't show an obvious curve pattern.
+
+> **Normal errors around 0** is satisfied; the residuals tend towards the central line, with large outliers uncommon, and they are symmetric.
+
+> **Constant variance** is satisfied; the residuals do NOT fan out or funnel in as you increase X (year).
+
+## Step 2: State Hypotheses
+
+* We are interested in the presence of a **negative** linear relationship between the two variables. Hence, we will use a one-sided alternative hypothesis.
+
+* The null hypothesis captures the idea that there is no pattern, no relationship, no difference, et cetera.
+
+$$
+H_0: \beta_1 = 0
+$$
+
+$$
+H_A: \beta_1 < 0
+$$
+
+## Step 3: Identify Test Statistic and Null Sampling Distribution
+
+* $\beta_1$ is really dependent upon the units of the data - if we measured duration in seconds instead of years, then $\beta_1 = r * s_y / s_x$ would be much more extreme since $s_y$ would increase drastically. ($r$ and $s_x$ would be unaffected by this change.)
+
+* The distribution has to be unaffected by unit changes.
+
+* Therefore, our test statistic is going to have some sort of control from the scope of the data, such that we know the distribution no matter what the scale of the data is.
+
+* In fact, the test statistic here takes on a very common and intuitive form that we will see multiple times in this class: $\frac{\text{Point Estimate - Null Value}}{\text{Standard Error}}$.
+
+> Our test statistic (and null distribution) for a hypothesis test for $\beta_1$ is: $T = \frac{\hat{\beta}_1 - \beta_{1,null}}{SE(\hat{\beta}_1)} \sim t(n-2)$. 
+
+*Note that $\beta_{1,null}$ is often but not always 0.*
+
+## Step 4: Identify Outcomes From Data and Alt. Hyp.
+
+* First, we must calculate our observed value of the test statistic.
+
+* For this, we need the value of the point estimate and standard error, which we can extract from the `summary(lm())` output.
+
+```{r}
+summary(model_object)
+```
+
+```{r}
+point_estimate = -0.22298 # Equivalent: coef(lions_model)[2]
+se = 0.02667
+
+test_stat = (point_estimate - 0)/se
+
+test_stat
+```
+
+> Notice this is the **t value** next to our slope estimate and standard error in the coefficients table of the `summary(lm(...))` output!
+
+* Next, we have to identify what our relevant outcomes are based on the alternative hypothesis.
+
+* Because our alternative $H_a: \beta_1 < 0$ has $<$ in it, we take all the area to the **left** of our observed test statistic.
+
+```{r}
+n = nrow(monona)
+
+gt(df = n - 2) +
+  geom_vline(xintercept = test_stat)
+```
+
+*Note: Visually, the area to the left of that line should be really, really small.*
+
+*We are being "rewarded" for a correct guess.*
+
+## Step 5: Calculate p-value
+
+* Calculating the area to the left of our test statistic is done with `pt()`.
+
+```{r}
+# reminder: continuous areas, caution to the wind, no need to adjust anythin inside the pt()!
+pt(test_stat, df = n - 2)
+```
+
+> The p-value given to you by `summary(lm())` is based on the **two-sided** alternative, which is why it is written as $Pr(>|t|)$; e.g. the probability of getting a more extreme outcome than your observed test statistic in either direction.
+
+* Notice that our one-sided p-value here that we calculated by hand is half the two-sided p-value reported in the `summary(lm())` output.
+
+## Step 6: Interpret in Context
+
+* Recall that a small p-value constitutes strong evidence for $H_a$ in context.
+
+> There is strong evidence for a negative linear relationship between year and the duration of closure due to ice on Lake Monona (p-value $\approx$ 0, linear regression).
+
+# Advanced Intervals
+
+* All of our previous confidence intervals have been for a **parameter of interest** from the model.
+
+* However, confidence intervals can also be extended to estimate other useful quantities, such as the response for a new observation, or the expected value of the response for a new observation.
+
+* We will explore each of those ideas superficially in this section. Note that we will not ask you to compute these intervals by hand; we will teach you how to use `predict()` to obtain them.
+
+## Data: Lion Ages
+
+- Biologists are interested in examining the relationship between the age of lions and the proportion of their nose that is black.
+- Data are collected from a group of lions whose ages are known.
+- The hope is to develop a model to predict the age of lions with unknown age from something that can be measured from a distance with minimal interference from an image of the lion's face.
+- Experts use multiple characteristics in addition to nose color, such as mane length, teeth wear, and facial scarring.
+- For this class, we will just try to predict their age from the proportion of their nose which is black.
+
+![Image of Lion Noses from https://panthera.org/blog-post/how-age-lion](https://i.imgur.com/3AQL34H.png)
+
+```{r}
+lions = read_csv("../../data/lions.csv") %>% 
+  rename(black = proportion.black)
+```
+
+```{r}
+ggplot(lions, aes(age, black)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = F)
+```
+
+## Prediction Intervals for a New Observation
+
+> The goal of a prediction interval is to obtain a numeric interval which, given a new observation with known $X$, will contain its $Y$ with known confidence.
+
+> Mathematically, we write this as an interval for $\hat{y} \mid x^*$; read as "y-hat given x-star", meaning we want to predict the y value at a known value of x, which is x-star.
+
+* For example, a lion cub you know nothing else about has just turned 5 years old (its $X$ value). You are asked to provide an interval which contains the percentage of its nose which is black (its $Y$ value) with 95% confidence.
+
+* Just like all other intervals, our interval will follow the general form:
+
+$$
+(\text{Point Estimate}) \pm (\text{Quantile Confidence Score}) \times (\text{Standard Error})
+$$
+
+* Our **point estimate** here is our best guess of $\hat{y} \mid x^*$; the percentage of the cub's nose which is black, given that the cub is 5 years old.
+
+* We just spent a week studying this! Our best guess comes from plugging 5 in for $X$ into the best fit line.
+
+```{r}
+estimates = coef(lm(black ~ age, lions))
+
+beta_hat_0 = estimates[1]
+beta_hat_1 = estimates[2]
+
+new_x = 5
+
+prediction = beta_hat_0 + beta_hat_1 * new_x
+prediction
+```
+
+* A reminder that this is just finding the height of our best-fit line at $x = 5$.
+
+```{r}
+ggplot(lions, aes(x = age, y = black)) +
+  geom_point() +
+  geom_smooth(se = FALSE, method = "lm") +
+  geom_point(aes(x=new_x, y=beta_hat_0 + new_x*beta_hat_1), color="red", size=4) + 
+  geom_vline(xintercept = new_x, color="red", linetype="dashed") +
+  geom_hline(yintercept = prediction, color = "red", linetype = "dashed")
+```
+
+* Now we need the sampling distribution and standard error. Just like all other inference associated with linear regression, the sampling distribution is $t(n-2)$.
+
+* However, the standard error is quite complex.
+
+* The reason for this is when we model our data as:
+
+$$
+Y_i = \beta_0 + \beta_1 * X + \varepsilon_i \text{, for } i = 1,...n
+$$
+
+$$
+\text{where }\varepsilon_i \sim N(0, \sigma)
+$$
+
+* We have **three** sources of uncertainty in our prediction: we are estimating the true $\beta_0$, we are estimating the true $\beta_1$, and even if we knew those, we assume there is some random noise around the true line from $\varepsilon_i \sim N(0, \sigma)$.
+
+* The formula for the standard error for $y \mid x^*$ is below, for the curious, but we will never ask you about this formula.
+
+$$
+s_{\hat{y}^*} = \sqrt{\left((n-2)^{-1} \sum_{i=1}^n(y_i - \hat{y}_i)^2\right)\left(1 + n^{-1} + \frac{(x^* - \overline{x})^2}{\sum_{i = 1}^n (x_i - \overline{x})^2} \right)}
+$$
+
+This may be rewritten as
+
+$$
+s_{\hat{y}^*} = \hat{\sigma} \times \sqrt{ 1 + \frac{1 + z^2}{n} }
+$$
+
+where:
+
+- $\displaystyle \hat{\sigma} = \sqrt{ \frac{\sum_{i=1}^n (y_i - \hat{y}_i)^2}{n-2} }$
+- $\displaystyle z = (x^* - \bar{x})/\hat{\sigma}_x$
+- $\displaystyle \hat{\sigma}_x = \sqrt{\frac{\sum_{i=1}^n (x_i - \bar{x})^2}{n}}$
+
+* With a known point estimate, sampling distribution, and formula for the standard error, we could compute this interval by hand.
+
+* However, we will instead lean on the `predict()` command for these intervals.
+
+### `predict()` for Prediction Intervals
+
+* `predict()` requires two things, with an important but optional third.
+
+> The first argument to `predict()` is an `lm()` model object.
+
+> The second argument is a dataframe `newdata` containing the $x$ point(s) you want the predictions for.
+
+* If you just specify these two arguments, it just gives you the single predicted y value for that $x$ point or points.
+
+```{r}
+lions_model = lm(black ~ age, lions)
+
+# Note that the predictor name 'age' in newdata has to exactly match the predictor name 'age' in the model object.
+predict(lions_model, newdata = tibble(age = 5))
+
+# Note this is the same as what we manually calculated.
+prediction
+```
+
+* The reason `newdata` has to be a dataframe is two-fold:
+    - 1) `lm()` supports more than one predictor in your model, which we would give as more columns, and...
+    - 2) `predict()` can give you more than one prediction at a time.
+    - `newdata` being a dataframe makes these specifications very easy.
+    - Unfortunately, it makes it just a little awkward for just a single predicted value.
+    
+```{r}
+# For example, predicted values from this model for lion ages 1 through 10
+
+predict(lions_model, newdata = tibble(age = 1:10))
+```
+    
+
+> The third (optional) argument is `interval`, which you can give the value `"prediction"` for a prediction interval, or `"confidence"` for a confidence interval of the regression line (next section).
+
+- Here's where `predict()` becomes very useful; it will compute prediction intervals for us at each of the specified points when we specify `interval = "prediction"`.
+
+```{r}
+intervals = predict(lions_model, newdata = tibble(age = 1:13), interval = "prediction")
+
+intervals
+```
+
+* It will do this for every point we include in `newdata`; we happened to just be interested in x=5, but it is trivially easy to produce intervals for any point.
+
+> We are 95% confident that the percentage of nose which is black for a lion that is 5 years old will be between 10.5% and 61.9%.
+
+* The prediction intervals are rather wide; but when we look at them overlaid upon the scatterplot, we see why.
+
+```{r}
+ggplot(lions, aes(age, black)) +
+  geom_point() +
+  geom_line(data = as_tibble(intervals),
+            mapping = aes(x = 1:13, y = lwr),
+            color = "red",
+            linetype = "dashed") +
+  geom_line(data = as_tibble(intervals),
+            mapping = aes(x = 1:13, y = upr),
+            color = "red",
+            linetype = "dashed") +
+  labs(
+    title = "Lion Ages vs. % nose black",
+    subtitle = "With Prediction Intervals"
+  ) +
+  theme(plot.title = element_text(size = 20),
+        plot.subtitle = element_text(size = 15))
+```
+
+* These prediction intervals should cover roughly 95% of the points in our dataset, which these do.
+
+### General Properties of Prediction Intervals
+
+* Prediction intervals tend to be **wide**, because there is a high degree of randomness in the response of just a single observation.
+
+* Furthermore, prediction intervals are **wider** at the **edges of the data** with respect to $X$.
+    - It is a little bit hard to see from the above graph, but the prediction intervals "bow in" towards the middle; they are narrower in the center.
+    - Here's how I conceptualize this point: we know that our estimated regression line will always go through $(\bar{x}, \bar{y})$, and that is probably very close to the true line. Imagine sticking a pin through the line at that point, and rotating it up and down like a seesaw. A small rotation of a few degrees does not change the height of the line much near the fulcrum/pivot point/center, but it drastically changes the height at points far from the pivot point.
+
+## Confidence Intervals for the True Line's Height at Some X
+
+> The goal of a confidence interval for the true line's height is to obtain a numeric interval which, given some $X$ value, will contain the $Y$ value of the **true underlying line's height, $\beta_0 + \beta_1 X$**, with known confidence.
+
+> Mathematically, we write this as an interval for $E(Y \mid x^*)$; read as "the expectation of Y given x-star", meaning we want to predict the height of the true underlying line at a known value of x, which is x-star.
+
+* Instead of predicting the $Y$ of a single new observation, we are now predicting where the true regression line is.
+
+### Investigation with Simulation
+
+* Remember that our best-fit line that we compute as $\hat{\beta}_0 + \hat{\beta}_1*X$ (and plot with `geom_smooth`) is just an ESTIMATE.
+
+* We can see that there is uncertainty in this estimate by simulating fake random data from a known real line, calculating the coefficients based off that fake random data, and seeing how close our estimated lines are to the real line.
+
+---
+
+* Our linear regression model is pasted below for reference.
+
+$$
+Y_i = \beta_0 + \beta_1 * X + \varepsilon_i \text{, for } i = 1,...n
+$$
+
+$$
+\text{where }\varepsilon_i \sim N(0, \sigma)
+$$
+
+* This has four parameters we can control for our simulations:
+
+- Two are obvious; the real $\beta_0$ and $\beta_1$ that we will generate our real data from.
+
+- Two are less obvious: the size of the dataset, $n$, and the variation of the errors, $\sigma$.
+
+* Our process will be to:
+
+1) Generate $n$ random points from $\beta_0 + \beta_1 * X + \varepsilon_i$.
+2) Estimate $\hat{\beta}_0$ and $\hat{\beta}_1$ from that fake data; write them down.
+
+- In our simulation, we can also control **how many times** we repeat this process; a parameter we will call **B**.
+
+```{r, echo = FALSE}
+simulateBestFitLines = function(B = 100, real_beta_0 = 5, real_beta_1 = 10, error_sigma = 5, n = 50) {
+
+# Set up an empty dataframe in which to store our estimates
+estimates = tibble(beta_hat_0 = numeric(0), beta_hat_1 = numeric(0))
+
+# Do the following B times:
+for (i in 1:B) {
+  # Generate n random points from the real beta 0, real beta 1, and error variation
+  simulated_data = tibble(
+    x = runif(n, 0, 10),
+    y = real_beta_0 + real_beta_1 * x + rnorm(n, sd = error_sigma)
+  )
+  # Compute estimates beta hat 0 and beta hat 1 from that fake data, write them down
+  estimates[i,] = t(as_tibble(coef(lm(y ~ x, simulated_data))))
+}
+
+# unfortunately geom_abline() doesn't take slope and intercept as variable aesthetics, so I am forced to plot segments instead
+estimates_for_plotting = estimates %>% 
+  mutate(x = 0,
+         xend = 10,
+         y = beta_hat_0,
+         yend = beta_hat_0 + beta_hat_1 * 10)
+
+# Plotting code
+ggplot(estimates_for_plotting) +
+  # The estimated lines
+  geom_segment(aes(x=x, xend=xend, y=y, yend=yend)) +
+  # The real line
+  geom_abline(slope = real_beta_1, intercept = real_beta_0, color = "red", linewidth = 3, linetype = "dashed") +
+  labs(
+    title = paste0(B, " estimates of true line: ", real_beta_0, " + ", real_beta_1, "*X"),
+    subtitle = paste0("With n = ", n, ", error variation = ", error_sigma)
+  ) +
+  theme(plot.title = element_text(size = 20),
+        plot.subtitle = element_text(size = 15))
+}
+```
+
+```{r}
+simulateBestFitLines(error_sigma = 10)
+```
+
+* In this way, we have created a sort of confidence interval for the true regression line; not based in any statistical theory, but the range of these lines would be a great guess, and in fact will be very close to the true form derived through theory.
+
+* As we introduce more variation into the data, our estimates become a little more wilder, but still tend to capture the real line. 
+
+```{r}
+simulateBestFitLines(error_sigma = 20)
+```
+
+* This graph especially emphasizes the idea that, just like prediction intervals, confidence intervals for the location of the true regression line get **tighter near the middle of the data** and **wider near the edge of the data**.
+
+* Finally, just for giggles, let's see what happens when the error variation $\sigma = 50$ way outpaces the real $\hat{\beta}_1 = 10$:
+
+```{r}
+# I encourage you to run this many times in your console and play with the values of the parameters: real_beta_0, real_beta_1, n, error_sigma, and B!
+simulateBestFitLines(error_sigma = 50)
+```
+
+* I would argue the regression line still does an admirable job capturing the real line despite significant noise!
+
+### A note on `geom_smooth(se = T)`
+
+* The entire semester, we have been ignoring the "transparent gray ribbon" around `geom_smooth`'s line when we leave the `se` argument as `TRUE`, its default.
+
+* That ribbon is actually just many thin confidence intervals for the true regression line!
+
+* Back to the lions data:
+
+```{r}
+ggplot(lions, aes(age, black)) +
+  geom_point() +
+  geom_smooth(method = "lm")
+```
+
+
+### Standard Error of Confidence Regression Intervals
+
+* Like prediction intervals, we will use `predict()` to calculate confidence intervals for the regression line. 
+
+* We could hypothetically calculate them through the general form:
+
+$$
+(\text{Point Estimate}) \pm (\text{Quantile Confidence Score}) \times (\text{Standard Error})
+$$
+
+* Our point estimate for the regression line at a point is the same for the point estimate of a prediction interval; our best guess is still the location of our blue estimated best-fit line.
+
+* Our quantile confidence score is still `qt(C + (1-C)/2, df = n - 2)`.
+
+* However, the sampling error,
+
+$$
+s_{\hat{y}} = \sqrt{\left((n-2)^{-1} \sum_{i=1}^n(y_i - \hat{y}_i)^2\right)\left(n^{-1} + \frac{(x^* - \overline{x})^2}{\sum_{i = 1}^n (x_i - \overline{x})^2} \right)}
+$$
+
+This can be rewritten as
+
+$$
+s_{\hat{y}} = \frac{\hat{\sigma}}{\sqrt{n}} \times \sqrt{1 + z^2}
+$$
+where:
+
+- $\displaystyle \hat{\sigma} = \sqrt{ \frac{\sum_{i=1}^n (y_i - \hat{y}_i)^2}{n-2} }$
+- $\displaystyle z = \frac{ x^* - \bar{x}}{\sigma_x}$
+- $\displaystyle \sigma_x = \sqrt{ \frac{\sum_{i=1}^n (x_i - \bar{x})^2}{n} }$
+
+* It is subtle, but this error is **smaller** than that of the prediction interval - it only has two sources of error, our estimates of $\hat{\beta}_0$ and $\hat{\beta}_1$.
+    - Since we are predicting $E(Y|X^*)$, we apply an expected value to everything in $\hat{\beta}_0 + \hat{\beta}_1*X_i + \varepsilon_i$, and $E(\varepsilon_i)$ is 0, so that whole term goes away and does not contribute to the error.
+    - Once again, the math is not important to this course, but the final result that confidence intervals for the regression line are **tighter** than prediction intervals is important.
+
+### `predict()` for Confidence Regression Intervals
+
+* `predict()` for confidence regression intervals works the same as it does for prediction intervals, except we use `interval = "confidence"` instead of `interval = "prediction"`.
+
+```{r}
+# More discussion on predict() can be found in the prediction intervals section; I present this code assuming you have seen that section before
+
+intervals_confidence = predict(lions_model, newdata = tibble(age = 1:13), interval = "confidence")
+
+intervals_confidence
+```
+
+
+```{r}
+ggplot(lions, aes(age, black)) +
+  geom_point() +
+  geom_line(data = as_tibble(intervals), mapping = aes(x = 1:13, y = lwr)) +
+  geom_line(data = as_tibble(intervals), mapping = aes(x = 1:13, y = upr)) +
+  geom_line(data = as_tibble(intervals_confidence), mapping = aes(x = 1:13, y = lwr), color = "darkgreen") +
+  geom_line(data = as_tibble(intervals_confidence), mapping = aes(x = 1:13, y = upr), color = "darkgreen") +
+  geom_smooth(method = "lm") +
+  labs(
+    title = "Lion Ages vs. % nose black",
+    subtitle = "With Prediction Intervals in Black, Confidence Regression Interval in Green"
+  )  +
+  theme(plot.title = element_text(size = 20),
+        plot.subtitle = element_text(size = 15))
+```
+
+
+
