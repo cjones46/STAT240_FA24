@@ -89,7 +89,7 @@ all Madison drivers is between the endpoints of the confidence interval.
 D) We are 95% confident that the mean amount of money spent per week on gas by
 all Madison drivers is between the endpoints of the confidence interval.
 
-> D) We are 95% confident that the mean amount of money spent per week on gas by
+> B/D) We are 95% chance/confident that the mean amount of money spent per week on gas by
 all Madison drivers is between the endpoints of the confidence interval.
 
 
