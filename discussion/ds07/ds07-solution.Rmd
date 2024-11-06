@@ -36,15 +36,15 @@ For each scenario, explain why the random variable will or will not have a binom
 
 1. A bucket contains 10 colored tokens with five that are red and five that are blue. Four tokens are drawn at random from the bucket one at a time, but without replacing the tokens drawn. $X_1$ is the number of red tokens selected.
 
-> Write your answer here
+> Not a binomial distribution. Since the trials are not independent.
 
 2. A fair coin is tossed repeatedly until the tenth head is tossed. $X_2$ is the number of tails tossed prior to the tenth head.
 
-> Write your answer here
+> Not a binomial distribution. Since the number of trials is not fixed.
 
 3. Four buckets each contain a total of five tokens each, some red and some blue. The number of red tokens in the buckets are 1, 2, 3, and 4 with blue tokens making up the remainder. One token is drawn at random from each bucket. $X_3$ is the total number of red tokens drawn.
 
-> Write your answer here
+> Not a binomial distribution. The probabilities of drawing a red token are not the same for each trial
 
 # Problem 2
 
