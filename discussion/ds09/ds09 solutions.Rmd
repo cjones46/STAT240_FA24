@@ -1,0 +1,277 @@
+---
+title: "Discussion 9"
+output: html_document
+---
+
+# Preliminaries
+
+-   This file should be in `STAT240/discussion/ds09` on your local computer.
+
+-   This assignment should be completed in your **assigned Canvas groups**. Only one person has to submit on behalf of the group. You may submit whatever you have at the end of discussion section for full credit.
+
+- Download `boston-marathon.csv` and the `diabetes.csv` data sets to `STAT240/data`
+
+# Present Group Members
+
+Please **write the names of the present group members** here.
+
+> Present Group Members:
+
+> Absent Group Members:
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, 
+                      error = TRUE, 
+                      warning = FALSE, 
+                      message = FALSE)
+library(tidyverse)
+source("~/Desktop/STAT 240/scripts/ggprob.R")
+```
+
+
+# Problem 1
+
+In a psychological experiment, a reported psychic tries to guess the suit of the cards of a well-shuffled stack of cards which includes many decks shuffled together.
+
+You may assume that the suit of each card in order is equally likely to be any one of the four suits and that the suits of the cards are independent of each other.
+
+**(a)** If $X$ is the number of cards correctly guessed, what distribution does X follow?
+
+> $X \sim \text{Binom}(100,p)$
+
+In guesses of the suits of 100 cards, the psychic correctly guesses the suit 29 times. Conduct a formal hypothesis test to examine the evidence that the psychic can guess the suit of the cards more often than expected.
+
+**(b)** State hypotheses for conducting this test. Also mention the type of the hypothesis test.
+
+> $H_0: p = 0.25$ and $H_{\alpha}: p > 0.25$. It is a one sided/right tailed test.
+
+**(c)** Calculate the p-value for the above test.
+
+> $\hat{p} = 29/100$
+
+```{r}
+p_value <- 1 - pbinom(28, 100, 0.25)
+p_value
+```
+
+**(d)** Considering that the significance level is $0.05$, what conclusion can you come to from the above p-value?
+
+> Since $p > 0.05$, we fail to reject the null hypothesis. That is there is little evidence that the psychic can correctly identify the suit of a randomly chosen card.
+
+# Problem 2
+
+Suppose you are playing a coin flipping game with a friend, where you suspect the coin your friend provided is not a fair coin. In fact, you think the probability the coin lands heads is less than 0.5. To test this, you flip the coin 100 times and observe the coin lands heads 35 times.
+
+**(a)** State the appropriate null and alternate hypotheses for conducting this test. Also mention the type of the hypothesis test.
+
+> $H_0: p = 0.5$ and $H_{\alpha}: p < 0.5$. It is a one sided/left tailed test.
+
+**(b)** Calculate the p-value for the above test.
+
+> $\hat{p} = 35/100$
+
+```{r}
+p_value <- pbinom(35, 100, 0.5)
+p_value
+```
+
+**(c)** Considering that the significance level is $0.05$, what conclusion can you come to from the above p-value?
+
+> Since $p < 0.05$, we reject the null hypothesis. That is there is enough evidence that the coin is not a fair coin and the probability of getting a head is less than 0.5.
+
+# Problem 3
+
+**(a)** We sample 5 of the 100 coin flips and get the number of heads as (35, 35, 30, 33, 31). What is the sample mean? 
+
+```{r}
+sample_mean <- mean(c(35, 35, 30, 33, 31))
+```
+
+**(b)** Assuming that the probability of getting head while flipping the unfair coin from problem 2 is 0.3. What will be the distribution of the sample means for part (a)?
+
+> $\bar{X} \sim N(np, \sqrt{np(1-p)/5})$
+
+**(c)** What is the probability of getting a sample mean smaller than the sample mean in part (a) in the distribution from part (b)?
+
+```{r}
+pnorm(sample_mean, 100*0.3, sqrt(100*0.3*0.7/5))
+```
+
+
+
+# EXAM 2 CONTENT STOPS HERE. Any content below will not be on Exam 2.
+
+# Problem 4
+
+Given the value of correlation what relationship does X and Y have? 
+
+- $r = -0.68$
+
+> There is a negative correlation that is not quite strong.
+
+- $r = -0.89$
+
+> There is a strong, but not perfect, negative correlation.
+
+- $r = -0.015$
+
+> There is no clear linear relationship between x and y, so correlation is approximately 0.
+
+- $r = 0.32$
+
+> There is a positive correlation between x and y, but it is not very strong.
+
+- $r = 0.97$
+
+> There is a very strong positive (almost perfect positive) relationship between x and y.
+
+- $r = -1$
+
+> There is a perfect negative linear relationship.
+
+
+
+# Problem 4
+
+Using the Boston marathon dataset
+
+```{r}
+# This code is provided for you. Do not change it.
+set.seed(70)
+marathon <- read_csv("~/Desktop/STAT 240/data/boston-marathon.csv") %>% filter(Year == 2011) %>% select(Age, Time) %>% slice_sample(n = 500)
+```
+
+**(a)** Identify the dependent (y) and independent (x) variables in the Boston Marathon dataset. Calculate the correlation between x and y.  Comment on the strength and magnitude of the linear relationship, and whether a linear model seems to be appropriate
+ 
+> Age is the independent variable as the Time depends on it, thus Time is the dependent variable.
+
+```{r}
+x = marathon$Age
+y = marathon$Time
+
+r = cor(x,y)
+r
+```
+
+> The correlation between age and time is a positive correlation but not strong.
+
+
+**(b)** Create a scatterplot of x vs y (identified above) that also shows the linear regression line.
+
+```{r}
+ggplot(marathon, aes(x = Age, y = Time)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE)
+```
+
+**(c)** Build a linear model called `model_marathon` for the Boston marathon dataset and display it's summary.
+
+```{r}
+model_marathon <- lm(Time~Age, data = marathon)
+summary(model_marathon)
+```
+
+**(d)** The residual plot for the linear regression model created above is given below and check whether the assumptions of the linear regression model is satisfied for this model.
+
+```{r}
+# This code is provided for you. Do not change it.
+residual = resid(model_marathon)
+
+ggplot(mapping = aes(x = marathon$Age, y = residual)) +
+  geom_point() +
+  geom_hline(yintercept = 0) +
+  geom_smooth(se= F)
+```
+
+> The linearity (the residual almost behave non linearly), the normal error with mean 0 and the constant variance for the error assumption are violated for this model. Thus, all three assuptions are violated.
+
+
+# Problem 5
+
+Consider the diabetes data set.
+
+```{r}
+# This code is provided for you. Do not change it.
+
+diabetes <- read_csv("~/Desktop/STAT 240/data/diabetes.csv") %>% rename(glucose = "Glucose") %>% filter(BMI > 1 & BMI < 50 & !is.na(BMI) & !is.na(glucose) & glucose > 0) %>% select(glucose, BMI)
+```
+
+```{r}
+# This code is provided for you. Do not change it.
+
+ggplot(diabetes, aes(x = BMI, y = glucose)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE)
+```
+
+
+**(a)** Calculate the correlation between Glucose levels (y variable) and BMI (x variable). Comment on the strength and magnitude of the linear relationship based on the correlation and the above plot. Do you think a linear model seems to be appropriate?
+
+```{r}
+x <- diabetes$BMI
+y <- diabetes$glucose
+r <- cor(x,y)
+r
+```
+
+
+> Both the scatterplot and correlation indicate a fairly positive linear relationship. Visually, the points are scattered around a line, so a linear model seems like a good fit for this data.
+
+
+**(b)** Calculate the slope and intercept of a least-squares linear regression model using the formula discussed in class. Check your answers with intercepts produced from `lm()`. After you find the estimates write the expression of the linear regression model (expression for $\hat{Y}_i$).
+
+
+```{r}
+beta_1_hat <- r * sd(y) / sd(x)
+beta_0_hat <- mean(y) - (mean(x) * beta_1_hat)
+
+beta_0_hat
+beta_1_hat
+```
+
+
+
+```{r}
+model_diabetes <- lm(glucose~BMI, diabetes)
+coef(model_diabetes)
+```
+
+> The linear regression model is $\hat{Y}_i = 86.8414 + 1.0846*X_i$
+
+
+**(c)** Write a code similar to Problem 4 part (d) and perform a residual analysis of the diabetes linear model to assess the fit.  Based on the scatterplot of residuals and comment on the three assumptions:
+
+- Linearity
+- Normality
+- Constant variance
+
+```{r}
+residual = resid(model_diabetes)
+ggplot(diabetes, mapping = aes(x = BMI, y = residual)) +
+  geom_point() +
+  geom_hline(yintercept = 0) +
+  geom_smooth(se = F)
+```
+
+> Linearity: There are no significant curved pattern in the scatterplot of residuals, so the relationship between x and y appears to be linear.
+
+> Normality: Most of the points are close to the line, with a few points scattered away from the line in a symmetric way. So, the residuals appear to be normal.
+
+> Constant variance: The scatter of the residuals around the line is roughly constant for all values of x.
+
+
+# Problem 6
+
+**(a)** Depending on the model built in Problem 5, part b, predict the glucose level of a person with a BMI of 51.
+
+```{r}
+y_pred <- 86.8414 + 1.0846*51
+y_pred
+```
+
+**(e)** What conclusions can you make about the likelihood of a person developing diabetes based on their BMI.
+
+> People with higher BMI have a higher likelihood of developing diabetes but higher BMI is not a strong indicator of developing diabetes as it also depends on other factors.
+
+
+
