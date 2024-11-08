@@ -1,0 +1,159 @@
+---
+title: "Homework 9"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE,
+                      warning = FALSE, error = TRUE,
+                      fig.height = 3)
+library(tidyverse)
+```
+
+# Preliminaries
+
+- This file should be in `STAT240/homework/hw09` on your local computer.
+- Download `happiness_2019.csv` and `dc_weather.csv` to `STAT240/data`.
+
+
+# Problem 1
+
+A one-sided hypothesis test of 
+
+$$H_A: \beta_1 > 0$$
+
+is performed on a linear model.  The p-value of this test is 0.035.  What would be the p-value if the same data was used to test the following alternatives?
+
+**(a)** $$H_A: \beta_1 < 0$$
+
+> Replace this text with your response.
+
+**(b)** $$H_A: \beta_1 \neq 0$$
+
+> Replace this text with your response.
+
+
+# Problem 2
+
+Continue working with the happiness index vs GDP of countries model from Homework 8.
+
+```{r}
+happiness <- read_csv("../../data/happiness_2019.csv")
+
+# Remove spaces from column names
+names(happiness) <- make.names(names(happiness))
+
+happiness_mod <- lm(Score ~ GDP.per.capita, data = happiness)
+```
+
+Build and interpret a 98% CI for the true slope of the linear relationship between happiness index and GDP.  Does the interval cover 0?
+
+```{r}
+# Write your code here!
+```
+
+
+# Problem 3
+
+Perform a hypothesis test of hypotheses
+
+$$H_0: \beta_1 = 0 \quad \text{versus}\quad H_A: \beta_1 \neq 0$$
+
+for the slope of the happiness model.  What is the test statistic, p-value, and conclusion at the 2% level?
+
+```{r}
+# Write your code here!
+```
+
+
+# Problem 4
+
+How do the results of the hypothesis test in problem 3 relate to the results of the confidence interval in problem 2?
+
+> Replace this text with your response.
+
+
+# Problem 5
+
+Which of the following conditions lead to a smaller standard error?  Briefly explain your choices.
+
+- A smaller sample size vs a larger sample size
+
+> Replace this text with your response.
+
+- A smaller value of $\sigma$ vs a larger value of $\sigma$
+
+> Replace this text with your response.
+
+- Predicting closer to $\bar{x}$ vs predicting further from $\bar{x}$
+
+> Replace this text with your response.
+
+- A smaller variance vs a larger variance in the original $X$ data
+
+> Replace this text with your response.
+
+
+# Problem 6
+
+Consider predicting the happiness index of a country with 1 GDP per capita.
+
+**(a)** Build a *prediction interval* for the happiness index of a new country with $x^* = 1$ GDP per capita.
+
+```{r}
+# Write your code here!
+```
+
+
+**(b)** Build a *confidence interval* for the height of the regression line at $x^* = 1$.
+
+```{r}
+# Write your code here!
+```
+
+**(c)** Explain the difference in how the prediction and confidence intervals are calculated.
+
+> Replace this text with your response.
+
+
+# Problem 7
+
+The file `dc_weather.csv` contains weather data for Washington, DC from August 2018 to August 2024. 
+
+```{r}
+weather <- read_csv("../../data/dc_weather.csv")
+
+weather_mod <- lm(dew ~ tempmin, data = weather)
+```
+
+**(a)** Make a plot of minimum temperature (in C) on the x axis versus dew point on the y axis.  Comment on the shape of the data.
+
+```{r}
+# Write your code here!
+```
+
+> Replace this text with your response.
+
+**(b)** Use R's `lm` to fit a linear model for dew point in terms of minimum temperature.  Perform a residual plot analysis to assess the validity of this model.
+
+```{r}
+# Write your code here!
+```
+
+> Replace this text with your response.
+
+
+# Problem 8
+
+We want to test whether the slope of the linear relationship between minimum temperature and dew point is **greater than 1**.  Write hypotheses corresponding to the question of interest and carry out the test on the weather data.  Make a conclusion with $\alpha = 0.05$.
+
+```{r}
+# Write your code here!
+```
+
+> Replace this text with your response.
+
+
+
+
+
