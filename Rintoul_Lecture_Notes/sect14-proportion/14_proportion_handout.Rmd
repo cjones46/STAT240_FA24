@@ -1,0 +1,210 @@
+---
+title: "Section 14: Proportions"
+author: "Student's Name Here"
+date: "2024-10-11"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, error = TRUE)
+```
+
+```{r}
+library(tidyverse)
+source("../../scripts/ggprob.R")
+```
+
+## Proportion sampling distribution
+
+
+This lecture will use the data in `chimpanzee.csv`. The data is based on an experiment conducted by scientists at Emory University in 2011; though those scientists did not make their true data public, we have created a "mock" dataset which gives the same results and summary values as their data.
+
+* Two chimpanzees were put in adjacent enclosures with the ability to see and communicate with each other.
+
+* One chimpanzee, the **actor**, was given the choice to pick from a bucket of tokens which were two different colors.
+
+* The actor had previously been taught that one color would lead to the human researcher to give them (just the actor) a treat. We call this the **selfish** choice.
+
+* The other color would lead to the human researcher giving **both the actor and the partner** a treat. We call this the "**prosocial**" choice.
+
+* The **actor** was given this choice 30 times, and the number of **prosocial** and **selfish** choices were recorded.
+
+* The researchers performed this experiment with many combinations of actors, partners, and colors; including observing their behavior when the actor had **no partner**.
+
+---
+
+* Our "mock" dataset for this can be found in `chimpanzee.csv`.  Each row is a combination of actor and partner
+
+```{r}
+chimpanzee <- read_csv("../../data/chimpanzee.csv")
+
+head(chimpanzee)
+```
+
+Let's exploree the data.
+
+```{r}
+sum1 <- chimpanzee %>% 
+  mutate(session_type = case_when(
+    partner == "none" ~ "no partner",
+    TRUE ~ "partner"
+  )) %>% 
+  group_by(actor, session_type) %>% 
+  
+  summarize(prosocial = sum(prosocial),
+            selfish = sum(selfish),
+            n = prosocial + selfish,
+            pct_prosocial = 100*prosocial/n)
+sum1
+
+sum1_wide <- sum1 %>% 
+  select(actor, session_type, pct_prosocial) %>% 
+  pivot_wider(names_from = session_type,
+              values_from = pct_prosocial)
+
+sum1_wide
+```
+
+```{r}
+ggplot(sum1, aes(x = actor, y = pct_prosocial,
+                 fill = session_type)) +
+  geom_col(color = "black",
+           position = position_dodge2(preserve = "single")) +
+  #scale_y_continuous(labels = percent_format(scale = 1)) +
+  labs(
+    x = "Chimpanzee",
+    y = "Pro-social Choice Probability",
+    title = "Chimpanzee Pro-social Choice Comparison",
+    subtitle = "With and Without Partners",
+    fill = "Session"
+  ) +
+  theme_minimal()
+```
+
+
+
+```{r}
+## simulation parameters
+B <- 100000
+n <- 90
+x <- 60
+p <- x/n
+
+## do the simulation
+sim <- tibble(
+  x_star = rbinom(B, n, p),
+  p_hat = x_star / n)
+```
+
+```{r}
+## Graphical summary
+ggplot(sim, aes(x = p_hat, y=after_stat(density))) +
+  geom_histogram(binwidth = 1/90,
+                 color = "black", fill = "dodgerblue") +
+  xlab("sample proportion (p-hat)") +
+  theme_minimal() +
+  # Theoretical sampling distribution
+  geom_norm_density(mu=p, sigma=sqrt(p*(1-p)/n),color="blue", size=2) 
+
+## Numeric summary
+sim_summary <- sim %>% 
+  summarize(mean = mean(p_hat),  ## this should be very close to 0.667
+            sd = sd(p_hat)) ## this should be very close to 0.0497
+sim_summary
+```
+
+The sampling distribution of p-hat has a normal shape, and its mean is very close to $p = 0.667$.
+
+
+### Try it out
+
+Chimpanzee D made 8 prosocial choices and 22 selfish choices with no partner. Recreate the simulation for $\hat{p}_{D, nopartner}$.  What do you notice about the shape of the histogram?
+
+```{r}
+
+```
+
+
+## Confidence interval for p
+
+For 90% confidence (alpha = 0.1), use the 95th or 5th percentile.
+
+```{r}
+qnorm(0.05)
+qnorm(0.95)
+```
+
+A 90% Wald CI for $p_{A, partner}$ is
+
+```{r}
+n <- 90
+x <- 60
+p_hat <- x/n
+
+se <- sqrt(p_hat * (1 - p_hat) / n)
+
+cv <- qnorm(0.95)
+
+
+c(p_hat - cv*se, p_hat + cv*se)
+```
+
+Now, let's make the Agresti-Coull adjustment.  We add two successes and failures to our data.
+
+```{r}
+n <- 90
+x <- 60
+
+n_ac <- n + 4
+p_hat_ac <- (x + 2) / (n_ac)
+
+se <- sqrt(p_hat_ac * (1 - p_hat_ac) / n_ac)
+
+cv <- qnorm(0.95)
+
+
+c(p_hat_ac - cv*se, p_hat_ac + cv*se)
+```
+
+
+## Hypothesis test for p
+
+We want to test whether chimpanzee A makes prosocial choices with a rate greater than 0.5. The null distribution is Binom(90, 0.5) and the test statistic is 60.
+
+```{r}
+gbinom(90, 0.5, col = "black") +
+  geom_binom_density(90, 0.5, a = 60, lwd = 3, col = "dodgerblue")
+
+gbinom(90, 0.5, col = "black") +
+  geom_binom_density(90, 0.5, a = 60, lwd = 3, col = "dodgerblue") +
+  ylim(0, 0.01) + xlim(55, 90) +
+  annotate("text", x = 65, y = 0.0025, label = "zoom... and enhance!")
+```
+
+The p-value is $P(Binom(90, 0.5) \ge 60)$
+
+```{r}
+1 - pbinom(59, 90, 0.5)
+```
+
+
+### Try it out
+
+```{r}
+sum1_partner <- sum1 %>%
+  filter(session_type == "partner")
+
+# Overall prosocial rate with a partner
+sum(sum1_partner$prosocial) / sum(sum1_partner$n)
+```
+
+Chimpanzee F has the lowest observed prosocial-partner rate of 47/90.  Is the true rate significantly *less* than the average of 0.59?
+
+
+```{r}
+
+```
+
+
+
+
