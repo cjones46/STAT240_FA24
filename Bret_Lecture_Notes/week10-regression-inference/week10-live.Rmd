@@ -1,0 +1,139 @@
+---
+output: html_document
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE,
+                      warning = FALSE,
+                      error = TRUE, fig.height = 3,
+                      fig.width = 4)
+
+library(tidyverse)
+library(modelr)
+
+source("../../scripts/ggprob.R")
+```
+
+### Lake Monona Data
+
+```{r}
+monona = read_csv("../../data/lake-monona-winters-2024.csv")
+```
+
+### Model
+
+```{r}
+model = lm(duration ~ year1, data = monona)
+
+summary(model)
+```
+
+```{r}
+ggplot(monona, aes(x = year1,y = duration)) +
+  geom_line() +
+  geom_point() +
+  geom_smooth(se = FALSE, method = "lm")
+```
+
+### CI for slope
+
+```{r}
+x = monona$year1
+y = monona$duration
+C = 0.95 # 95% confidence interval
+n = nrow(monona)
+n
+
+r = cor(x, y)
+r
+
+beta_hat_1 = r * sd(y) / sd(x) # We could have also just done coef(model_object)[1], or used our eyes to get the number -0.22298 from the summary table
+beta_hat_1
+
+se = sigma(model)
+#se = 0.02667 # copied from lm() output above; don't worry about calculating by hand, just use lm()
+
+quant = C + (1-C)/2
+quant
+
+t_crit = qt(quant, df = n - 2)
+
+## Notice this is a little bit larger than z_crit = 1.96
+t_crit
+```
+
+### t distribution plot
+
+```{r}
+gt(167) +
+  geom_norm_density(0, 1, color = "red", alpha = 0.5) +
+  geom_t_fill(167,
+              a = qt(0.025, 167),
+              b = qt(0.975, 167),
+              alpha = 0.5,
+              fill = "lightblue")
+```
+
+```{r}
+gt(5) +
+  geom_norm_density(0, 1, color = "red", alpha = 0.5) +
+  geom_t_fill(5,
+              a = qt(0.025, 5),
+              b = qt(0.975, 5),
+              alpha = 0.5,
+              fill = "lightblue")
+```
+
+### Prediction for Lake Monona in 2024
+
+```{r}
+summary(model)
+
+coef(summary(model))
+beta_0_hat = coef(summary(model))[1,1]
+beta_1_hat = coef(summary(model))[2,1]
+
+beta_0_hat
+beta_1_hat
+
+se = coef(summary(model))[2,2]
+
+se
+
+sigma = sigma(model)
+sigma
+
+x_value = 2024
+estimate = beta_0_hat + beta_1_hat*x_value
+estimate
+```
+
+```{r}
+newdata = tibble(year1 = c(1939, 2024))
+newdata
+```
+
+### Prediction Intervals
+
+```{r}
+prediction = predict(model,
+                     newdata = newdata,
+                     interval = "prediction")
+prediction
+
+(2024 - 1939) / sd(monona$year1)
+
+sqrt(1 + (1 + 1.75^2) / 169)
+
+sqrt(1 + (1 + 0^2) / 169)
+```
+
+### Confidence Interval
+
+```{r}
+estimate = predict(model,
+                     newdata = newdata,
+                     interval = "confidence")
+estimate
+```
+
