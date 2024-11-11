@@ -1,0 +1,117 @@
+---
+title: "Discussion 10"
+output: html_document
+---
+
+# Preliminaries
+
+-   This file should be in `STAT240/discussion/ds10` on your local computer.
+
+-   This assignment should be completed in your **assigned Canvas groups**. Only one person has to submit on behalf of the group. You may submit whatever you have at the end of discussion section for full credit.
+
+-   This assignment is to be completed in the first 10-20 mins of the discussion session. The rest of the discussion time the students are to work on the group projects with their discussion groups.
+
+# Present Group Members
+
+Please **write the names of the present group members** here.
+
+> Present Group Members:
+
+> Absent Group Members:
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, 
+                      error = TRUE, 
+                      warning = FALSE, 
+                      message = FALSE)
+library(tidyverse)
+```
+
+
+# Problem 1
+
+Continue working with the diabetes data set.
+
+```{r}
+# This code is provided for you. Do not change it.
+
+diabetes <- read_csv("../../data/diabetes.csv") %>% rename(glucose = "Glucose") %>% filter(BMI > 1 & BMI < 50 & !is.na(BMI) & !is.na(glucose) & glucose > 0) %>% select(glucose, BMI)
+```
+
+Using the linear model for the diabetes dataset, perform a hypothesis test for the true slope of the diabetes model for the hypotheses below:
+
+$$H_0: \beta_1=0, H_{\alpha}: \beta_1 > 0$$
+
+**Part a** Calculate the test statistic and the p-value.
+
+```{r}
+# Write your code here!
+```
+
+**Part b** Considering that $\alpha$ is 10%, what conclusion can you come to for the hypothesis test above?
+
+> Write your answer here!
+
+**Part c** What would be the p-value of the above test if the alternate hypothesis was
+
+(i) $H_{\alpha}: \beta_1 \neq 0$
+
+```{r}
+# Write your code here!
+```
+
+(ii) $H_{\alpha}: \beta_1 < 0$
+
+```{r}
+# Write your code here!
+```
+
+> Write your answer here!
+
+# Problem 2
+
+**Part a** Create and interpret a 90% confidence interval for the slope of the true slope of the linear relationship ($\beta_1$) between Glucose levels (y variable) and BMI (x variable).
+
+```{r}
+# Write your code here!
+```
+
+
+**Part b** Does the interval cover 0? What does that indicate?
+
+> Write your answer here!
+
+**Part c** Depending on the confidence interval that you just created and the hypothesis test done in Problem 1(a) and 1(b), what conclusions can you make?
+
+> # Write your answer here!
+
+# Problem 3
+
+Consider three patients with BMI 20.4, 32.5 and 27.2.
+
+**Part a** What will be the predicted value ($\hat{Y}|X$) and prediction interval of the glucose levels in these three patients?
+
+```{r}
+# Write your code here!
+```
+
+
+**Part b** What will be the expected value ($E(Y|X)$) and the confidence interval of the glucose levels in these three patients?
+
+```{r}
+# Write your code here!
+```
+
+
+### Now, use the rest of your time to work on the project proposal in your groups. Come up with an appropriate dataset, a question to ask, and some ideas of how to proceed. 
+
+
+
+
+
+
+
+
+
+
+
