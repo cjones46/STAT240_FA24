@@ -1,0 +1,222 @@
+---
+title: "Section 15: More Proportions"
+author: "Student's Name Here"
+date: "2024-10-11"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, error = TRUE)
+```
+
+```{r}
+library(tidyverse)
+source("../../scripts/ggprob.R")
+```
+
+## Hypothesis test for p
+
+A psychic claims to be able to guess a card suit at a better rate than p = 0.25.  They get 57 guesses correct out of 200.  The probability of 57, under the null, is 0.033.  Which outcomes are less likely?
+
+
+```{r}
+dbinom(57, 200, 0.25)
+```
+
+
+
+```{r}
+gbinom(200, 0.25, scale = TRUE, col = "black") +
+  geom_vline(xintercept = 57, color = "red", lty = 2) +
+  geom_hline(yintercept = dbinom(57, 200, 0.25), color = "red", lty = 2)
+```
+
+The outcomes 42 and below are less likely (more extreme, more evidence against H0) as 57.
+
+```{r}
+tibble(
+  x = 38:45,
+  prob = dbinom(x, 200, 0.25),
+  lessThanP57 = prob < dbinom(57, 200, 0.25)
+)
+```
+
+For a one-sided p-value, find the probability of X >= 57.
+
+```{r}
+1 - pbinom(57 - 1, 200, 0.25)
+# or
+pbinom(57 - 1, 200, 0.25, lower.tail = F)
+```
+
+```{r}
+# Visualization of one-sided p-value
+gbinom(200, 0.25, scale = TRUE, col = "black") +
+  geom_vline(xintercept = 57, color = "red", lty = 2) +
+  geom_binom_density(200, 0.25, a = 57, col = "dodgerblue",
+                     scale = T)
+```
+
+
+What if our hypotheses were two-sided?  The p-value includes the outcomes greater than or equal to 57 AND those less than or equal to 42.
+
+```{r}
+pbinom(42, 200, 0.25) + (1 - pbinom(57 - 1, 200, 0.25))
+```
+
+```{r}
+# Visualization of two-sided p-value
+gbinom(200, 0.25, scale = TRUE, col = "black") +
+  geom_vline(xintercept = 57, color = "red", lty = 2) +
+  geom_binom_density(200, 0.25, a = 57, col = "dodgerblue",
+                     scale = T) +
+    geom_binom_density(200, 0.25, b = 42, col = "dodgerblue",
+                     scale = T)
+```
+
+
+# Normal approximation
+
+Let's repeat the two-sided test in the psychic example with a Z test.  Our null distirbution is N(0, 1) and our test statistic is 1.143.
+
+```{r}
+# Visualization of two-sided p-value
+gnorm(col = "black") +
+  geom_vline(xintercept = 1.143, color = "red", lty = 2) +
+  geom_norm_fill(a = 1.143, fill = "dodgerblue",
+                     scale = T) +
+    geom_norm_fill(b = -1.143, fill = "dodgerblue",
+                     scale = T)
+```
+
+P-value calculation:
+
+```{r}
+pnorm(-1.143) + pnorm(1.143, lower.tail = F)
+# or
+2*pnorm(1.143, lower.tail = F)
+```
+
+
+# CI for p_1 - p_2
+
+Return to the chimpanzee data from last section.
+
+```{r}
+chimpanzee <- read_csv("../../data/chimpanzee.csv")
+
+head(chimpanzee)
+```
+
+What is the difference in the proportion of prosocial choices by chimpanzee C with versus without a partner?
+
+```{r}
+chimpanzee %>% 
+  filter(actor == "C") %>% 
+  mutate(HasAPartner = (partner != "none")) %>% 
+  group_by(HasAPartner) %>% 
+  summarize(totalProsocial = sum(prosocial),
+            totalSelfish = sum(selfish), 
+            n = totalProsocial + totalSelfish, 
+            p_hat = totalProsocial/n)
+```
+
+Let's build a CI with the Agresti-Coffe adjustment.
+
+```{r}
+x1 <- 57
+n1 <- 90
+x2 <- 17
+n2 <- 30
+
+# This code computes the AC Confidence Interval for the true difference in two proportions
+n_AC1 <- n1 + 2
+n_AC2 <- n2 + 2
+p_AC1 <- (x1+1)/n_AC1
+p_AC2 <- (x2+1)/n_AC2
+
+pt_est <- p_AC1 - p_AC2
+
+se <- sqrt( p_AC1*(1-p_AC1)/n_AC1 + p_AC2*(1-p_AC2)/n_AC2 )
+
+cv <- qnorm(0.975)
+
+c(pt_est - cv*se, pt_est + cv*se)
+```
+
+
+### Try it out
+
+Build a 95% AC CI for the difference in prosocial behavior for chimpanzee B with and without a partner.
+
+```{r}
+
+```
+
+
+## Hypothesis testing for p_1 - p_2
+
+Let's look at chimpanzee C again:
+
+```{r}
+chimpanzee %>% 
+  filter(actor == "C") %>% 
+  mutate(HasAPartner = (partner != "none")) %>% 
+  group_by(HasAPartner) %>% 
+  summarize(totalProsocial = sum(prosocial),
+            totalSelfish = sum(selfish), 
+            n = totalProsocial + totalSelfish, 
+            p_hat = totalProsocial/n)
+```
+
+
+Now, conduct a hypothesis test for the difference in proportions.  The standard error is calculated with an estimated common proportion, p-hat.
+
+```{r}
+x1 <- 57
+n1 <- 90
+x2 <- 17
+n2 <- 30
+
+p_hat <- (x1 + x2)/(n1 + n2)
+
+numerator <- (x1/n1) - (x2/n2)  # Observed difference in proportions
+
+denominator <- sqrt(p_hat*(1-p_hat)*(1/n1 + 1/n2))  # Standard error
+
+test_stat <- numerator/denominator
+test_stat
+```
+
+If H0 is true and p_1 = p_2, then our test statistic came from N(0, 1).  We use the standard normal as our null distribution.  We want to find the area above our test statistic to find evidence that p_1 - p_2 is positive.
+
+```{r}
+# Visualization of two-sided p-value
+gnorm(col = "black") +
+  geom_vline(xintercept = 0.65, color = "red", lty = 2) +
+  geom_norm_fill(a = 0.65, fill = "dodgerblue",
+                     scale = T)
+```
+
+```{r}
+pnorm(test_stat, lower.tail = F)
+```
+
+
+### Try it out
+
+Perform a test of *two-sided* hypotheses for p_1 - p_2 != 0, for chimpanzee B.
+
+```{r}
+
+```
+
+
+
+
+
+
+
+
+
+
