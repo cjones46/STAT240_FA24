@@ -1,0 +1,350 @@
+\documentclass[xcolor={dvipsnames,svgnames},14pt]{beamer}
+\usetheme[progressbar=none]{Singapore}
+\setbeamercolor*{structure}{fg=cyan}
+\setbeamercolor*{frametitle}{fg=black}
+\setbeamercolor*{title}{fg=black}
+\usepackage{hyperref}
+\usepackage{multicol}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,      
+    urlcolor=blue,
+    }
+
+\makeatletter
+\let\beamer@writeslidentry@miniframeson=\beamer@writeslidentry
+\def\beamer@writeslidentry@miniframesoff{%
+  \expandafter\beamer@ifempty\expandafter{\beamer@framestartpage}{}% does not happen normally
+  {%else
+    % removed \addtocontents commands
+    \clearpage\beamer@notesactions%
+  }
+}
+\newcommand*{\miniframeson}{\let\beamer@writeslidentry=\beamer@writeslidentry@miniframeson}
+\newcommand*{\miniframesoff}{\let\beamer@writeslidentry=\beamer@writeslidentry@miniframesoff}
+\makeatother
+
+\miniframesoff
+
+\setbeamertemplate{navigation symbols}{%
+    \usebeamerfont{footline}%
+    \usebeamercolor[fg]{footline}%
+    \hspace{1em}%
+    \insertframenumber/\inserttotalframenumber
+}
+\setbeamercolor{footline}{fg=black}
+\setbeamerfont{footline}{series=\bfseries}
+
+\usepackage{amsmath, amsthm, amssymb}
+\usepackage{graphicx, verbatim}
+\usepackage{multirow}
+\usepackage{xcolor}
+\DeclareRobustCommand{\stirling}{\genfrac\{\}{0pt}{}}
+
+
+%Information to be included in the title page:
+\title{Linear Regression Inference}
+\date{}
+\subtitle{Statistics on a linear model}
+
+\begin{document}
+
+\frame{\titlepage}
+
+\begin{frame}
+Download the section 123.Rmd handout to \\ 
+\texttt{STAT240/lecture/sect13-regression-inference}. \\~\\
+
+Download the files \texttt{lake-monona-winters-2024.csv}, \texttt{riley.txt} and \texttt{lions.csv} to \texttt{STAT240/data}.
+\end{frame}
+
+\section{CI for slope}
+
+\begin{frame}
+We've seen how to estimate a linear model, but we have not done any statistics.
+$$\hat{y}_i \;=\; \hat{\beta}_0 + \hat{\beta}_1x_i$$
+Is there an actual linear relationship between $x$ and $y$?  There is when the slope $\beta_1$ is nonzero.
+\end{frame}
+
+\begin{frame}
+We will extend our point estimate for slope into an interval estimate for $\hat{\beta}_1$. 
+
+$$\hat{\beta}_1 \;\pm\; \frac{\alpha}{2} \text{ Critical value }\times \text{ Standard error of }\hat{\beta}_1$$
+This is a $1-\alpha$ confidence interval for the slope.
+\end{frame}
+
+\begin{frame}
+What is the estimation error of $\hat{\beta}_1$? 
+$$\hat{se}(\hat{\beta}_1) \;=\; \frac{S}{\sqrt{(n-1)s_X^2}}$$ \begin{itemize}
+\item Numerator: estimate for $\sigma$
+\item Denominator: variability of $X$
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+How do we guarantee $1-\alpha$ coverage?  Use a quantile on the sampling distribution. \\~\\
+
+The sampling distribution for $\hat{\beta}_1$ is related to the \textbf{Student's T distribution}. \\~\\
+
+The T is similar to $N(0, 1)$.
+\end{frame}
+
+\begin{frame}
+For 95\% confidence:
+\begin{center}
+\includegraphics[scale=0.5]{z_95_2.png}
+\end{center}
+\end{frame}
+
+\begin{frame}
+What does the T look like?
+\begin{center}
+\includegraphics[scale=0.7]{tdist.png}
+\end{center}
+\end{frame}
+
+\begin{frame}
+The T has heavier tails than $N(0, 1)$, controlled by degrees of freedom. \\~\\
+
+In simple linear regression, df = $n-2$. \\~\\
+
+Find critical values (quantiles) with \texttt{qt}.
+\end{frame}
+
+\begin{frame}
+$$\hat{\beta}_1 \;\pm\; t_{\alpha/2, n-2} \times \text{ Standard error of }\hat{\beta}_1$$
+Find these values with the \texttt{lm} summary.\\~\\ 
+
+A 95\% CI for slope in the height model is:
+$$(0.244, 0.256)$$
+\end{frame}
+
+\begin{frame}
+$$\hat{\beta}_1 \;\pm\; t_{\alpha/2, n-2} \times \text{ Standard error of }\hat{\beta}_1$$ \\~\\
+
+Build and interpret a 98\% CI for the slope of the Lake Monona linear model. \begin{itemize}
+\item Use \texttt{qt} to find the critical value \\~\\
+\end{itemize}
+Are we confident that year and duration are related?
+\end{frame}
+
+\section{Hypothesis test for slope}
+
+\begin{frame}
+Formally, the hypothesis testing procedure is as follows: \begin{itemize}
+\item Write \textbf{hypotheses} about parameter
+\item Calculate \textbf{test statistic}
+\item Identify \textbf{null distribution}
+\item Calculate \textbf{p-value} on the null
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+The test statistic is the evidence against the null hypothesis in our data.  Usually looks like this: 
+$$\frac{\text{Esimated value } - \text{ Value under null}}{\text{Estimation error}}$$
+If the null is true, the test statistic is close to 0.
+\end{frame}
+
+\begin{frame}
+The p-value is the probability of seeing our data or something more extreme, under the null.  \\~\\
+
+The calculation depends on what we're trying to detect. \\~\\
+
+If we want to test whether x and y have a linear relationship, we need to test whether $\beta_1$ is zero or nonzero.
+\end{frame}
+
+\begin{frame}
+Do x and y have a linear relationship?
+$$H_0: \beta_1 = 0 \quad \text{versus} \quad H_A: \beta_1 \neq 0$$ \\~\\
+This is a \textbf{two-sided} test. \begin{itemize}
+\item p-value: outcomes more extreme than test statistic on both sides
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\begin{center}
+\includegraphics[scale=0.5]{example_teststat.png}
+\end{center}
+Suppose we have a positive test statistic.
+\end{frame}
+
+\begin{frame}
+\begin{center}
+\includegraphics[scale=0.6]{example_twosided.png}
+\end{center}
+\end{frame}
+
+\begin{frame}
+Do x and y have a negative relationship?
+$$H_0: \beta_1 \ge 0 \quad \text{versus} \quad H_A: \beta_1 < 0$$ \\~\\
+This is a \textbf{one-sided} (negative) test. \begin{itemize}
+\item p-value: outcomes less than test statistic
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\begin{center}
+\includegraphics[scale=0.6]{example_lower.png}
+\end{center}
+\end{frame}
+
+\begin{frame}
+Do x and y have a positive relationship?
+$$H_0: \beta_1 \le 0 \quad \text{versus} \quad H_A: \beta_1 > 0$$ \\~\\
+This is a \textbf{one-sided} (positive) test. \begin{itemize}
+\item p-value: outcomes greater than test statistic
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\begin{center}
+\includegraphics[scale=0.6]{example_higher.png}
+\end{center}
+\end{frame}
+
+\begin{frame}
+Let's test whether the Monona slope is negative, with $\alpha = 0.05$. \\~\\
+
+For a slope test, our test statistic is 
+$$T \;=\; \frac{\hat{\beta}_1 - \beta_{null}}{\hat{se}(\hat{\beta}_1)}$$
+
+If $H_0$ is true and $\beta_1 \ge 0$, then $T$ follows a T distribution with $n-2$ degrees of freedom.
+\end{frame}
+
+\begin{frame}
+We have
+$$t_{obs} \;=\; \frac{-0.223 - 0}{0.02667} \;=\; -8.36$$
+Estimated slope below 0 $\Rightarrow$ negative $t_{obs}$. \\~\\
+Is this value consistent with a $t_{n-2}$ distribution?
+\end{frame}
+
+
+\begin{frame}
+What if we were doing a two-sided test instead?
+$$H_0: \beta_1 = 0 \quad \text{versus} \quad H_A: \beta_1 \neq 0$$
+We would have the same test statistic, but a different p-value. \\~\\
+
+This is also given in the \texttt{lm} output.
+\end{frame}
+
+
+\section{Prediction intervals}
+
+\begin{frame}
+We've seen how to predict a value with a linear model.  Let's turn that into an interval.
+$$\text{Predicted value } \;\pm\; \text{Critical value }\times\text{ Prediction error}$$
+In the lion ages data, we want to relate a lion's age to the \% of its nose that is black.
+\end{frame}
+
+\begin{frame}
+\begin{center}
+\includegraphics[scale=0.13]{lions.png}
+\end{center}
+\end{frame}
+
+\begin{frame}
+We predict a 5-year-old lion to have a 36\% black nose. Formally,
+$$\Big( \hat{y} | x^* = 5 \Big) \;=\; 0.36$$
+$$(\text{Fitted value given } x^*) \;=\; \hat{\beta}_0 + \hat{\beta}_1 x^*$$
+\end{frame}
+
+\begin{frame}
+The uncertainty in this point estimate depends on what exactly we are predicting.  \begin{itemize}
+\item Predicting the position of the line itself.  This is the \textit{average} nose \% for all 5-year-old lions. 
+\item Predicting the nose \% for a \textit{single} 5 year old lion.
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+The first type of prediction, the position of the line, is $E(\hat{y} \;|\; x^*)$. \\~\\
+
+Let's investigate this with simulation. \begin{itemize}
+\item Generate $n$ random points from $\beta_0 + \beta_1 x + \epsilon$ 
+\item Calculate $\hat{\beta}_1$ and $\hat{\beta}_0$ and plot the line
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+The estimated standard error of the position of the line is
+$$\hat{se}(E(\hat{y} \;|\; x^*)) \;=\; S \sqrt{\frac{1}{n} \;+\; \frac{(x^* - \bar{x})^2}{\sum(x_i - \bar{x})^2}}$$ 
+\end{frame}
+
+\begin{frame}
+The critical value for our CI is the same as before.  It is a $\alpha/2$ critical value from the T with $n-2$ degrees of freedom.
+$$\hat{y}|x^* \;\pm\; t_{\alpha/2, n-2} \times S \sqrt{\frac{1}{n} \;+\; \frac{(x^* - \bar{x})^2}{\sum(x_i - \bar{x})^2}} $$ \\~\\
+This is what \texttt{geom\_smooth} is doing!
+\end{frame}
+
+\begin{frame}
+Use \texttt{predict} to calculate the CI for us. \\~\\
+
+Set \texttt{interval = "confidence"}.  We can also plot this against the data.
+\end{frame}
+
+\begin{frame}
+The uncertainty in this point estimate depends on what exactly we are predicting.  \begin{itemize}
+\item Predicting the position of the line itself.  This is the \textit{average} nose \% for all 5-year-old lions. 
+\item Predicting the nose \% for a \textit{single} 5 year old lion.
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+The second type of prediction is $\hat{y} \;|\; x^*$. \\~\\
+
+Again, the point estimate is just found by plugging $x^*$ into the model. \\~\\
+
+This type of prediction has more error than predicting the position of the line.
+\end{frame}
+
+\begin{frame}
+The estimated standard error of a new prediction is
+$$\hat{se}(\hat{y} \;|\; x^*) \;=\; S \sqrt{1 + \frac{1}{n} \;+\; \frac{(x^* - \bar{x})^2}{\sum(x_i - \bar{x})^2}}$$ 
+We have an extra +1 term for applying our model to a new data point.
+\end{frame}
+
+\begin{frame}
+This gives us a \textbf{prediction} interval. \\~\\
+$$\hat{y}|x^* \;\pm\; t_{\alpha/2, n-2} \times S \sqrt{1 + \frac{1}{n} \;+\; \frac{(x^* - \bar{x})^2}{\sum(x_i - \bar{x})^2}} $$
+Again, use \texttt{predict}.
+\end{frame}
+
+\begin{frame}
+Confidence interval: position of the line \\
+Prediction interval: new y value \\~\\ \begin{itemize}
+\item PIs are wider than CIs
+\item Both intervals are wider when we are further from $\bar{x}$
+\end{itemize}
+\end{frame}
+
+\section{Coefficient of determination}
+
+\begin{frame}
+The \textbf{coefficient of determination} $R^2$ is 
+$$R^2 \;=\; \frac{\text{Total variability of y} - \text{Model error}}{\text{Total variability of y}}$$ 
+
+$R^2$ is the fraction of the total variability in $y$ explained by $x$ (via the regression line). \\~\\
+
+We can find $R^2$ in the summary output of an \texttt{lm} object in R.
+\end{frame}
+
+\begin{frame}
+If we only have two variables ($x$ and $y$), then $R^2$ is equal to the square of the correlation coefficient. 
+$$R^2 \;=\; r^2$$ 
+(This does not necessarily hold for more complex models). \\~\\
+
+$R^2$ is a useful measure of how well $x$ explains $y$, but it does not help us in evaluating assumptions.
+\end{frame}
+
+\end{document}
+
+
+
+
+
+
+
+
+
+
+
