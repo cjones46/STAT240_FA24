@@ -1,0 +1,345 @@
+---
+title: "week10-regressionInference"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+
+
+```{r}
+mendota <- read_csv("~/Desktop/STAT 240/data/lake-mendota.csv")
+```
+
+# Sec 006 Monday 11/4
+
+
+```{r}
+model_mendota <- lm(duration~year1, data = mendota)
+summary(model_mendota)
+```
+
+$95%$ confidence interval for $\hat{\beta}_1$
+
+```{r}
+# 95% confidence interval for beta_1_hat
+
+n = length(mendota$year1)
+c = 0.95
+qcs <- qt(c + (1-c)/2, n-2) # n-2 = length of the data set - 2
+qcs
+
+moe <- qcs*0.02735 # moe (margin of error = quantile score*standard error)
+
+c(-0.19445 -  moe, -0.19445 + moe)
+```
+
+
+
+```{r}
+c = 0.99
+qcs <- qt(c + (1-c)/2, n-2) # n-2 = length of the data set - 2
+qcs
+
+moe <- qcs*0.02735 # moe (margin of error = quantile score*standard error)
+
+c(-0.19445 -  moe, -0.19445 + moe)
+```
+
+
+# Sec 003 Monday 11/4
+
+```{r}
+mendota <- read_csv("~/Desktop/STAT 240/data/lake-mendota.csv")
+```
+
+```{r}
+model_mendota <- lm(duration~year1, data = mendota)
+summary(model_mendota)
+```
+
+Build a 95% confince interval for $\hat{\beta}_1$
+
+```{r}
+n = length(mendota$year1)
+c = 0.95
+qcs = qt(c + (1-c)/2, n-2) # critical values, and n is the length of the sample 
+qcs
+
+moe = qcs*0.02735 # moe is the margin of error (= critical value * standard error)
+
+c(-0.19445 - moe, -0.19445 + moe)
+```
+
+
+```{r}
+c = 0.99
+qcs = qt(c + (1-c)/2, n-2) # critical values, and n is the length of the sample 
+qcs
+
+moe = qcs*0.02735 # moe is the margin of error (= critical value * standard error)
+
+c(-0.19445 - moe, -0.19445 + moe)
+```
+
+# Sec 005 Monday Nov 4
+
+```{r}
+mendota <- read_csv("~/Desktop/STAT 240/data/lake-mendota.csv")
+```
+```{r}
+model_mendota <- lm(duration~year1, mendota)
+summary(model_mendota)
+```
+A 95% confidence interval for $\hat{\beta}_1$
+
+```{r}
+n <- length(mendota$year1)
+c <- 0.95
+
+cv <- qt(c + (1-c)/2, n-2) # quantile confidence score
+cv
+
+moe <- cv*0.02735 # moe is the margin of error (= critical value * Standard error) 
+moe
+
+c(-0.19445 - moe, -0.19445 + moe)
+```
+
+99% confidence interval
+
+```{r}
+n <- length(mendota$year1)
+c <- 0.99
+
+cv <- qt(c + (1-c)/2, n-2)
+cv
+
+moe <- cv*0.02735
+moe
+
+c(-0.19445 - moe, -0.19445 + moe)
+```
+
+# Sec 006 Wednesday Nov 6
+
+```{r}
+ggplot(mendota, aes(x = year1, y = duration)) +
+  geom_point() +
+  geom_smooth(method = "lm")
+summary(model_mendota)
+```
+
+- Linearity of residuals ($\epsilon_i$) - satisfied
+- Normality $\epsilon_i$ around 0 - satisfied
+- Constant variance of $\epsilon_i$ - satisfied
+
+```{r}
+residual <- resid(model_mendota)
+ggplot(mapping = aes(x = mendota$year1, y = residual)) +
+  geom_point() +
+  geom_hline(yintercept = 0) 
+```
+
+$$H_0 : \beta_1 = 0, H_{\alpha} < 0$$
+
+- Third/Fourth step (calculating the test statistic)
+
+$$t = \frac{\hat{\beta}_1 - \beta_{1,H_0}}{s.e(\beta_1)}$$
+
+```{r}
+t =  -0.19445 / 0.02735
+t
+```
+
+Step 5: Calculating the p-value
+
+```{r}
+p_value = pt(q = -7.109689, df = n-2)
+p_value 
+```
+
+Step 6: $\alpha = 0.05, 0.01$
+
+Since p_value < $\alpha$, we reject $H_0$, or we can say we have enough evidence to say that $\beta_1<0$.
+
+
+
+```{r}
+y_pred <- 478.86548 - 0.19445*2024
+y_pred
+```
+
+
+# Sec 003 Wednesday 11/06
+
+```{r}
+ggplot(mendota, aes(x = year1, y = duration)) +
+  geom_point() +
+  geom_smooth(method = "lm")
+summary(model_mendota)
+```
+
+Step 1: Checking the model
+
+```{r}
+residual <- resid(model_mendota)
+ggplot(mapping = aes(x = mendota$year1, y = residual)) +
+  geom_point() +
+  geom_hline(yintercept = 0)
+```
+
+- Linearity of residual ($\epsilon_i$) -> satisfied
+- Normality around 0 of $\epsilon_i$ -> satisfied
+- Constant deviation or variance of $\epsilon_i$ -> satisfied
+
+Step 2:
+
+$$H_0: \beta_1 = 0, H_{\alpha}: \beta_1 < 0$$
+Step 3: test statistic 
+
+$$t = \frac{\hat{\beta}_1}{s.e(\hat{\beta_1})}$$
+
+Step 4: Calculate the test statistics
+
+```{r}
+summary(model_mendota)
+t = -0.19445/0.02735
+t
+```
+Step 5: Calculate the p-value
+
+```{r}
+pt(t, n-2)
+```
+
+Step 6: $\alpha=0.05$
+
+p_value < $\alpha$
+
+We reject $H_0$. We have enough evidence to support that $\beta_1 < 0$.
+
+
+95% prediction interval values
+
+```{r}
+prediction_interval <- predict(model_mendota, newdata = tibble(year1 = 1850:2023), interval = "predict")
+prediction_interval
+
+confidence_interval <- predict(model_mendota, newdata = tibble(year1 = 1850:2023), interval = "confidence")
+confidence_interval
+
+```
+
+
+```{r}
+ggplot(mendota, aes(year1, duration)) +
+  geom_point() +
+  geom_line(data = as_tibble(prediction_interval), mapping = aes(x = 1850:2023, y = lwr)) +
+  geom_line(data = as_tibble(prediction_interval), mapping = aes(x = 1850:2023, y = upr))
+
+ggplot(mendota, aes(year1, duration)) +
+  geom_point() +
+  geom_line(data = as_tibble(confidence_interval), mapping = aes(x = 1850:2023, y = lwr)) +
+  geom_line(data = as_tibble(confidence_interval), mapping = aes(x = 1850:2023, y = upr)) +
+  geom_smooth(method = "lm") +
+  geom_line(data = as_tibble(prediction_interval), mapping = aes(x = 1850:2023, y = lwr)) +
+  geom_line(data = as_tibble(prediction_interval), mapping = aes(x = 1850:2023, y = upr))
+```
+# Sec 005 Wednesday 11/06
+
+```{r}
+ggplot(mendota, aes(x = year1, y = duration)) +
+  geom_point() +
+  geom_smooth(method = "lm")
+```
+
+Step 1: Model
+
+
+
+
+```{r}
+residual <- resid(model_mendota)
+ggplot(mapping = aes(x = mendota$year1, y = residual)) +
+  geom_point() +
+  geom_hline(yintercept = 0)
+```
+- Linearity of the residuals ($\epsilon_i$) <- satisfied
+- Normality of $\epsilon_i$ around 0 <- satisfied
+- Constant variance/deviation of $\epsilon_i$ <- satisfied
+
+Step 2: Construct youy hypothesis
+
+$$H_0: \beta_1 = 0, H_{\alpha}: \beta_1 <0$$
+
+
+Step 3: identify the test statistic and null distribution:
+
+$$t = \frac{\hat{\beta}_1 - 0}{s.e(\hat{\beta}_1)} \sim t(n-2)$$
+
+Step 4: Calculating the test statistic
+
+
+```{r}
+summary(model_mendota)
+t <- -0.19445/0.02735
+t
+```
+Step 5: Calculate the p_value
+
+```{r}
+p_value <- pt(t, n-2)
+p_value
+```
+
+Step 6: Comparing with $\alpha = 0.05$
+
+p_value < 0.05, so we have enough evidence to reject our null hypothesis or support the alternative hypothesis
+
+> Prediction interval
+
+```{r}
+prediction_interval <- predict(model_mendota, newdata = tibble(year1 = 1850:2023), interval = "prediction")
+
+ggplot(mendota, aes(year1, duration)) +
+  geom_point() +
+  geom_line(data = as_tibble(prediction_interval), mapping = aes(x = 1850:2023, y = lwr)) +
+  geom_line(data = as_tibble(prediction_interval), mapping = aes(x = 1850:2023, y = upr))
+```
+Confidence interval for E(Y|X)
+
+```{r}
+confidence_interval <- predict(model_mendota, newdata = tibble(year1 = 1850:2023), interval = "confidence")
+
+ggplot(mendota, aes(year1, duration)) +
+  geom_point() +
+  geom_line(data = as_tibble(confidence_interval), mapping = aes(x = 1850:2023, y = lwr)) +
+  geom_line(data = as_tibble(confidence_interval), mapping = aes(x = 1850:2023, y = upr)) +
+  geom_smooth(method = "lm") +
+  geom_line(data = as_tibble(prediction_interval), mapping = aes(x = 1850:2023, y = lwr)) +
+  geom_line(data = as_tibble(prediction_interval), mapping = aes(x = 1850:2023, y = upr))
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
