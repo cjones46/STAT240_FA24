@@ -1,0 +1,123 @@
+---
+title: "Homework 10"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE,
+                      warning = FALSE, error = TRUE,
+                      fig.height = 3)
+library(tidyverse)
+source("../../scripts/ggprob.R")
+```
+
+# Preliminaries
+
+- This file should be in `STAT240/homework/hw10` on your local computer.
+- Download `superbowl_commercials.csv` to `STAT240/data`.
+
+
+# Disclaimer
+
+Many of these problems ask you to consider some **true proportion.** We have data on every commercial these brands have aired in Super Bowls in this time period, so the notion of a 'population' or 'true parameter' here is about a theoretical set of all advertisements that could have been created for Super Bowls, or if you prefer, about the probabilistic decision-making process that companies have to make behind the scenes (like the chimpanzee prosocial choices).
+
+Statistical inference often requires us to consider unintuitive, theoretical populations like this. Understanding of this point is not required for doing the computations we request below, but is important to always keep in mind when conducting inference.
+
+# Problem 1
+
+The file `superbowl_commercials.csv` contains a list of advertisements for 10 brands aired during Super Bowls from 2000 to 2020.  Each advertisement is classified according to several characterisitcs.  More information can be found  [here](https://github.com/fivethirtyeight/superbowl-ads).
+
+Transform the data as follows:
+
+- Group the rows by brand
+- Count the number of ads described as "Funny"
+- Count the total number of ads
+- Find the proportion of "Funny" ads for each brand
+- Print the dataset
+
+```{r}
+commercials <- read_csv("../../data/superbowl_commercials.csv")
+```
+
+```{r}
+# Write your code here!
+```
+
+
+# Problem 2
+
+Count the total number of ads in the dataset, as well as the total number of "Funny" ads.  Build and interpret a 99% CI for $p_{funny}$, the overall proportion of funny ads across all of the brands.  Use the Agresti-Coull adjustment.
+
+```{r}
+# Write your code here!
+```
+
+> Replace this text with your response.
+
+# Problem 3
+
+Repeat the analysis in problem 2, but build a 99% CI fo for $p_{funny}$ with the Wald adjustment.  How do the two intervals compare?
+
+```{r}
+# Write your code here!
+```
+
+> Replace this text with your response.
+
+
+# Problem 4
+
+Perform a hypothesis test to determine whether more than half of superbowl ads are funny.  Use hypotheses
+$$H_0: p_{funny} = 0.5 \quad \text{versus}\quad H_A: p_{funny} > 0.5$$
+and $\alpha = 0.01$.  Interpret your result in context.
+
+**Please PRINT OUT YOUR p-value.**
+
+```{r}
+# Write your code here!
+```
+
+> Replace this text with your response.
+
+# Problem 5
+
+State the model and assumptions you used to perform inference on $p_{funny}$ in problems 2-4.  State one criticism where reality may differ from the assumptions, potentially leading to misleading conclusions.
+
+> Replace this text with your response. (Model and assumptions)
+
+> Replace this text with your response. (Criticism)
+
+# Problem 6
+
+Now, focus on $p_{H, funny}$, which is the proportion of Hyundai ads that are funny.  Perform a **two-sided** hypothesis test to determine whether or not half of all Hyundai ads are funny. 
+
+**Please EXPLICITLY STATE your hypotheses, test statistic, null distribution, p-value, and conclusion.**
+
+```{r}
+# Write your code here!
+```
+
+> Replace this text with your response.
+
+# Problem 7
+
+Consider comparing the proportion of Hyundai ads that are funny to the proportion of Budweiser ads that are funny.  Build a 95% confidence interval on the difference in proportions and use the Agresti-Coffe adjustment.  Interpret your results in context.
+
+```{r}
+# Write your code here!
+```
+
+> Replace this text with your response.
+
+# Problem 8
+
+Perform a hypothesis test to determine whether a *different* proportion of Hyndai ads than Budweiser ads are funny.  Write appropriate two-sided hypotheses and draw a conclusion with $\alpha = 0.05$.
+
+**Please EXPLICITLY STATE your hypotheses, p-value, and conclusion.** No need to state the test statistic or null distribution.
+
+```{r}
+# Write your code here!
+```
+
+> Replace this text with your response.
+
