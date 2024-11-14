@@ -1,0 +1,139 @@
+---
+title: "Discussion 10"
+output: html_document
+---
+
+# Preliminaries
+
+-   This file should be in `STAT240/discussion/ds10` on your local computer.
+
+-   This assignment should be completed in your **assigned Canvas groups**. Only one person has to submit on behalf of the group. You may submit whatever you have at the end of discussion section for full credit.
+
+-   This assignment is to be completed in the first 10-20 mins of the discussion session. The rest of the discussion time the students are to work on the group projects with their discussion groups.
+
+# Present Group Members
+
+Please **write the names of the present group members** here.
+
+> Present Group Members:
+
+> Absent Group Members:
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, 
+                      error = TRUE, 
+                      warning = FALSE, 
+                      message = FALSE)
+library(tidyverse)
+```
+
+
+# Problem 1
+
+Continue working with the diabetes data set.
+
+```{r}
+# This code is provided for you. Do not change it.
+
+diabetes <- read_csv("../../data/diabetes.csv") %>% rename(glucose = "Glucose") %>% filter(BMI > 1 & BMI < 50 & !is.na(BMI) & !is.na(glucose) & glucose > 0) %>% select(glucose, BMI)
+```
+
+Using the linear model for the diabetes dataset, perform a hypothesis test for the true slope of the diabetes model for the hypotheses below:
+
+$$H_0: \beta_1=0, H_{\alpha}: \beta_1 > 0$$
+
+**Part a** Calculate the test statistic and the p-value.
+
+> Solution:
+
+```{r}
+model_diabetes <- lm(glucose~BMI, diabetes)
+summary(model_diabetes)
+```
+
+> The point estimate for the slope is 1.0846, and the standard error is 0.1692. The test statistic is given by $$t = \frac{\hat{\beta}_1 - \beta_{1,H_0}}{s.e(\beta_1)}$$ and it has a t distribution with $n-2$ degrees of freedom.
+
+```{r}
+n = nrow(diabetes)
+t =  1.0846 / 0.1692
+1 - pt(t, n-2)
+```
+
+**Part b** Considering that $\alpha$ is 10%, what conclusion can you come to for the hypothesis test above?
+
+> Since the p-value is smaller than 0.10, we reject $H_0$. That is, we have strong evidence that the true slope is not equal to 0 or the glucose levels and BMI have a positive relation.
+
+**Part c** What would be the p-value of the above test if the alternate hypothesis was
+
+(i) $H_{\alpha}: \beta_1 \neq 0$
+
+```{r}
+2*pt(-t, n-2)
+
+# or
+2*(1-pt(t, n-2))
+```
+
+(ii) $H_{\alpha}: \beta_1 < 0$
+
+```{r}
+pt(t, n-2)
+```
+
+> The p-values depend on the alternate hypothesis. So, depending on the tail of the test, we find the corresponding p-value.
+
+# Problem 2
+
+**Part a** Create and interpret a 90% confidence interval for the slope of the true slope of the linear relationship ($\beta_1$) between Glucose levels (y variable) and BMI (x variable).
+
+> To find the critical value/ quantile confidence score, use the t-distribution with $n-2$ degrees of freedom.
+
+```{r}
+c = 0.90
+qcs <- qt(c + (1-c)/2, n-2)
+moe <- qcs*0.1692 
+
+c(1.0846 -  moe, 1.0846 + moe)
+```
+
+> We are 90% confident that the true $\beta_1$ or the true linear relationship between glucose levels and BMI lies between (0.8059424, 1.3632576).
+
+**Part b** Does the interval cover 0? What does that indicate?
+
+> No, the interval doesn't contain 0, which implies that there is some postive linear relation between glucose levels and BMI.
+
+**Part c** Depending on the confidence interval that you just created and the hypothesis test done in Problem 1(a) and 1(b), what conclusions can you make?
+
+> The conclusion from the 90% confidence interval coincides with the conclusion of the hypothesis testing at 10% significance. Since the 90% CI doesn't contain 0 in it and we also reject the null hypothesis for $\beta_1 = 0$.
+
+# Problem 3
+
+Consider three patients with BMI 20.4, 32.5 and 27.2.
+
+**Part a** What will be the predicted value ($\hat{Y}|X$) and prediction interval of the glucose levels in these three patients?
+
+```{r}
+prediction <- predict(model_diabetes, newdata = tibble(BMI = c(20.4, 32.5, 27.2)), interval = "prediction")
+prediction
+```
+
+
+**Part b** What will be the expected value ($E(Y|X)$) and the confidence interval of the glucose levels in these three patients?
+
+```{r}
+expected <- predict(model_diabetes, newdata = tibble(BMI = c(20.4, 32.5, 27.2)), interval = "confidence")
+expected
+```
+
+### Now, use the rest of your time to work on the project proposal in your groups. Come up with an appropriate dataset, a question to ask, and some ideas of how to proceed. 
+
+
+
+
+
+
+
+
+
+
+
