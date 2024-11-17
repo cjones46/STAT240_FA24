@@ -1,0 +1,210 @@
+---
+title: "Section 15: Inference for a Single Mean"
+author: "Student's Name Here"
+date: "2024-10-11"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, error = TRUE)
+```
+
+```{r}
+library(tidyverse)
+source("../../scripts/ggprob.R")
+```
+
+## Sampling distribution of mean
+
+### Data tidying
+
+`TIM.txt` contains data on the times of runners of the Boston Marathon from 2010 and 2011 (and 2013, which we will not analyze).
+
+```{r}
+bm_orig <- read_table("../../data/TIM.txt",
+                col_types = cols(.default = col_double()))  # Columns are 'double' by default
+
+View(bm_orig)
+```
+
+We will make the following changes:
+
+- Eliminate data from 2013
+- Create a `Sex` variable with better labels
+- Sum the times for racers for different race segments to obtain a total time
+- Add an `Age_Range` variable matching the competitor classses in the Boston Marathon.
+
+```{r}
+bm <- bm_orig %>% 
+  filter(!is.na(`K40-Fin`)) %>% 
+  filter(Year < 2013) %>% 
+  arrange(Year, BibNum) %>% 
+  select(-starts_with("Start"), -HalfMar, -Age2014) %>% 
+  
+  mutate(Sex = case_when(
+    Gender1F2M == 1 ~ "female",
+    Gender1F2M == 2 ~ "male")) %>% 
+  
+  mutate(Time = pmap_dbl(select(., starts_with("K")), sum)) %>% 
+  
+  mutate(age1 = case_when(
+    Age < 35 ~ 18,
+    Age >= 80 ~ 80,
+    TRUE ~ floor(Age/5)*5),
+    age2 = case_when(
+      Age < 35 ~ 34,
+      TRUE ~ age1 + 4),
+    Age_Range = case_when(
+      age1 == 80 ~ "80 and older",
+      TRUE ~ str_c(age1,"-",age2))) %>% 
+  
+  select(-Gender1F2M, -age1, -age2) %>% 
+  relocate(BibNum, Year, Sex, Age, Age_Range, Time)
+
+bm
+```
+
+Each row is a single "run" of the marathon.  If a person competed in 2010 and 2011, they would have two rows.  Columns:
+
+- `BibNum`: bib number, a unique identifier for each competitor within a year
+- `Year`: either 2010 or 2011
+- `Sex`: female or male
+- `Age`: age in years
+- `Age_Range`: from 18-34, 35-39, ..., 75-79, and 80 and older
+- `Time`: total time to finish in decimal minutes
+- `K0-5` through `K40-Fin`: times in decimal minutes for different segments of the race
+
+
+### Data exploration
+
+Let's look at the age and sex distribution of finishers for each year.
+
+```{r}
+bm %>% 
+  filter(Year == 2010) %>% 
+ggplot(aes(x = Sex, fill = Sex)) +
+  geom_bar() +
+  xlab("") +
+  ylab("# of Finishers") +
+  ggtitle("2010 Boston Marathon Finishers") +
+  facet_wrap(~Age_Range)
+```
+
+
+```{r}
+bm %>% 
+  filter(Year == 2011) %>% 
+ggplot(aes(x = Sex, fill = Sex)) +
+  geom_bar() +
+  xlab("") +
+  ylab("# of Finishers") +
+  ggtitle("2011 Boston Marathon Finishers") +
+  facet_wrap(~Age_Range)
+```
+
+
+Let's visualize the sampling distribution of a sample mean.
+
+```{r}
+bm_small <- bm %>% 
+  filter(Sex == "female", Age_Range == "18-34", Year == 2010)
+
+pretend_pop <- bm_small$Time
+
+ggplot(bm_small) +
+  geom_histogram(aes(x = Time), fill = "gray20") +
+  labs(title = "Population")
+```
+
+```{r}
+random_means <- tibble(x = replicate(n = 10000, 
+                       mean(sample(pretend_pop, 3557, replace = T)))
+                                    )
+                       
+
+ggplot(random_means) +
+  geom_histogram(aes(x = x), fill = "gray") +
+  labs(title = "Sampling Distribution of Sample Mean, n = 3557")
+```
+
+It has a normal shape, centered at the original population mean.  In our case, the observed mean is $\bar{x} = 235.5$.
+
+```{r}
+bm_summary <- bm %>% 
+  filter(Sex == "female", Age_Range == "18-34", Year == 2010) %>% 
+  summarize(averageTime = mean(Time), sdTime = sd(Time), n = n())
+
+bm_summary
+```
+
+
+## CI for mean
+
+Let's save the summary values needed to build a CI.
+
+```{r}
+xbar <- bm_summary$averageTime
+s <- bm_summary$sdTime
+n <- bm_summary$n
+
+# Estimated standard error
+se <- s/sqrt(n)
+
+# T critical value for 95% confidence
+cv <- qt(0.975, df = n - 1)
+
+# 95% CI
+c(xbar - cv*se, xbar + cv*se)
+```
+
+We can also do this automatically with `t.test`.  The default behavior is to output a 95% CI, but we can change this.
+
+```{r}
+t.test(bm_small$Time, conf.level = 0.95)
+```
+
+
+## Hypothesis test for mean
+
+Our p-value is P(T < -7.41) + P(T > 7.41) on the T with n-1 degrees of freedom.
+
+```{r}
+test_stat <- (xbar - 240) / (s / sqrt(n))
+
+gt(df = n - 1) +
+  geom_vline(xintercept = test_stat, color = "red", lty = 2)
+```
+
+Notice the y axis if we zoom in to where the area is visible!
+
+```{r}
+gt(df = n - 1, a = -8, b = -7) +
+  geom_t_fill(df = n - 1, a = -8, b = test_stat,
+              fill = "dodgerblue")
+```
+
+Find the p-value with `pt`.
+
+```{r}
+2*pt(test_stat, df = n-1)
+
+# More general calculation
+left_tail <- pt(-abs(test_stat), df = n-1)
+right_tail <- pt(abs(test_stat), df = n-1, lower.tail = FALSE)
+
+left_tail + right_tail
+```
+
+We can check our result with `t.test` by specifying the value under the null.
+
+```{r}
+t.test(bm_small$Time, conf.level = 0.95)
+
+t.test(bm_small$Time, mu = 240, conf.level = 0.95)
+```
+
+
+
+
+
+
