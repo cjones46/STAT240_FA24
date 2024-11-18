@@ -1,0 +1,671 @@
+---
+title: "week11-in class notes"
+output: html_document
+date: "2024-11-11"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+source("~/Desktop/STAT 240/scripts/ggprob.R")
+```
+
+
+# Sec 006 Monday 11/11
+
+```{r}
+sum1 = chimpanzee %>% 
+  mutate(session_type = case_when(
+    partner == "none" ~ "no partner",
+    TRUE ~ "partner"
+  )) %>% 
+  group_by(actor, session_type) %>% 
+  summarize(prosocial = sum(prosocial),
+            selfish = sum(selfish),
+            n = prosocial + selfish,
+            pct_prosocial = 100*prosocial/n)
+sum1
+```
+
+```{r}
+visualizeProportionCI = function(true_p, sample_size, conf.level = 0.95, theory = TRUE, wald = FALSE) {
+  stdError = sqrt(true_p * (1 - true_p) / sample_size)
+  
+  # calculate true sampling distribution curve
+  samplingDistribution = tibble(
+    x = seq(true_p - 3*stdError, true_p + 3*stdError, length.out = 50),
+    y = dnorm(x, true_p, stdError)
+  )
+  
+  # calculate random point estimate, associated confidence interval
+  moeLabel = paste0("Interval width: This region contains ", 100*conf.level, "% of area")
+  point_estimate = rnorm(1, true_p, stdError)
+  if (wald) {
+    stdError = sqrt(point_estimate * (1 - point_estimate)/sample_size)
+    moeLabel = paste0("ESTIMATE: This region (on avg.) contains ", 100*conf.level, "% of area")
+  }
+  moe = qnorm(1 - (1-conf.level)/2) * stdError
+  ciLeft = point_estimate - moe
+  ciRight = point_estimate + moe
+  
+  # encode confidence interval as green if it contains the true parameter, red if it does not
+  myColor = ifelse(between(true_p, ciLeft, ciRight), "chartreuse3", "red")
+  
+  myAlpha = 0.4
+  # for more "realistic" graphing, remove the color and the helpful visuals
+  if (!theory) {
+    myColor = "black"
+    myAlpha = 0
+  }
+
+  helpfulY = dnorm(true_p, true_p, stdError)/20 # helpful margin to keep things scaled nicely graphically
+  moeY = dnorm(true_p + moe, true_p, stdError) # y level of MOE visual
+  
+  ggplot() +
+    # underlay sampling distribution
+    geom_line(aes(x, y), samplingDistribution, color = "gray", alpha = 2*myAlpha) +
+    geom_hline(yintercept = 0) +
+    
+    # add true parameter value visual
+    geom_vline(xintercept = true_p, linetype = "dashed", color = "blue", size =  1.5, alpha = myAlpha) +
+    annotate("text", x = true_p - stdError/5, y = dnorm(true_p, true_p, stdError) - helpfulY, color = "blue", alpha = myAlpha, angle = 90, hjust = "right", vjust = "top", label = "True Parameter", size =  6) +
+    
+    
+    # annotate margin of error visual and label
+    annotate("segment", x = true_p - moe, xend = true_p + moe, y = moeY, yend = moeY, arrow = arrow(ends = "both", length = unit(.2, "cm")), alpha = myAlpha) +
+    annotate("text", x = true_p - conf.level*moe, y = moeY + helpfulY/2, hjust = "left", vjust = "bottom", label = moeLabel, alpha = myAlpha) +
+    
+    # annotate point estimate and label
+    annotate("segment", x = point_estimate, xend = point_estimate, y = 0, yend = helpfulY*2, size = 2) +
+    annotate("text", x = point_estimate, y = -helpfulY, label = "PE", size = 4) +
+    
+    # annotate confidence interval
+    annotate("segment", x = ciLeft, xend = ciRight, y = helpfulY, yend = helpfulY, color = myColor, size = 1.5, arrow = arrow(ends = "both", length = unit(.2, "cm"))) +
+    
+    annotate("text", x = true_p + stdError, y = dnorm(true_p, true_p, stdError), label = paste0("Sampling Dist: N(", round(true_p, 2), ", ", round(stdError, 2), ")"), alpha = myAlpha) +
+    
+    theme_minimal() + 
+    theme(
+      panel.grid = element_blank(),
+      axis.text.y = element_blank(),
+      axis.text.x = element_text(size = 10)) + 
+    
+    labs(
+      x = "Potential Values of p",
+      y = ""
+    )
+}
+
+```
+
+```{r}
+visualizeProportionCI(true_p = 0.4, sample_size = 200, conf.level = 0.95, wald = TRUE)
+visualizeProportionCI(true_p = 0.4, sample_size = 200, conf.level = 0.95)
+```
+
+# Sec 006 Wednesday 11/13
+
+```{r}
+B = 1000000
+n = 90
+x = 60
+p = x/n
+
+## do the simulation
+sim = tibble(
+  x_star = rbinom(B, n, p),
+  p_hat = x_star / n)
+
+## summarize the simulation
+sim_summary = sim %>% 
+  summarize(mean = mean(p_hat),  ## this should be very close to p=60/90=0.667
+            sd = sd(p_hat)) ## this should be very close to sqrt(2/3 * 1/3 / 90) = 0.0497
+sim_summary
+
+ggplot(sim, aes(x = p_hat, y=after_stat(density))) +
+  geom_histogram(center = 60/90, binwidth = 1/90,
+                 color = "black", fill = "firebrick") +
+  xlab("sample proportion (p-hat)") +
+  theme_minimal() +
+  # Theoretical sampling distribution
+  geom_norm_density(mu=p, sigma=sqrt(p*(1-p)/n),color="blue", size=2) 
+```
+
+## Wald Approximation
+
+```{r}
+n <- 90
+c = 0.95
+p_hat <- 60/90
+p_hat
+cv <- qnorm(c+(1-c)/2)
+c(p_hat - cv*sqrt(p_hat*(1-p_hat)/n), p_hat + cv*sqrt(p_hat*(1-p_hat)/n))
+```
+
+## Agresti-Coull Approximation
+
+```{r}
+x <- 60
+n <- 90
+p_hat_AC <- (x+2)/(n+4)
+p_hat_AC
+c(p_hat_AC - cv*sqrt(p_hat_AC*(1-p_hat_AC)/n), p_hat_AC + cv*sqrt(p_hat_AC*(1-p_hat_AC)/n))
+```
+
+Extreme values of p_hat
+
+```{r}
+n <- 90
+c = 0.95
+p_hat <- 0.1
+p_hat
+cv <- qnorm(c+(1-c)/2)
+c(p_hat - cv*sqrt(p_hat*(1-p_hat)/n), p_hat + cv*sqrt(p_hat*(1-p_hat)/n))
+```
+
+```{r}
+x <- 9
+n <- 90
+p_hat_AC <- (x+2)/(n+4)
+p_hat_AC
+c(p_hat_AC - cv*sqrt(p_hat_AC*(1-p_hat_AC)/n), p_hat_AC + cv*sqrt(p_hat_AC*(1-p_hat_AC)/n))
+```
+
+## Hypothesis Testing
+
+-   Model Building: $$X \sim Binom(200, p)$$
+
+-   State the hypothesis: $$H_0: p = 0.25, H_{\alpha}: p>0.25$$
+
+-   Identifying the test statistic and null distribution: $$X \sim Binom(200, 0.25)$$
+
+-   Calculate the p-value: Identify $\hat{p} = 57/200$
+
+```{r}
+p_value <- 1 - pbinom(56, 200, 0.25)
+p_value
+```
+
+-   Make conclusion: $\alpha = 0.05$. Since $p-val > \alpha$ we fail to reject H_0
+
+# Sec 003 Wednesday 11/13
+
+```{r}
+B = 1000000
+n = 90
+x = 60
+p_hat = x/n
+
+## do the simulation
+sim = tibble(
+  x_star = rbinom(B, n, p),
+  p_hat = x_star / n)
+
+## summarize the simulation
+sim_summary = sim %>% 
+  summarize(mean = mean(p_hat),  ## this should be very close to p=60/90=0.667
+            sd = sd(p_hat)) ## this should be very close to sqrt(2/3 * 1/3 / 90) = 0.0497
+sim_summary
+```
+
+Build a 95% confidence interval for the chimpanzee making prosocial choices
+
+```{r}
+x <- 60
+n <- 90
+p_hat <- x/n
+p_hat
+c <- 0.95
+cv <- qnorm(c+(1-c)/2)
+c(p_hat - cv*sqrt(p_hat*(1-p_hat)/n), p_hat + cv*sqrt(p_hat*(1-p_hat)/n)) # this is using the wald adjustment
+```
+
+```{r}
+p_hat_AC <- (x+2)/(n+4)
+p_hat_AC
+c(p_hat_AC-cv*sqrt(p_hat_AC*(1-p_hat_AC)/(n+4)), p_hat_AC+cv*sqrt(p_hat_AC*(1-p_hat_AC)/(n+4)))
+```
+
+```{r}
+x <- 9
+n <- 90
+p_hat <- x/n
+p_hat
+c <- 0.95
+cv <- qnorm(c+(1-c)/2)
+c(p_hat - cv*sqrt(p_hat*(1-p_hat)/n), p_hat + cv*sqrt(p_hat*(1-p_hat)/n)) # this is using the wald adjustment
+```
+
+```{r}
+p_hat_AC <- (x+2)/(n+4)
+p_hat_AC
+c(p_hat_AC-cv*sqrt(p_hat_AC*(1-p_hat_AC)/(n+4)), p_hat_AC+cv*sqrt(p_hat_AC*(1-p_hat_AC)/(n+4)))
+```
+
+Hypothesis testing for the Chimpanzee A making prosocial choices
+
+-   Model Statement: X: no of prosocial choice Chimpanzee A makes
+
+BINS: satisfied
+
+$$X \sim Binom(90, p)$$ - Stating the hypothesis:
+
+$$H_0: p = 0.5, H_{\alpha}: p > 0.5 $$ - Check test statistic and figuring out the null distribution
+
+$$X \sim Binom(90, 0.5)$$
+
+-   Calculate the $\hat{p}$
+
+```{r}
+p_hat <- x/n
+```
+
+-   Calculate the p-value
+
+```{r}
+1 - pbinom(59, 90, 0.5)
+```
+
+-   Decide a significance level and make your conclusion:
+
+$$\alpha = 0.05$$
+
+Since $p-val < \alpha$, we have enough evidence to reject $H_0$ or support the fact that Chimpanzee A makes prosocial choices.
+
+# Sec 005 Wednesday 11/13
+
+```{r}
+B = 1000000
+n = 90
+x = 60
+p = x/n
+
+## do the simulation
+sim = tibble(
+  x_star = rbinom(B, n, p),
+  p_hat = x_star / n)
+
+## summarize the simulation
+sim_summary = sim %>% 
+  summarize(mean = mean(p_hat),  ## this should be very close to p_hat = 60/90=0.667
+            sd = sd(p_hat)) ## this should be very close to sqrt(2/3 * 1/3 / 90) = 0.0497
+sim_summary
+```
+
+```{r}
+ggplot(sim, aes(x = p_hat, y=after_stat(density))) +
+  geom_histogram(center = 60/90, binwidth = 1/90,
+                 color = "black", fill = "firebrick") +
+  xlab("sample proportion (p-hat)") +
+  theme_minimal() +
+  # Theoretical sampling distribution
+  geom_norm_density(mu=p, sigma=sqrt(p*(1-p)/n),color="blue", size=2) 
+```
+
+Build a 95% Confidence Interval for the prosocial choice of Chimpqnzee A
+
+### Wald adjustment
+
+```{r}
+x <- 60
+n <- 90
+p_hat <- x/n
+p_hat
+c <- 0.95
+cv <- qnorm(c+(1-c)/2)
+c(p_hat-cv*sqrt(p_hat*(1-p_hat)/n), p_hat+cv*sqrt(p_hat*(1-p_hat)/n))
+```
+
+###. Agrestti - Coull adjustment
+
+```{r}
+p_hat_AC <- (x+2)/(n+4)
+p_hat_AC
+c(p_hat_AC - cv*sqrt(p_hat_AC*(1-p_hat_AC)/(n+4)), p_hat+cv*sqrt(p_hat_AC*(1-p_hat_AC)/(n+4)))
+```
+
+```{r}
+x <- 9
+n <- 90
+p_hat <- x/n
+p_hat
+c <- 0.95
+cv <- qnorm(c+(1-c)/2)
+c(p_hat-cv*sqrt(p_hat*(1-p_hat)/n), p_hat+cv*sqrt(p_hat*(1-p_hat)/n))
+```
+
+###. Agrestti - Coull adjustment
+
+```{r}
+p_hat_AC <- (x+2)/(n+4)
+p_hat_AC
+c(p_hat_AC - cv*sqrt(p_hat_AC*(1-p_hat_AC)/(n+4)), p_hat_AC + cv*sqrt(p_hat_AC*(1-p_hat_AC)/(n+4)))
+```
+
+## Hypothesis testing: To test whether Chimpanzee A actually makes prosocial choices.
+
+-   Model:
+
+$$X_{partner}: \text{no of times Chimpanzee A chooses prosocially}$$ BINS: satisfied
+
+$$X_{partner} \sim Binom(90, p)$$ - State the hypothesis:
+
+$$H_0: p \leq 0.5, H_{\alpha}: p>0.5$$
+
+-   Figuring the test statistic and null distribution:
+
+$$z = \frac{\hat{p}-p_{null}}{s.e(\hat{p})}$$ Null distribution is $X_{partner}\sim Binom(90, 0.5)$
+
+-   Identifying $\hat{p}=0.667$ or X = 60
+
+-   Calculate the p-value
+
+```{r}
+1 - pbinom(59, 90, 0.5)
+```
+
+-   Decide a significance level $\alpha = 0.05$:
+
+Since $p-val < \alpha$, we reject $H_0$, or we have enough evidence to support that Chimpanzee A makes more prosocial choices.
+
+Since the confidence interval doesn't include any value equal or less than 0.5, we know that it supports the findings of the hypothesis testing.
+
+
+# Sec 006 Friday 11/15
+
+Hypothesis testing for the proportion of prosocial choices that Chimpanzee A makes when he has a parter (p_partner).
+
+- Step 1: Model Statement: X is the number of prosocial choices made by Chimpanzee A when he has a partner.
+
+`BINS` assumption: satisfied
+
+$$X \sim Binom(90, p)$$
+
+- Step 2: State your hypothesis:
+
+$$H_0: p\leq 0.5 (p = 0.5), H_{\alpha}: p > 0.5$$
+
+- Step 3: Identify your test statistic or null distribution:
+
+$$t = \frac{\hat{p}-p_{null}}{s.e(\hat{p})} \text{ we will not use this statistic and stick with the X}$$
+
+Under the null hypothesis $t = \frac{\hat{p}-0.5}{s.e(\hat{p})} \sim N(0,1)$. 
+
+We can also use the distribution of X, which is $X \sim Binom(90, 0.5)$. 
+
+- Step 4: Calculate the p-value
+
+```{r}
+X_sample = 60
+n = 90
+p_val <- 1 - pbinom(59, 90, 0.5)
+p_val
+```
+
+- Step 5: Compare your p-val with the significance
+
+$$\alpha = 0.05, 0.02$$
+
+Since, p-val is less than alpha, we reject our null hypothesis. We have enough evidence to support the fact that Chimpanzee makes proscocial choices.
+
+# Confidence interval for difference of proportions
+
+```{r}
+x_1 <- 60
+n_1 <- 90
+p_1_AC <- (x_1+1)/(n_1+2)
+p_1_AC
+x_2 <- 16
+n_2 <- 30
+p_2_AC <- (x_2+1)/(n_2+2)
+p_2_AC
+
+cv <- qnorm(0.95+(1-0.95)/2)
+cv
+
+p.e <- p_1_AC-p_2_AC
+s.e <- sqrt((p_1_AC*(1-p_1_AC)/(n_1+2))+(p_2_AC*(1-p_2_AC)/(n_2+2)))
+s.e
+c(p.e - cv*s.e, p.e + cv*s.e)
+```
+
+We are 95% confident that the differnce of proportion lies between (-0.06625432, 0.32984128).
+
+
+
+
+
+# Sec 003-Friday 11/15
+
+
+Hypothesis testing for the psychic example
+
+- Model Statement:
+
+$X=\text{no of times the psychic guesses suit correctly}$
+
+`BINS` assumption: satisfied
+
+$$X \sim Binom(200,p)$$
+
+- State the hypothesis:
+
+$$H_0: p=0.5, H_{\alpha}: p > 0.25$$
+- Identify the test statistics and the null distribution
+
+$$t = \frac{\hat{p}-p_{null}}{s.e(\hat{p})} \sim N(0,1)$$
+We are sticking with $X \sim Binom(200, 0.25)$, 
+
+- Step 4: Calculate the p-value
+
+```{r}
+x_sample = 57
+p_val <- pbinom(56, 200, 0.25, lower.tail = F)
+p_val
+```
+
+- Make conclusion depending on the significance level
+
+$$\alpha = 0.05$$
+We fail to reject the null hypothesis or we have enough evidence to suggest that the psychic is guessing randomly.
+
+
+## Difference of proportion
+
+- 95% Confidence interval using the Agresti-Coull
+
+```{r}
+x_1 <- 60
+p1_hat <- 60/90
+p1_hat_AC <- (60+1)/(90+2)
+n1 <- 90
+x_2<- 16
+p2_hat <- 16/30
+p2_hat_AC <- (16+1)/(30+2)
+n2 <- 30
+
+p.e <- p1_hat_AC - p2_hat_AC
+s.e <- sqrt((p1_hat_AC*(1-p1_hat_AC)/(n1+2))+(p2_hat_AC*(1-p2_hat_AC)/(n2+2)))
+cv <- qnorm(0.95+(1-0.95)/2)
+
+c(p.e - cv*s.e, p.e + cv*s.e)
+```
+
+
+```{r}
+p_bar <- (x_1+x_2)/(n1+n2)
+s.e = sqrt((p_bar*(1-p_bar)/n1)+(p_bar*(1-p_bar)/n2))
+t = (p1_hat-p2_hat)/s.e
+t
+```
+
+# Sec 005 Friday 11/15
+
+- Step 1: $X = \text{no. of times the psychic gets the suit of the card right}$
+
+BINS assumption: satisfied
+
+$$X \sim Binom(200, p)$$
+- State Hypothesis:
+
+$$H_0: p=0.25, H_{\alpha}: p >0.25 $$
+- Identify your test statistic and null distribution:
+
+$$t = \frac{\hat{p} - p_{null}}{s.e(\hat{p})} \sim N(0,1)$$
+
+We can use the distribution of $X$ under $H_0$, $$X_{null} \sim Binom(200, 0.25).$$
+
+- Calculate p-value
+
+```{r}
+x_sample = 57
+p_val <- 1 - pbinom(56, 200, 0.25)
+p_val
+```
+
+- Making a conclusion using the significance
+
+$$\alpha = 0.05$$
+
+Since p-val is more than the significance level, we fail to reject the null hypothesis. We have enough evidence that the psychic is guessing at random.
+
+
+
+## Difference of proportions
+
+95% Confidence Interval
+
+```{r}
+p1_hat <- 60/90
+p1_hat_AC <- (60+1)/(90+2)
+n1 <- 90
+p2_hat <- 16/30
+p2_hat_AC <- (16+1)/(30+2)
+n2 <- 30
+
+p.e <- p1_hat_AC - p2_hat_AC
+s.e <- sqrt((p1_hat_AC*(1-p1_hat_AC)/(n1+2))+(p2_hat_AC*(1-p2_hat_AC)/(n2+2)))
+c.v <- qnorm(0.95+(1-0.95)/2)
+
+c(p.e - c.v*s.e, p.e + c.v*s.e)
+```
+
+- Hypothesis testing:
+
+```{r}
+p_global <- (60+16)/(90+30)
+
+t <- (p1_hat-p2_hat)/(sqrt(p_global*(1-p_global)/90 + p_global*(1-p_global)/30))
+t
+```
+
+```{r}
+p_val <- 1 - pnorm(t)
+p_val
+```
+
+Considering $\alpha = 0.05, 0.10$, since the p-val is bigger than 0.05 we fail to reject $H_0$. We have enough evidence that the proportion of choices that Chimpanzee A makes with partner or no partner is the same. 
+
+# Sec 003 Monday 11/18
+
+- Step 3: Test statistic and null distribution
+
+$$t = \frac{(\hat{p}_1 - \hat{p}_2) - (p_1-p_2)}{s.e(\hat{p}_1 - \hat{p}_2)}$$
+We replace $p_1 \text{ and } p_2$ in the $s.e(\hat{p}_1 - \hat{p}_2)= \sqrt{\frac{p_1(1-p_1)}{n_1}+\frac{p_2(1-p_2)}{n_2}}$ with $\bar{p}= \frac{X_1+X_2}{n_1+n_2}$
+
+
+```{r}
+x_1 <- 60
+n_1 <- 90
+p1_hat <- (x_1)/(n_1)
+p1_hat
+x_2 <- 16
+n_2 <- 30
+p2_hat <- (x_2)/(n_2)
+p2_hat
+
+p_bar <- (x_1+x_2)/(n_1+n_2)
+p_bar
+s.e <- sqrt((p_bar*(1-p_bar)/n_1)+(p_bar*(1-p_bar)/n_2))
+
+t = (p1_hat-p2_hat)/(s.e)
+t
+```
+
+$$H_0: p_1 = p_2, H_{\alpha}: p_1>p_2$$
+
+```{r}
+p_val <- 1 - pnorm(t)
+p_val
+```
+
+# Sec003 Monday 11/18
+
+```{r}
+x1 <- 60
+n1 <- 90
+x2 <- 16
+n2 <- 30
+
+p1_hat <- x1/n1
+p2_hat <- x2/n2
+
+p_bar <- (x1+x2)/(n1+n2)
+p_bar
+s.e <- sqrt((p_bar*(1-p_bar)/n1) + (p_bar*(1-p_bar)/n2))
+s.e
+t <- (p1_hat - p2_hat)/s.e
+t
+
+p_val <- 1 - pnorm(t)
+p_val
+```
+
+
+
+```{r}
+x_bar <- 235.5062
+s <- 36.2
+n <- 3557
+
+s.e <- s/sqrt(n)
+s.e
+
+cv <- qt(0.975, n-1)
+cv
+
+#qnorm(0.975)
+
+x_bar + c(-1,1)*cv*s.e
+```
+
+
+# Sec005 Monday 11/18
+
+95% Confidence Interval: 
+
+$$(\bar{x} - qt(c+(1-c)/2, n-1)*\frac{s}{\sqrt{n}}, \bar{x} - qt(c+(1-c)/2, n-1)*\frac{s}{\sqrt{n}})$$
+
+```{r}
+n <- 3557
+x_bar <- 235.5062
+s <- 36.2
+
+s.e <- s/sqrt(n)
+s.e
+cv <- qt(0.975, n-1)
+cv
+
+# qnorm(0.975)
+
+x_bar + c(-1,1)*cv*s.e
+```
+
+
+
+
+
+
+
+
+
+
