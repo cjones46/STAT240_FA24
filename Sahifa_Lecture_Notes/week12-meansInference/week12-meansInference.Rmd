@@ -1,0 +1,908 @@
+---
+title: "STAT 240: Inference on Means"
+author: "Cameron Jones"
+date: "Fall 2024"
+output: rmdformats::readthedown
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = TRUE,
+                      error = TRUE, fig.height = 4)
+library(tidyverse)
+source("../../scripts/ggprob.R")
+
+```
+
+# Overview
+
+## Learning Outcomes
+
+* These lectures will teach you how to:
+    - Conceptualize statistical inference on a single mean and for a difference in means, through statistical models and p-values
+    - Compute a confidence interval for a single mean and a difference in means
+    - Compute a p-value for inference on a single mean and for a difference in means
+
+## Preliminaries
+
+
+* Download `week12-meansInference` to `STAT240/lecture/week12-meansInference`.
+* Download `TIM.txt` to `STAT240/data`. (**New file!**)
+
+## The Boston Marathon Data
+
+* The Boston Marathon is a prestigious annual 26.2 mile race that has been held almost every year for centuries.
+    - There are different records and sub-competitions based on the times of runners in different groups of sex and various age ranges, 18-34, 35-39, 40-44, ... 75-79, and 80+. 
+    - Each year, thousands of runners run the marathon. 
+
+* `TIM.txt` contains data on the times of runners of the Boston Marathon from 2010 and 2011 (and 2013, which we will not analyze).
+
+* In most years, the Boston Marathon is held in April, but in 2011 was delayed to October.
+
+### Data Wrangling
+
+- Data source: [Boston Marathon Data](https://rls.sites.oasis.unc.edu/boston.html)
+
+- The data set `TIM.txt` contains all times from 2010, 2011, and 2013.
+
+- We make the following changes to the original data:
+    - Eliminate data from 2013 
+    - Create a `Sex` variable with better labels
+    - Sum the times for racers for different race segments to obtain a total time
+    - Add an `Age_Range` variable
+- Note the use of `read_table()` to read in the data
+    - The `col_types` argument is set so that each column is read in as type *double* by default.
+
+
+```{r}
+bm_orig = read_table("../../data/TIM.txt",
+                col_types = cols(.default = col_double()))
+
+bm = bm_orig %>% 
+  filter(!is.na(`K40-Fin`)) %>% 
+  filter(Year < 2013) %>% 
+  arrange(Year, BibNum) %>% 
+  select(-starts_with("Start"), -HalfMar, -Age2014) %>% 
+  mutate(Sex = case_when(
+    Gender1F2M == 1 ~ "female",
+    Gender1F2M == 2 ~ "male")) %>% 
+  mutate(Time = pmap_dbl(select(., starts_with("K")), sum)) %>% 
+  mutate(age1 = case_when(
+    Age < 35 ~ 18,
+    Age >= 80 ~ 80,
+    TRUE ~ floor(Age/5)*5),
+    age2 = case_when(
+      Age < 35 ~ 34,
+      TRUE ~ age1 + 4),
+    Age_Range = case_when(
+      age1 == 80 ~ "80 and older",
+      TRUE ~ str_c(age1,"-",age2))) %>% 
+  select(-Gender1F2M, -age1, -age2) %>% 
+  relocate(BibNum, Year, Sex, Age, Age_Range, Time)
+
+bm
+```
+
+> Each row of `bm` represents **a single run** of the Boston Marathon. (The reason we say a single "run" and not a single "person" is that if the same individual person ran in BOTH 2010 and 2011, data from each run would be in two different rows.)
+
+- The transformed data set has these variables:
+    - `BibNum`: bib number, a unique identifier for each competitor **within a year** (BibNum may repeat across years, but does not represent the same individual)
+    - `Year`: either 2010 or 2011
+    - `Sex`: female or male
+    - `Age`: age in years
+    - `Age_Range`: from 18-34, 35-39, ..., 75-79, and 80 and older
+    - `Time`: total time to finish in decimal minutes
+    - `K0-5` through `K40-Fin`: times in decimal minutes for 5 km segments of the race plus the final shorter segment.
+    
+### Exploratory Data Analysis
+
+* Below are the age and sex distributions of runners from each year.
+
+* The 18-34 age group is by far the most common, and there are more females than males in this group.
+
+* Number of runners dwindles as age increases, and there are more males than females in all age groups except 18-34.
+
+```{r}
+bm %>% 
+  filter(Year == 2010) %>% 
+ggplot(aes(x = Sex, fill = Sex)) +
+  geom_bar() +
+  xlab("") +
+  ylab("# of Finishers") +
+  ggtitle("2010 Boston Marathon Finishers") +
+  facet_wrap(~Age_Range)
+
+bm %>% 
+  filter(Year == 2011) %>% 
+ggplot(aes(x = Sex, fill = Sex)) +
+  geom_bar() +
+  xlab("") +
+  ylab("# of Finishers") +
+  ggtitle("2011 Boston Marathon Finishers") +
+  facet_wrap(~Age_Range)
+```
+
+# Confidence Interval for a Single Mean
+
+* A reminder of the general form for a confidence interval, copied from last week:
+
+$$
+\text{Point Estimate } \pm \text{ Quantile Confidence Score * Standard Error of PE}
+$$
+
+* Where the **point estimate** is your estimate of the true parameter based on your data... (such as the sample proportion $\hat{p}$ for the true $p$, or the sample mean $\bar{x}$ for the true $\mu$)
+
+* ... the **quantile confidence score** is the ($C$ + (1-$C$)/2) quantile of the sampling distribution...
+
+*where $C$ is your confidence level, like 0.95; this can also be written as $C = 1 - \alpha$ where $\alpha = 0.05$, so the QCS would be the $1 - \alpha + \alpha/2$ quantile of the sampling distribution..*
+
+* and the **standard error of the point estimate** is a known formula based on what point estimate you are using.
+
+---
+
+* Consider the observed times of 18-34 year old female runners from 2010 to be a **sample** from a larger **population** of the run times this group would attain if they ran the race infinitely many times. 
+
+* If it is more comfortable; consider the population to be all females aged 18-34 who were eligible to have run the marathon, and the sample to be all of those who actually did.
+    - Reckoning with "weird" population concepts is still a point of emphasis of this introductory statistics course, though.
+    
+> We wish to compute a **confidence interval** for the **true, underlying average Boston Marathon time of an 18-34 year old female runner from 2010**.
+
+## Statistical Model
+
+> Your **statistical model** is a statement about how the **observed data** relates to the **parameter of interest**; or more accurately reflecting the conceptual order, how the **parameter of interest** influences the generation of the **observed data**.
+
+* Here, we assume that the observed data follows some true distribution $D$ (which is irrelevant!), and that true distribution $D$ has expected value $\mu$ and standard deviation $\sigma$.
+
+* $D$ **does not have to be normal**, but we will write this distribution as $D(\mu, \sigma)$.
+
+---
+
+* When we constructed the model for inference on **proportions**, we were able to say $X \sim Binom(n, p)$, where $X$ was just a single random variable; the observed number of successes.
+
+* This is a **luxury** we got to do specifically for proportions. There was a **convenient, simple** way to connect the sample to the parameter of interest through just a single number.
+
+* However, with **means**, we don't have a simple way to connect the sample to the parameter with just one summary variable. We have Central Limit Theorem, which we will use in our computation, but this should NOT show up in our model.
+
+* Therefore, all we can do is connect **each individual runner's time** to $D(\mu, \sigma)$, each with their own random variable.
+
+* We will have $n = 3557$ random variables in our model, one for each runner's time. Again, this will eventually get simplified, but for now this is the best we can do.
+
+* We will write these $n = 3557$ random variables as:
+
+$$
+X_i, \quad \text{for $i = 1, \ldots, n$}
+$$
+
+* Here, $i$ is an "index", which indicates which runner that random variable represents.
+
+* $X_1$ is the random variable for the first runner's time, $X_2$ is the random variable for the second runner's time, et cetera.
+
+---
+
+* Our "plain English" description of the model is: 
+
+> Each individual runner's time comes from the underlying distribution $D$, which has expected value $\mu$ and standard deviation $\sigma$.
+
+* In mathematical notation, we write:
+
+$$
+X_i \sim D(\mu, \sigma), \quad \text{for $i = 1, \ldots, n$}
+$$
+
+## Point Estimate
+
+> The **point estimate** for $\mu$, the population mean, is $\bar{x} = \frac{1}{n}\sum_{i=1}^nx_i$, the **sample mean**.
+
+
+```{r}
+bm_summary = bm %>% 
+  filter(Sex == "female", Age_Range == "18-34", Year == 2010) %>% 
+  summarize(averageTime = mean(Time), sdTime = sd(Time), n = n())
+
+bm_summary
+
+xbar = bm_summary$averageTime
+s = bm_summary$sdTime
+n = bm_summary$n
+```
+
+* Our best estimate of $\mu$, and the center of our confidence interval will be `r round(xbar, 2)`.
+
+## Standard Error of X-Bar
+
+* We know the **sampling distribution** of $\bar{x}$ from Central Limit Theorem:
+
+> **Central Limit Theorem states**: Consider sampling $n$ points from any distribution $D$, which has expected value $\mu$ and standard deviation $\sigma$, and then taking the mean of those $n$ points as a random variable $\bar{X}$. Then, $\bar{X} \sim N(\mu, \frac{\sigma}{\sqrt{n}}$). 
+
+> By standardization, this can be re-written as 
+
+* There were three things we needed to know to construct a $\alpha$% confidence interval - the point estimate, the sampling distribution, and the standard error. This takes care of the last two!
+
+* However...
+
+### The Problem
+
+* ... $SE({\bar{X}}) = \frac{\sigma}{\sqrt{n}}$ is based on $\sigma$, a parameter of the initial distribution $D$, which we almost always do not know.
+
+* When we ran into a similar problem with $SE({\hat{p}}) = \sqrt{\frac{p(1-p)}{n}}$, we first looked at the Wald adjustment, and then decided to employ the Agresti-Coull adjustment, which statisticians have determined is the "best possible response" to that problem.
+
+* The intuitive first response is to replace $\sigma$, the unknown **population** standard deviation, with $s$, the **sample** standard deviation.  
+
+* How does this change affect the sampling distribution?
+
+### The t Distribution is Back!
+
+> By standardizing **Central Limit Theorem**, $\frac{\bar{x} - \mu}{\sigma/\sqrt{n}} \sim N(0, 1)$.
+
+> By replacing $\sigma$, the **population** standard deviation, with $s$, the **sample** standard deviation, in the above statement, we get $\frac{\bar{x} - \mu}{s/\sqrt{n}} \sim t(df = n -1)$.
+
+## Final Formula
+
+* To recap: we need the point estimate, the sampling distribution, and the standard error to compute a $\alpha$% confidence interval in the form:
+
+$$
+\text{Point Estimate } \pm \text{ Quantile Confidence Score * Standard Error of PE}
+$$
+
+* We have the **point estimate** for the underlying, true average time of a 18-34 year old female Boston Marathon runner in 2010, $\bar{x}$:
+
+```{r}
+# We defined this a while ago, back in Confidence Interval for a Single Mean > Point Estimate.
+# Useful tip: try clicking "Outline" in the top right of the source code panel, next to "Run".
+
+xbar
+```
+
+* And we now know that the sampling distribution associated with $\bar{X}$ is $t(n-1)$; with (estimated) standard error $\frac{s}{\sqrt{n}}$.
+
+```{r}
+se = s / sqrt(n)
+se
+```
+
+* With confidence level $C$, sample average $\bar{x}$, sample size $n$, and sample standard deviation $s$, the formula for a $C$% confidence interval for the true $\mu$ is:
+
+$$
+\bar{x} \pm \text{qt(C+(1-C)/2, df=n-1)}*\frac{s}{\sqrt{n}}
+$$
+
+* For example, using `xbar`, `s`, and `n` from above, with `C = 0.95`:
+
+```{r}
+C = 0.95
+
+moe = qt(C + (1-C)/2, df = n - 1) * se
+
+left = xbar - moe
+right = xbar + moe
+
+c(left, right)
+```
+
+## Interpretation
+
+* Remember... don't overwhelm your hypothetical audience with statistical jargon, give them what they care about; the interpretation in context.
+
+> We are **95% confident** that the true average time for an 18-34 year old female Boston Marathon runner is between 234.3 minutes (3 hours, 54.3 minutes) and 236.7 minutes (3 hours, 56.7 minutes).  
+
+*Note: We can predict this true average with such precision (two minute range) because the margin of error decreases when $n$ increases ($n$ is in the denominator of the standard error), and we have relatively large $n$ (3000+ runners).*
+
+## Introducing: t.test
+
+> `t.test` takes in **a vector of raw data** and returns a **confidence interval** and output from a **hypothesis test**.
+
+*`t.test` is named after the hypothesis test for a mean or difference in means, which we will see in just a moment - it is named such because of its dependence on the t distribution.*
+
+```{r}
+times = bm %>% filter(Sex == "female" & Age_Range == "18-34" & Year == 2010) %>% pull(Time) # pull(x) works like dataframe$x, extracts the column x from the dataframe as a vector
+
+t.test(times)
+```
+
+* Note that `t.test` takes the full, $n$ length vector of raw $X_i$ values.
+
+---
+
+* The confidence level for the interval can be adjusted with the `conf.level` argument. This doesn't affect the hypothesis test at all.
+
+```{r}
+t.test(times, conf.level = 0.9)
+```
+
+* **We will often ask you to construct the confidence interval "by hand", meaning to do the calculations without `t.test`, though you may use `t.test` to check your answer. If we do not tell you to do it "by hand", you may use `t.test`.**
+
+# Hypothesis Testing For A Single Mean
+
+> Conduct a hypothesis test to test the evidence if the true average time for an 18-34 y/o female Boston Marathon runner in 2010, $\mu$, is 240 minutes (4 hours) or not.
+
+* The conceptual framework and steps of this hypothesis test remain the same as we saw in the proportions lecture. 
+
+* Once again, consider the observed data as a **sample** of a larger **population** - perhaps all 18-34 y/o female runners who were eligible to run, not all of whom did - or all possible ways the observed group *could* have run the race.
+
+## Step 1: Model Statement
+
+* Borrowing from the confidence interval section:
+
+> Each individual runner's time comes from the underlying distribution $D$, which has expected value $\mu$ and standard deviation $\sigma$.
+
+* In mathematical notation, we write:
+
+$$
+X_i \sim D(\mu, \sigma), \quad \text{for $i = 1, \ldots, n$}
+$$
+
+* Where $X_i$ represents the $i$th runner's time. $\mu$ is the true underlying average time for this group, and $\sigma$ is the true underlying average standard deviation for this group's times.
+
+* The only **assumption** with this model is that each runner's time does not affect any others - they are **independent**.
+    - Again, you could nitpick this assumption and say that runners might try to stick together, but we'll just assume this is true.
+
+## Step 2: State Hypotheses
+
+* Recall that the null hypothesis is a statement about the parameter of interest with $=$.
+
+$$
+H_0: \mu = 240
+$$
+
+* The alternative hypothesis is an inequality about that same parameter. Here, the original prompt for the test was "test the evidence if the true average time... is 240 or **not.**" This implies the alternative hypothesis is $\mu \neq 240$.
+
+$$
+H_A: \mu \neq 240
+$$
+
+## Step 3: Test Statistic and Null Distribution
+
+* Remember that a test statistic and its known null distribution have to come from **the sample and the null hypothesis**. It cannot have any dependence on unknown parameters.
+
+* For this reason, Central Limit Theorem's $\frac{\bar{x} - \mu}{\sigma/\sqrt{n}} \sim N(0, 1)$ is out, due to its dependence on the true $\sigma$.
+
+* However, the $s$ for $\sigma$ substitution leading to: $T = \frac{\bar{x} - \mu}{s/\sqrt{n}} \sim t(n-1)$ is valid!
+
+> Our test statistic for a single mean is $T = \frac{\bar{x} - \mu}{s/\sqrt{n}} \sim t(n-1)$.
+
+> To find the null distribution, we substitute the value of $\mu$ under $H_0$ wherever $\mu$ appears.
+
+* Here, the null hypothesis was $\mu = 240$. Substituting that in, so we end up with a test statistic and null distribution of$T = \frac{\bar{x} - 240}{s/\sqrt{n}} \sim t(n-1)$.
+
+* This substitution happens to affect the test statistic and not the actual distribution, but still follows the conceptual framework of the hypothesis test.
+
+## Step 4: Identify Relevant Outcomes from Data and Alt. Hyp.
+
+* Now, we need to identify **values of the test statistic** which are **as or less likely** than the one we observed (on the null distribution).
+
+* Note that these are values of the **test statistic**, NOT the **sample mean**. We are evaluating likelihood on the null distribution, which is the probability distribution of the test statistic under the null hypothesis.
+
+```{r}
+test_stat = (xbar - 240) / (s / sqrt(n))
+
+gt(df = n - 1) +
+  geom_vline(xintercept = test_stat, color = "red")
+```
+
+* Because the t-distribution is symmetric, we can conclude that all values to the left of `test_stat` (which is negative) are less likely, and all values to the right of `abs(test_stat)` are less likely.
+
+*We are over SEVEN (!) standard errors away from the mean - we expect this to be a very small area, which will mean a very small p-value, which constitutes very strong evidence against the null hypothesis.*
+
+* Visualization of the left tail (notice how small the values are on the y axis):
+
+```{r}
+gt(df = n - 1, a = -8, b = -7) +
+  geom_t_fill(df = n - 1, a = -8, b = test_stat)
+```
+
+
+* BOTH tails constitute evidence for the alternative hypothesis, $\mu \neq 240$, so we will include both tails in our p-value calculation.
+
+## Step 5: Calculate P-Value
+
+* Recall that the p-value is the area/probability of the outcomes identified in step 4 under the null distribution.
+
+* This is $P(t(n-1) \leq$ `test_stat`$)$, and $P(t(n-1) \geq$ `abs(test_stat)`$)$.
+
+* We use `pt`, which is just like `pnorm` or `pbinom` in that `pt(q, df)` returns $P(t(df) \leq q)$, the cumulative probability of $q$.
+
+```{r}
+# Note: You should always have the visual in your head! If your test_stat is positive, you need to take the area to its RIGHT!
+# If this really bothers you, you can always take the area to the left of -abs(test_stat), which is always negative.
+
+left_tail = pt(test_stat, df = n-1)
+right_tail = pt(abs(test_stat), df = n-1, lower.tail = FALSE)
+
+left_tail + right_tail
+```
+
+* Recall that for symmetric distributions (all t and Normal distributions, plus Binomial with $p = 0.5$), we can just double either tail.
+
+```{r}
+2*left_tail
+```
+
+## Step 6: Interpretation
+
+> There is strong evidence for the true underlying average time for a 18-34 year old female Boston Marathon runner in 2010 being different than 4 hours (p $\approx$ 0, one sample t-test).
+
+## Same Calculation with t.test
+
+* Like we showed for a confidence interval, we can do this same calculation with `t.test`, which takes a vector of raw data.
+
+```{r}
+# Reminder: times = bm %>% filter(Sex == "female" & Age_Range == "18-34" & Year == 2010) %>% pull(Time)
+
+head(times)
+```
+
+* The default is to test the alternative hypothesis $\mu \neq 0$.
+
+* Unsurprisingly, the data gives pretty strong evidence that the true underlying time isn't 0.
+
+```{r}
+t.test(times)
+```
+
+* `t = 388.35` is the observed value of the test statistic. Here, it was $\frac{\bar{x} - 0}{s/\sqrt{n}}$, since the alternative hypothesis was $\mu \neq 0$ from the second line.
+
+* `df` and `p-value` are the degrees of freedom and the p-value; for extremely small p-values, R does not bother calculating beyond 16 leading 0's (e.g. 0.00000000000000001).
+
+---
+
+* The **null value** (e.g. the value of $\mu$ under the null hypothesis) can be changed with the `mu` argument.
+
+* So, to test the evidence against $H_0: \mu = 240$:
+
+```{r}
+t.test(times, mu = 240)
+```
+
+* You would still have to go the extra step to **interpret in context** when generating the p-value this way, just like the confidence interval.
+
+* Like confidence intervals, **we will often ask you to calculate the p-value "by hand"**, meaning without `t.test`, but you are welcome to check your answer with `t.test`. If we don't say "by hand", you are welcome to use `t.test` from the beginning.
+
+---
+
+* The inequality sign in the alternative hypothesis can be adjusted by setting `alternative = "less"` or `"greater"`. *Note this will also adjust your confidence interval to a "one-sided" confidence interval, which we do not cover in this class. We have only covered "two-sided" confidence intervals.*
+
+```{r}
+t.test(times, mu = 240, alternative = "greater")
+```
+
+# Confidence Interval For a Difference in Means
+
+* Just like the conceptual jump up from **one proportion** to a **difference in two proportions**, we will now make the jump from **one mean** to a **difference in two means**.
+
+* Also like proportions, inference on a difference in two means **is NOT just computing single mean intervals/p-values twice and subtracting.** There is a **new test statistic and standard error** to account for.
+
+* There is an inference method for a difference in three or more means called *ANOVA* ("analysis of variance") that we will not cover in this class.
+
+> We seek to answer the question: What is our estimate of the change in the true underlying average Boston Marathon time for an 18-34 year old female runner from 2010 to 2011?
+
+* Remember that 2010 was held in April as normal, but 2011 needed to be delayed until October.
+
+* Consider each set of observed data to be a **sample** from a larger population of all possible 18-34 y/o female runners who were eligible in each year, or all possible ways the observed runners *could* have run the race.
+
+* Once again, a reminder of the general form of confidence intervals:
+
+$$
+\text{Point Estimate } \pm \text{ Quantile Confidence Score * Standard Error of PE}
+$$
+
+* We need a **point estimate**, we need the **sampling distribution** (to calculate the quantile confidence score) and the **standard error** (which we may have to adjust.)
+
+## Statistical Model
+
+* Our model relates our **observed data** to the **parameter(s)** of interest.
+
+* Let $X_i$, for $i = 1, ... n_1$ be the observed times of the 2010 18-34 y/o female runners.
+* Let $Y_i$, for $i = 1, ... n_2$ be the observed times of the 2011 18-34 y/o female runners.
+
+* Let $\mu_x$ and $\sigma_x$ be the true average and standard deviation of the true distribution $D_x$ of the 2010 group.
+* Let $\mu_y$ and $\sigma_y$ be the true average and standard deviation of the true distribution $D_y$ of the 2011 group.
+
+$$
+X_i \sim D_x(\mu_x, \sigma_x) \\
+Y_i \sim D_y(\mu_y, \sigma_y)
+$$
+
+* Our **parameter of interest** is $\mu_x - \mu_y$. Again, **we don't care about their individual values, just the gap!**
+
+* Finally, we assume that the two samples are **independent**; i.e. there's no connection between the samples, a value in one group does not relate to a value in the other sample.
+*We'll investigate what happens when this assumption is violated in "Paired T-Tests" later in this lecture series.*
+
+## Point Estimate
+
+* Our point estimate for $\mu_x - \mu_y$, the difference in population means, is $\bar{x} - \bar{y}$, the difference in sample means.
+
+```{r}
+bm_twomeans_summary = bm %>% 
+  filter(Sex == "female", Age_Range == "18-34") %>% 
+  group_by(Year) %>% 
+  summarize(avgTime = mean(Time), sdTime = sd(Time), n = n())
+
+bm_twomeans_summary
+```
+
+```{r}
+# Extract the values; first by pulling out the length-two vector, then indexing to either the first or second value
+# We could've also achieved mu1 with bm_twomeans_summary[1,2] but I find that harder to read
+
+xbar = bm_twomeans_summary$avgTime[1]
+ybar = bm_twomeans_summary$avgTime[2]
+sx = bm_twomeans_summary$sdTime[1]
+sy = bm_twomeans_summary$sdTime[2]
+nx = bm_twomeans_summary$n[1]
+ny = bm_twomeans_summary$n[2]
+```
+
+## Sampling Distribution & Standard Error
+
+* Deriving the sampling distribution for $\bar{x}_1$ and $\bar{x}_2$ through mathematical theory is not in the scope of this class; but what we do care about is the final result.
+
+* Just like single mean inference, we have the "true" result if $\sigma_x$ and $\sigma_y$ are known:
+
+---
+
+* The true, but unknown standard error for $\bar{x} - \bar{y}$ is $SE(\bar{x} - \bar{y}) = \sqrt{SE(\bar{x})^2 + SE(\bar{y})^2} = \sqrt{\frac{\sigma_x^2}{n_x} + \frac{\sigma_y^2}{n_y}}$.
+
+* The true, but unknown sampling distribution for $\bar{x} - \bar{y}$ is $N(\mu_x - \mu_y, SE(\bar{x} - \bar{y}))$.
+
+---
+
+* However, we will **substitute the sample standard deviations $s_x$ and $s_y$ for the unknown population standard deviations $\sigma_x$ and $\sigma_y$,** at the cost of changing the sampling distribution from Normal to the slightly more random t distribution.
+
+> Based only on our sample, $SE(\bar{x} - \bar{y}) = \sqrt{\frac{s_x^2}{n_x} + \frac{s_y^2}{n_y}}$.
+
+* Just like for one mean, we can rewrite the true but unknown sampling distribution as $\frac{\bar{x} - \bar{y} - (\mu_x - \mu_y)}{SE(\bar{x} - \bar{y})} \sim N(0, 1)$. Then, we **substitute $s_x$ and $s_y$ for $\sigma_x$ and $\sigma_y$, and the sampling distribution becomes:
+
+$$
+\frac{\bar{x} - \bar{y} - (\mu_x - \mu_y)}{SE(\bar{x} - \bar{y})} \sim t(\text{Welch approximate d.f.})
+$$
+
+## Welch Approximate Degrees of Freedom
+
+* The **true degrees of freedom** are also in terms of the unknown parameters, but we can use the "Welch approximate degrees of freedom" to estimate it:
+
+$$
+\text{Welch approximate d.f. = W} =\frac{(s_x^2/n_x\,+\,s_y^2/n_y)^2}{(s_x^2/n_x)^2/(n_x-1)\,+\,(s_y^2/n_y)^2/(n_y-1)}
+$$
+
+## Final Form
+
+* This leads us to our final form of a confidence interval for a difference in means: 
+
+$$
+\bar{x} - \bar{y} \pm \text{qt(C + (1-C)/2, df = W)} * \sqrt{\frac{s_x^2}{n_x} + \frac{s_y^2}{n_y}}
+$$
+
+```{r}
+C = 0.95 # 95% confidence interval
+point_estimate = xbar - ybar
+se = sqrt(sx^2/nx + sy^2/ny)
+W = (sx^2/nx + sy^2/ny)^2 / (sx^4/(nx^2*(nx-1)) + sy^4/(ny^2*(ny-1)))
+
+moe = qt(0.95 + (1 - 0.95)/2, df = W) * se
+
+left = point_estimate - moe
+right = point_estimate + moe
+
+c(left, right)
+```
+
+> We are 95% confident that the difference in true, underlying average times among 18-34 year old female runners between 2010 and 2011 is between -1.416 and 1.961.
+
+---
+
+* We can use `t.test` to calculate this interval by hand, passing in two vectors of raw data, NOT summary data.
+
+**A two sample t-test is done with `t.test(x, y)`, with the arguments separated by commas. Do not write `t.test(x-y)`; that is a paired t-test, which we will cover later in this lecture.**
+
+```{r}
+times_2010 = bm %>%
+  filter(Sex == "female", Age_Range == "18-34", Year == 2010) %>% 
+  pull(Time)
+
+times_2011 = bm %>%
+  filter(Sex == "female", Age_Range == "18-34", Year == 2011) %>% 
+  pull(Time)
+
+t.test(times_2010, times_2011)
+```
+
+```{r}
+W # The manually calculated degrees of freedom; just to verify our calculation was correct
+```
+
+# Hypothesis Testing For A Difference of Two Means
+
+* Our **inference question** is:
+
+> Is there a difference between the true underlying average times of 18-34 year old female Boston Marathon runners between 2010 and 2011?
+
+* Or, we might word this more technically as:
+
+> Is the **difference** between the true underlying average time of 18-34 year old female Boston Marathon runners in 2010 and 2011 equal to 0 or greater than 0?
+
+## Step 1: Model Statement
+
+* Let $X_i$, for $i = 1, ... n_1$ be the observed times of the 2010 18-34 y/o female runners.
+* Let $Y_i$, for $i = 1, ... n_2$ be the observed times of the 2011 18-34 y/o female runners.
+
+* Let $\mu_x$ and $\sigma_x$ be the true average and standard deviation of the true distribution $D_x$ of the 2010 group.
+* Let $\mu_y$ and $\sigma_y$ be the true average and standard deviation of the true distribution $D_y$ of the 2011 group.
+
+$$
+X_i \sim D_x(\mu_x, \sigma_x) \\
+Y_i \sim D_y(\mu_y, \sigma_y)
+$$
+
+## Step 2: State Hypotheses
+
+* Our **parameter of interest** is $\mu_x - \mu_y$.
+
+* The null hypothesis captures the idea that there is no pattern/total randomness/no difference.
+
+$$
+H_0: \mu_x = \mu_y \\
+\text{or, equivalently: } H_0: \mu_x-\mu_y = 0 
+$$
+
+* The alternative hypothesis captures the idea that there **is** a pattern/some systematic relationship/a difference.
+
+* As someone uninformed about marathons, I don't know if April (2010) or October (2011) would be a better month to run a marathon in.
+
+* With that in mind, I *should* use a two-sided alternative hypothesis; $\mu_x \neq \mu_y$.
+
+* However, for practice, let's pretend that we think April is the better month - i.e. 2010 had a LOWER true underlying average; so we **expect the difference $\mu_x - \mu_y$ to be negative**.
+
+$$
+H_a: \mu_x < \mu_y \\
+\text{or, equivalently: } H_0: \mu_x-\mu_y < 0 
+$$
+
+## Step 3: Test Statistic and Null Distribution
+
+* We mentioned earlier that the common form of a test statistic, $\frac{\text{Point Estimate - Null Value}}{\text{Std. Error}}$, has a known distribution for difference in means.
+
+* We continue to use the unequal variances standard error and approximate degrees of freedom.
+
+$$
+\frac{(\bar{x} - \bar{y}) - (\mu_x - \mu_y)}{SE(\bar{x} - \bar{y})} \text{ under } H_0 = \frac{(\bar{x} - \bar{y}) - (0)}{\sqrt{\frac{s_x^2}{n_x} + \frac{s_y^2}{n_y}}} \sim t(W)
+$$
+
+$$
+W =\frac{(s_x^2/n_x\,+\,s_y^2/n_y)^2}{(s_x^2/n_x)^2/(n_x-1)\,+\,(s_y^2/n_y)^2/(n_y-1)}
+$$
+
+## Step 4: Identify Relevant Outcomes from Data and Alt. Hyp.
+
+* Our observed value of the test statistic is:
+
+```{r}
+# Same code from confidence interval section, copy/pasted for convenience
+bm_twomeans_summary = bm %>% 
+  filter(Sex == "female", Age_Range == "18-34") %>% 
+  group_by(Year) %>% 
+  summarize(avgTime = mean(Time), sdTime = sd(Time), n = n())
+
+bm_twomeans_summary
+```
+
+```{r}
+xbar = bm_twomeans_summary$avgTime[1]
+ybar = bm_twomeans_summary$avgTime[2]
+sx = bm_twomeans_summary$sdTime[1]
+sy = bm_twomeans_summary$sdTime[2]
+nx = bm_twomeans_summary$n[1]
+ny = bm_twomeans_summary$n[2]
+
+se = sqrt(sx^2/nx + sy^2/ny)
+
+test_stat = ((xbar-ybar) - 0)/se
+
+test_stat
+```
+
+```{r}
+W = (sx^2/nx + sy^2/ny)^2 / (sx^4/(nx^2*(nx-1)) + sy^4/(ny^2*(ny-1))) # Welch approximate degrees of freedom
+
+gt(df = W) +
+  geom_vline(xintercept = test_stat, color = "red")
+```
+
+* **Because we used a one-sided alternative hypothesis ($\mu_x - \mu_y < 0$), we take all of the area on the null distribution to that side of our observed test statistic, no matter where our observed test statistic is.**
+
+* Our alternative hypothesis expected the difference to be negative, and we **got it wrong**; we observed a value that was positive. We'll be "penalized" with a large p-value.
+
+* We take all of the area to the **left** of our observed value, since our alternative hypothesis had $<$.
+
+```{r}
+gt(df = W) +
+  geom_t_fill(df = W, b = test_stat)
+```
+
+
+## Step 5: Calculate P-Value
+
+* We want all the **area to the left** of test_stat, under the $t(W)$ distribution. This is accomplished with a straightforward `pt`.
+
+```{r}
+pt(test_stat, df = W)
+```
+
+## Step 6: Interpretation
+
+> We fail to find evidence for a difference between the true underlying 2010 and 2011 times of female 18-34 year old Boston Marathon runners (p = 0.62, two sample t-test.)
+
+## Recreating the Result with t.test
+
+```{r}
+# Same code from earlier, copy/pasted for convenience
+times_2010 = bm %>%
+  filter(Sex == "female", Age_Range == "18-34", Year == 2010) %>% 
+  pull(Time)
+
+times_2011 = bm %>%
+  filter(Sex == "female", Age_Range == "18-34", Year == 2011) %>% 
+  pull(Time)
+
+# Notice the specification of alternative = "less". The confidence interval becomes "one-sided" which we don't teach in this class, but the hypothesis test results are verified.
+t.test(times_2010, times_2011, alternative = "less")
+```
+
+# Paired T-Tests for Connected/Dependent Samples
+
+* In the previous example, we assumed the 2010 and 2011 samples were **independent**; the data points were not related in any way to each other, they did not represent, for example, the same person running the marathon twice.
+
+* What if we DID have the same group of individuals run the marathon twice, and we could connect their times across the two runs?
+
+* This is an example of a more general concept of **connected** or **dependent** samples, which we have to treat differently than our previous two-sample inference.
+
+> If you have two samples which are connected or dependent; i.e., you have **one experimental unit** contributing a data point to **both samples**; we run **one sample inference** on the **unitwise differences**. 
+
+## Motivation and Example
+
+* Consider investigating with statistics if aging from 13 years old to 14 years old makes you taller.
+*Obviously, it does. But if you try to analyze it the wrong way, you won't get the expected result!*
+
+* If possible, you probably wouldn't take a random sample of 13 year olds and a random sample of 14 year olds, and do a two sample t-test.
+
+* You would take one sample of 13 year olds, measure their heights, wait a year, and then measure their heights again.
+
+* The **data of interest** is then the **growth of each individual**, or more generally **the differences in measurement for each unit.**
+
+---
+
+* In the two sample inference, we assume the two samples are **independent from each other**, and none of the data points have relation to each other across the samples.
+
+* However, consider the following fake data of the growth of five individuals, their heights measured in inches on their thirteenth and fourteenth birthdays:
+
+```{r}
+thirteen = c(44.1, 59.0, 65.9, 58.7, 49.3)
+fourteen = c(46.3, 60.5, 68.2, 59.4, 50.6)
+```
+
+* It is **invalid** to say that the data in `fourteen` is independent of the data in `thirteen`. The higher values in `thirteen` are higher values in `fourteen`. Thus, we cannot conduct two sample inference, because an assumption is violated.
+
+* However, consider the following vector of data:
+
+```{r}
+growth = fourteen - thirteen
+growth
+```
+
+* These five values are all **independent of each other**! The fact that the first individual grew 2.2 inches is unrelated to the second one growing 1.5 inches, so on and so forth.
+
+* We can now conduct **one sample inference** on these data as if they were just the original data we calculated that we care about.
+
+---
+
+* A final note; treating the data this way actually makes us much more likely to detect a real effect! 
+
+```{r}
+# Strong evidence that growing from 13 to 14 makes you taller
+t.test(growth)
+
+# This is an equivalent way to write the above; but writing it this way can mislead you to make you think you're doing two-sample inference. As such, I prefer the first way
+t.test(fourteen - thirteen)
+```
+
+```{r}
+# Fail to find evidence that on average, 14 year olds are taller than 13 year olds; because we INCORRECTLY treated this as an independent sample problem instead of a paired one
+t.test(thirteen, fourteen)
+```
+
+## Full Paired T-Test
+
+* Note that this will look very similar to one sample inference, because it basically is! We just have the single step at the beginning of subtracting the vectors of our two connected samples to obtain our one sample vector.
+
+* Consider the observed data to be a **sample** of some larger population, perhaps all individuals to ever age from 13 to 14.
+
+**Step 1: Statistical Model**
+
+> The growth of each individual comes from the underlying distribution $D$, which has expected value $\mu$ and standard deviation $\sigma$.
+
+*Note this says nothing about the heights each individual starts and ends at, which we don't particularly care about; just the gap between them.*
+
+* In mathematical notation, we write:
+
+$$
+X_i \sim D(\mu, \sigma), \quad \text{for $i = 1, \ldots, n$}
+$$
+
+* Where $X_i$ represents the $i$th individual's growth $\mu$ is the true underlying average growth, and $\sigma$ is the true underlying average standard deviation for this group's times.
+
+---
+
+**Step 2: State Hypotheses**
+
+* The null hypothesis is that, on average, there is no growth from ages thirteen to fourteen.
+
+$$
+H_0: \mu = 0
+$$
+* The alternative hypothesis is that there is growth from ages thirteen to fourteen. (We **expect that growth to be positive**, not negative, so we use the one-sided alternative hypothesis.)
+
+$$
+H_a: \mu > 0
+$$
+
+---
+
+**Step 3: Test Statistic and Null Distribution**
+
+* From the one-sample section, our test statistic and its *sampling* distribution is: $T = \frac{\bar{x} - \mu}{s/\sqrt{n}} \sim t(n-1)$.
+
+* We find its *null* distribution by substituting according to the null hypothesis, namely $\mu = 0$, so we arrive at:
+
+$$
+T = \frac{\bar{x} - 0}{s/\sqrt{n}} \sim t(n-1)
+$$
+
+---
+
+**Step 4: Identify Relevant Outcomes from Data and Alt. Hyp**
+
+```{r}
+n = length(growth)
+# Note: n is quite small here, we only have 5 individuals; so using the t-distribution instead of the normal is important!
+
+xbar = mean(growth)
+s = sd(growth)
+
+test_stat = (xbar - 0)/(s/sqrt(n))
+
+test_stat
+```
+
+* **Because we used a one-sided alternative hypothesis with $>$, we will take all the area to the right of our observed test statistic, no matter where it is.** 
+
+```{r}
+gt(df = n -1) +
+  geom_vline(xintercept = test_stat, color = "red")
+```
+
+* We happened to **"get it right"** here; our alternative hypothesis aligns with our observed data, and we'll be "rewarded" with a very small p-value.
+
+* The outcomes are all values to the right of (and including, technically) our observed test statistic; from the above visual, we expect that probability to be very small.
+
+---
+
+**Step 5: Calculate P-Value**
+
+```{r}
+# lower.tail = FALSE or 1 - pt(...)
+pt(test_stat, df = n - 1, lower.tail = FALSE)
+```
+
+---
+
+**Step 6: Interpret**
+
+> We find very strong evidence for an increase in true average height between ages thirteen and fourteen (p = 0.003, paired t-test).
+
+---
+
+**Recreating with t.test:**
+
+```{r}
+t.test(growth, alternative = "greater")
+```
+
+
