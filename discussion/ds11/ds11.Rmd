@@ -1,0 +1,96 @@
+---
+title: "Discussion 11"
+output: html_document
+---
+
+# Preliminaries
+
+-   This file should be in `STAT240/discussion/ds11` on your local computer.
+
+-   This assignment should be completed in your **assigned Canvas groups**. Only one person has to submit on behalf of the group. You may submit whatever you have at the end of discussion section for full credit.
+
+-   This assignment is to be completed in the first 10-20 mins of the discussion session. The rest of the discussion time the students are to work on the group projects with their discussion groups.
+
+# Present Group Members
+
+Please **write the names of the present group members** here.
+
+> Present Group Members:
+
+> Absent Group Members:
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, 
+                      error = TRUE, 
+                      warning = FALSE, 
+                      message = FALSE)
+library(tidyverse)
+```
+
+## Problems
+
+The questions in this discussion assignment use the chimpanzee data set.
+In answering these questions, you may assume the following in models for the data:
+
+1. all trials are independent
+2. trials made with a partner have the same chance of being pro-social, even if the identities of the actors or partners differ.
+
+## Problem 1
+
+**Part(a)** Using the chimpanzee data, combine all of the trials made without a partner.
+
+Count the number of pro-social and selfish choices made.
+
+```{r}
+# Write your code here! 
+```
+
+**Part(b)**
+
+Write a model for the number of pro-social choices.
+
+> Write your answer here! 
+
+
+**Part(c)**
+
+Use the Agresti-Coull method to construct a 95% confidence interval for the probability that a chimpanzee makes the pro-social choice in experimental conditions when there is no partner present.
+
+```{r}
+# Write your code here! 
+```
+
+
+**Part(d)**
+
+Interpret this confidence interval in the context of the experimental setting.
+
+> Write your answer here! 
+
+## Problem 2
+
+Using the same data as in the previous problem,
+do the following.
+
+**Part(a)**
+
+State hypotheses for a two-sided hypothesis test that the probability that a chimpanzee makes the pro-social choice over the long run is equal to 0.5.
+
+> Write your answer here! 
+
+
+**Part(b)**
+
+Pick a test statistic, state the sampling distribution of this statistic if the null hypothesis is true, and compute a p-value for the test.
+
+```{r}
+# Write your code here! 
+```
+
+**Part(c)**
+
+Interpret these results in the context of the experiment following the examples from lecture notes.
+
+> Write your answer here! 
+
+### Please use rest of your time to work on the project proposal in your groups. Come up with an appropriate dataset, a question to ask, and some ideas of how to proceed. 
