@@ -1,0 +1,115 @@
+---
+output: html_document
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE,
+                      warning = FALSE,
+                      error = TRUE, fig.height = 3,
+                      fig.width = 4)
+
+library(tidyverse)
+library(modelr)
+
+source("../../scripts/ggprob.R")
+```
+
+### Read in the Chimpanzee Data
+
+```{r}
+chimps = read_csv("../../data/chimpanzee.csv")
+```
+
+### Summary
+
+```{r}
+sum1 = chimps %>% 
+  mutate(session_type = case_when(
+    partner == "none" ~ "no partner",
+    TRUE ~ "partner"
+  )) %>% 
+  group_by(actor, session_type) %>% 
+  summarize(prosocial = sum(prosocial),
+            selfish = sum(selfish),
+            n = prosocial + selfish,
+            pct_prosocial = 100*prosocial/n)
+sum1
+```
+
+### SE formula check
+
+```{r}
+x = 60
+n = 90
+phat = x/n
+
+se = sqrt(phat * (1-phat) / n)
+se
+```
+
+### Wald
+
+```{r}
+
+```
+
+
+### Agresti-coull
+
+```{r}
+x = 60
+n = 90
+conf.level = 0.95
+
+# Calculate AC confidence interval
+x_adjusted = x+2 # Added two successes
+n_adjusted = n+4 # Added four data points total
+phat = x_adjusted/n_adjusted
+se = sqrt(phat * (1 - phat)/n_adjusted)  # Changes carry through to p_hat and n_adjusted
+moe = qnorm(conf.level + (1 - conf.level)/2) * se
+  
+left = phat - moe
+right = phat + moe
+  
+c(left, right)
+```
+
+### Hypothesis Testing for p
+
+#### Psychic experiment
+
+```{r}
+x = 57
+n = 200
+
+
+p_ac = (x+2) / (n+4)
+se = sqrt ( p_ac * (1 - p_ac) / ( n+4) )
+
+p_ac
+se
+
+z = qnorm(0.975)
+z
+
+ci = p_ac + c(-1,1) * z * se
+ci
+```
+
+### p-value calculation
+
+```{r}
+## P(X >= 57) = 1 - P(X <= 56)
+p_value = 1 - pbinom(56, 200, 0.25)
+p_value
+1 / p_value
+```
+
+### two-sided alternative
+
+```{r}
+gbinom(200, 0.25, scale = TRUE) +
+  geom_binom_density(200, 0.25, b = 42, color = "red", scale = TRUE) +
+  geom_binom_density(200, 0.25, a = 57, color = "red", scale = TRUE)
+```
+
