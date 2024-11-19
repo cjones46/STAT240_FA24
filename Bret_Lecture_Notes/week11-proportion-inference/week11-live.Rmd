@@ -113,3 +113,82 @@ gbinom(200, 0.25, scale = TRUE) +
   geom_binom_density(200, 0.25, a = 57, color = "red", scale = TRUE)
 ```
 
+### Inference for the difference in proportions
+
+> Compare prosocial probabilities with and without a partner
+
+```{r}
+chimps %>% 
+  filter(actor == "C") %>% 
+  mutate(HasAPartner = (partner != "none")) %>% 
+  group_by(HasAPartner) %>% 
+  summarize(totalProsocial = sum(prosocial),
+            totalSelfish = sum(selfish), 
+            n = totalProsocial + totalSelfish, 
+            p_hat = totalProsocial/n)
+```
+
+
+### Agresti-Coffe CI
+
+```{r}
+x1 = 57
+n1 = 90
+x2 = 17
+n2 = 30
+
+p1_ac = (x1 + 1) / (n1 + 2)
+p2_ac = (x2 + 1) / (n2 + 2)
+
+p1_ac
+p2_ac
+
+pe = p1_ac - p2_ac
+se1 = sqrt(p1_ac * (1 - p1_ac) / (n1 +2))
+se2 = sqrt(p2_ac * (1 - p2_ac) / (n2 +2))
+se1
+se2
+pe
+se = sqrt(se1^2 + se2^2)
+se
+
+ci = pe + c(-1,1) * qnorm(0.975) * se
+ci
+```
+
+### Z-test
+
+```{r}
+x1 = 57
+n1 = 90
+x2 = 17
+n2 = 30
+
+p1_hat = x1/n1
+p2_hat = x2/n2
+p1_hat
+p2_hat
+
+pe_ht = p1_hat - p2_hat
+
+### pool into a single sample
+p_mean = (x1 + x2) / (n1 + n2)
+p_mean
+
+se_ht = sqrt( p_mean * (1-p_mean)/n1 + p_mean * (1 -p_mean) / n2 )
+se_ht
+
+z = (pe_ht - 0) / se_ht
+z
+
+```
+
+```{r}
+gnorm() +
+  geom_norm_fill(a = z)
+
+p_value = 1 - pnorm(z)
+p_value
+```
+ 
+ 
