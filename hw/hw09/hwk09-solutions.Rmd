@@ -1,0 +1,213 @@
+---
+title: "Homework 9"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE,
+                      warning = FALSE, error = TRUE,
+                      fig.height = 3)
+library(tidyverse)
+```
+
+# Preliminaries
+
+- This file should be in `STAT240/homework/hw08` on your local computer.
+- Download `happiness_2019.csv` and `dc_weather.csv` to `STAT240/data`.
+
+
+# Problem 1
+
+A one-sided hypothesis test of 
+
+$$H_A: \beta_1 > 0$$
+
+is performed on a linear model.  The p-value of this test is 0.035.  What would be the p-value if the same data was used to test the following alternatives?
+
+**(a)** $$H_A: \beta_1 < 0$$
+
+> The p-value would be 1 - 0.035 = 0.965
+
+**(b)** $$H_A: \beta_1 \neq 0$$
+
+> The p-value would be 2*0.035 = 0.07
+
+
+# Problem 2
+
+Continue working with the happiness index vs GDP of countries model from Homework 8.
+
+```{r}
+happiness <- read_csv("../../data/happiness_2019.csv")
+
+# Remove spaces from column names
+names(happiness) <- make.names(names(happiness))
+
+happiness_mod <- lm(Score ~ GDP.per.capita, data = happiness)
+```
+
+Build and interpret a 98% CI for the true slope of the linear relationship between happiness index and GDP.  Does the interval cover 0?
+
+```{r}
+summary(happiness_mod)
+```
+
+> The point estimate for the slope is 2.2181, and the standard error is 0.1369.  The critical value for 98% confidence is given by the 99th (or 1st) percentile of the T with n - 2 (154) degrees of freedom. We get t = 2.351.  
+
+```{r}
+qt(0.99, df = 154)
+
+
+ci_lower <- 2.2181 - 0.1369*2.351
+ci_upper <- 2.2181 + 0.1369*2.351
+
+c(ci_lower, ci_upper)
+```
+
+> We are 98% confident that the true linear relationship between happiness index and GDP per capita is within (1.9, 2.54).
+
+
+
+# Problem 3
+
+Perform a hypothesis test of hypotheses
+
+$$H_0: \beta_1 = 0 \quad \text{versus}\quad H_A: \beta_1 \neq 0$$
+
+for the slope of the happiness model.  What is the test statistic, p-value, and conclusion at the 2% level?
+
+> The test statistic is 
+
+$$\frac{\hat{\beta}_1 - 0}{\hat{se}(\hat{\beta}_1)} = \frac{2.2181}{0.1369} = 16.202$$
+
+> Under the null, this comes from a T distribution with $n - 2 = 154$ degrees of freedom.   So our p-value is the area outside of -16.202 and 16.202 on the $T_{154}$ curve.
+
+```{r}
+2*pt(-16.202, df = 154)
+```
+
+> We have a very small p-value which is much smaller than $\alpha = 0.02$.  We reject the null since we have strong evidence that the true slope is nonzero.
+
+
+# Problem 4
+
+How do the results of the hypothesis test in problem 3 relate to the results of the confidence interval in problem 2?
+
+> Both methods return a significant result regarding the value 0.  We rejected the null value of 0 at the 2% level.  If we look at the 98% confidence interval, we see that 0 is not contained within the interval.  Both methods show that our data is not consistent with $\beta_1 = 0$.
+
+
+# Problem 5
+
+Which of the following conditions lead to a smaller prediction error?  Briefly explain your chocies.
+
+- A smaller sample size vs a larger sample size
+
+> A larger sample size results in a smaller standard error.  Having more data means that our model is more reliable.
+
+- A smaller value of $\sigma$ vs a larger value of $\sigma$
+
+> A smaller value of $\sigma$ results in a smaller standard error.  When the points are less spread out around the line, our linear model does a better job of prediction.
+
+- Predicting closer to $\bar{x}$ vs predicting further from $\bar{x}$
+
+> Predicting closer to $\bar{x}$ results in a smaller standard error.  Our linear model is more reliable in the center of our original data.
+
+- A smaller variance vs a larger variance in the original $X$ data
+
+> A larger variance in the original $X$ data results in a smaller standard error.  If our original model covers a wider "range" of possible x values, it does a better job of prediction.
+
+
+# Problem 6
+
+Consider predicting the happiness index of a country with 1 GDP per capita.
+
+**(a)** Build a *prediction interval* for the happiness index of a new country with $x^* = 1$ GDP per capita.
+
+```{r}
+predict(happiness_mod, newdata = tibble(GDP.per.capita = 1),
+        interval = "prediction")
+```
+
+
+**(b)** Build a *confidence interval* for the height of the regression line at $x^* = 1$.
+
+```{r}
+predict(happiness_mod, newdata = tibble(GDP.per.capita = 1),
+        interval = "confidence")
+```
+
+**(c)** Explain the difference in how the prediction and confidence intervals are calculated.
+
+> A prediction interval predicts the y value for a single new observation.  A confidence interval predicts the *average* y value for a certain value of x, which results in a narrower interval.  The standard error of the prediction interval for $\hat{y}|x^* $ is larger than the standard error of the confidence interval for $E(\hat{y}|x^*)$
+
+
+# Problem 7
+
+The file `dc_weather.csv` contains weather data for Washington, DC from August 2018 to August 2024. 
+
+```{r}
+weather <- read_csv("../../data/dc_weather.csv")
+
+weather_mod <- lm(dew ~ tempmin, data = weather)
+```
+
+**(a)** Make a plot of minimum temperature (in C) on the x axis versus dew point on the y axis.  Comment on the shape of the data.
+
+```{r}
+ggplot(weather, aes(x = tempmin, y = dew)) + 
+  geom_point() +
+  labs(x = "Minimum Temperature (C)", y = "Dew Point")
+```
+
+> There appears to be a strong, positive linear relationship between the two variables.
+
+**(b)** Use R's `lm` to fit a linear model for dew point in terms of minimum temperature.  Perform a residual analysis to assess the validity of this model.
+
+```{r}
+weather_mod <- lm(dew ~ tempmin, data = weather)
+
+# Build residual plot
+weather %>%
+  mutate(residuals = resid(weather_mod)) %>%
+  ggplot(aes(x = tempmin, y = residuals)) +
+  geom_point() +
+  geom_hline(yintercept = 0)
+```
+
+> The residual plot suggests that X and Y have a linear relationship, and the residuals are approximately normal around 0.  There may be a few concerns with constant variance for higher values of minimum temperature.
+
+
+# Problem 8
+
+We want to test whether the slope of the linear relationship between minimum temperature and dew point is **greater than 1**.  Write hypotheses corresponding to the question of interest and carry out the test on the weather data.  Make a conclusion with $\alpha = 0.05$.
+
+> The wording "greater than 1" suggests a pair of one-sided hypotheses.  The alternative represents the true slope being greater than 1.  This gives hypotheses
+
+$$H_0: \beta_1 = 1 \quad \text{versus} \quad H_A: \beta_1 > 1$$
+
+```{r}
+summary(weather_mod)
+```
+
+> The test statistic is 
+
+$$\frac{\hat{\beta}_1 - 0}{\hat{se}(\hat{\beta}_1)} = \frac{1.062498}{0.005787} = 183.6$$
+
+> Under the null, this comes from a T distribution with $n - 2 = 3317$ degrees of freedom.  Since our alternative suggests we are looking for a result in the positive direction, our p-value is the area on a $T_{3317}$ curve *above* 183.6.
+
+```{r}
+pt(183.6, df = 3317, lower.tail = F)
+```
+
+> Our p-value is virtually 0, so we reject the null.  We have evidence that the linear relationship between dew point and minimum temperature is greater than 1.
+
+
+
+
+
+
+
+
+
+
+
