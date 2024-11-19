@@ -1,0 +1,265 @@
+---
+title: "Section 17: Inference for Two Means"
+author: "Student's Name Here"
+date: "2024-10-11"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, error = TRUE)
+```
+
+```{r}
+library(tidyverse)
+source("../../scripts/ggprob.R")
+```
+
+## CI for a difference in means
+
+### Data tidying
+
+`TIM.txt` contains data on the times of runners of the Boston Marathon from 2010 and 2011 (and 2013, which we will not analyze).
+
+```{r}
+bm_orig <- read_table("../../data/TIM.txt",
+                col_types = cols(.default = col_double()))  # Columns are 'double' by default
+```
+
+We will make the following changes:
+
+- Eliminate data from 2013
+- Create a `Sex` variable with better labels
+- Sum the times for racers for different race segments to obtain a total time
+- Add an `Age_Range` variable matching the competitor classses in the Boston Marathon.
+
+```{r}
+bm <- bm_orig %>% 
+  filter(!is.na(`K40-Fin`)) %>% 
+  filter(Year < 2013) %>% 
+  arrange(Year, BibNum) %>% 
+  select(-starts_with("Start"), -HalfMar, -Age2014) %>% 
+  
+  mutate(Sex = case_when(
+    Gender1F2M == 1 ~ "female",
+    Gender1F2M == 2 ~ "male")) %>% 
+  
+  mutate(Time = pmap_dbl(select(., starts_with("K")), sum)) %>% 
+  
+  mutate(age1 = case_when(
+    Age < 35 ~ 18,
+    Age >= 80 ~ 80,
+    TRUE ~ floor(Age/5)*5),
+    age2 = case_when(
+      Age < 35 ~ 34,
+      TRUE ~ age1 + 4),
+    Age_Range = case_when(
+      age1 == 80 ~ "80 and older",
+      TRUE ~ str_c(age1,"-",age2))) %>% 
+  
+  select(-Gender1F2M, -age1, -age2) %>% 
+  relocate(BibNum, Year, Sex, Age, Age_Range, Time)
+```
+
+Each row is a single "run" of the marathon.  If a person competed in 2010 and 2011, they would have two rows.  Columns:
+
+- `BibNum`: bib number, a unique identifier for each competitor within a year
+- `Year`: either 2010 or 2011
+- `Sex`: female or male
+- `Age`: age in years
+- `Age_Range`: from 18-34, 35-39, ..., 75-79, and 80 and older
+- `Time`: total time to finish in decimal minutes
+- `K0-5` through `K40-Fin`: times in decimal minutes for different segments of the race
+
+
+### Data exploration
+
+Let's compare the basic summaries for each group (2010 and 2011).
+
+```{r}
+bm_twomeans_summary <- bm %>% 
+  filter(Sex == "female", Age_Range == "18-34") %>% 
+  group_by(Year) %>% 
+  summarize(avgTime = mean(Time), sdTime = sd(Time), n = n())
+
+bm_twomeans_summary
+```
+
+Let's also extract the values and save them for later.
+
+```{r}
+xbar1 <- bm_twomeans_summary$avgTime[1]
+xbar2 <- bm_twomeans_summary$avgTime[2]
+s1 <- bm_twomeans_summary$sdTime[1]
+s2 <- bm_twomeans_summary$sdTime[2]
+n1 <- bm_twomeans_summary$n[1]
+n2 <- bm_twomeans_summary$n[2]
+```
+
+
+Let's calculate the approximate df for comparing the difference in means.
+
+```{r}
+w_numer <- (s1^2/n1 + s2^2/n2)^2
+w_denom <- (s1^4/(n1^2*(n1-1)) + s2^4/(n2^2*(n2-1)))
+
+w <- w_numer / w_denom
+```
+
+Now, we can build a CI
+
+```{r}
+pt_est <- xbar1 - xbar2
+se <- sqrt(s1^2/n1 + s2^2/n2)
+
+cv <- qt(0.975, df = w)
+
+c(pt_est - cv*se, pt_est + cv*se)
+```
+
+Now, confirm with `t.test`.
+
+```{r}
+times_2010 <- bm %>%
+  filter(Sex == "female", Age_Range == "18-34", Year == 2010)
+
+times_2011 <- bm %>%
+  filter(Sex == "female", Age_Range == "18-34", Year == 2011)
+
+t.test(times_2010$Time, times_2011$Time)
+```
+
+
+### Try it out
+
+Build a 90% CI for the difference in mean time between female and male 50-54 year old runners in 2010.
+
+```{r}
+bm_activity <- bm %>% 
+  filter(Year == 2010, Age_Range == "50-54") %>% 
+  group_by(Sex) %>% 
+  summarize(avgTime = mean(Time), sdTime = sd(Time), n = n())
+
+bm_activity
+```
+
+
+
+## H-test for a difference in means
+
+Is the change in the average time for an 18-34 year old female runner from 2010 to 2011 more than 0? Let's calculate a test statistic.
+
+```{r}
+bm_twomeans_summary <- bm %>% 
+  filter(Sex == "female", Age_Range == "18-34") %>% 
+  group_by(Year) %>% 
+  summarize(avgTime = mean(Time), sdTime = sd(Time), n = n())
+
+xbar1 <- bm_twomeans_summary$avgTime[1]
+xbar2 <- bm_twomeans_summary$avgTime[2]
+s1 <- bm_twomeans_summary$sdTime[1]
+s2 <- bm_twomeans_summary$sdTime[2]
+n1 <- bm_twomeans_summary$n[1]
+n2 <- bm_twomeans_summary$n[2]
+
+se <- sqrt(s1^2/n1 + s2^2/n2)
+
+test_stat <- ((xbar1 - xbar2) - 0)/se
+
+test_stat
+```
+
+Is the value 0.316 plausible under a T with w = 7134 degrees of freedom?
+
+```{r}
+w_numer <- (s1^2/n1 + s2^2/n2)^2
+w_denom <- (s1^4/(n1^2*(n1-1)) + s2^4/(n2^2*(n2-1)))
+
+w <- w_numer / w_denom
+
+gt(df = w) +
+  geom_vline(xintercept = test_stat, color = "red", lty = 2)
+```
+
+For our one-sided hypotheses, the p-value is the area below our observed test statistic.
+
+```{r}
+gt(df = w) +
+  geom_vline(xintercept = test_stat, color = "red", lty = 2) +
+  geom_t_fill(df = w, b = test_stat, fill = "dodgerblue")
+```
+
+```{r}
+pt(0.316, df = 2)
+```
+
+Let's also recreate the result with `t.test`.  We need to specify a direction.
+
+```{r}
+times_2010 <- bm %>%
+  filter(Sex == "female", Age_Range == "18-34", Year == 2010)
+
+times_2011 <- bm %>%
+  filter(Sex == "female", Age_Range == "18-34", Year == 2011)
+
+t.test(times_2010$Time, times_2011$Time, alternative = "less")
+```
+
+
+## Paired T test
+
+We want to test whether the difference (growth) in height from age 13 to 14 is positive.
+
+```{r}
+thirteen <- c(44.1, 59.0, 65.9, 58.7, 49.3)
+fourteen <- c(46.3, 60.5, 68.2, 59.4, 50.6)
+
+# This works the way we want it to
+growth <- fourteen - thirteen
+```
+
+```{r}
+n <- length(growth)
+# Note: n is quite small here, we only have 5 individuals; so using the t-distribution instead of the normal is important!
+
+xbar <- mean(growth)
+s <- sd(growth)
+
+test_stat <- (xbar - 0)/(s/sqrt(n))
+
+test_stat
+```
+
+We have an observed test statistic of 5.39, and a null T with 4 df.
+
+```{r}
+gt(df = n -1) +
+  geom_vline(xintercept = test_stat, color = "red", lty = 2)
+```
+
+The p-value is the area above our test statistic.
+
+```{r}
+pt(test_stat, df = n-1, lower.tail = F)
+```
+
+
+### Check in R
+
+```{r}
+t.test(growth, alternative = "greater")
+
+t.test(fourteen, thirteen, paired = T, alternative = "greater")
+```
+
+If we don't pair tthe data, we get a non-significant result.
+
+```{r}
+t.test(fourteen, thirteen, alternative = "greater")
+```
+
+
+
+
+
+
+
