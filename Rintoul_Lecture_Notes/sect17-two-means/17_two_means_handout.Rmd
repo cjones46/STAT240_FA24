@@ -189,7 +189,7 @@ gt(df = w) +
 ```
 
 ```{r}
-pt(0.316, df = 2)
+pt(0.316, df = w)
 ```
 
 Let's also recreate the result with `t.test`.  We need to specify a direction.
