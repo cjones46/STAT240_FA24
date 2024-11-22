@@ -140,3 +140,87 @@ ggplot(bm_two_means, aes(x = Time, color = as.factor(Year))) +
   geom_hline(yintercept = 0)
 ```
 
+### CI by hand
+
+```{r}
+# Extract the values; first by pulling out the length-two vector, then indexing to either the first or second value
+# We could've also achieved mu1 with bm_twomeans_summary[1,2] but I find that harder to read
+
+xbar = bm_twomeans_summary$avgTime[1]
+ybar = bm_twomeans_summary$avgTime[2]
+sx = bm_twomeans_summary$sdTime[1]
+sy = bm_twomeans_summary$sdTime[2]
+nx = bm_twomeans_summary$n[1]
+ny = bm_twomeans_summary$n[2]
+
+```
+
+```{r}
+pe = xbar - ybar
+pe
+
+### an approximation!
+t_crit = 1.96
+
+se1 = sx / sqrt(nx)
+se2 = sy / sqrt(ny)
+se1
+se2
+
+se = sqrt(se1^2 + se2^2)
+se
+
+ci = pe + c(-1,1) * t_crit * se
+ci
+```
+
+
+### from the notes
+
+```{r}
+C = 0.95 # 95% confidence interval
+point_estimate = xbar - ybar
+se = sqrt(sx^2/nx + sy^2/ny)
+W = (sx^2/nx + sy^2/ny)^2 / (sx^4/(nx^2*(nx-1)) + sy^4/(ny^2*(ny-1)))
+W
+
+t_crit = qt(0.95 + (1 - 0.95)/2, df = W)
+t_crit
+
+moe = qt(0.95 + (1 - 0.95)/2, df = W) * se
+
+left = point_estimate - moe
+right = point_estimate + moe
+
+c(left, right)
+```
+
+### using t.test()
+
+```{r}
+sample_x = bm %>% 
+  filter(Sex == "female" &
+           Year == 2010 &
+           Age_Range == "18-34") %>% 
+  pull(Time)
+
+sample_y = bm %>% 
+  filter(Sex == "female" &
+           Year == 2011 &
+           Age_Range == "18-34") %>% 
+  pull(Time)
+
+
+t.test(sample_x, sample_y)
+```
+
+### Hypothesis Test p-value graph
+
+```{r}
+test_stat = 0.31634
+
+gt(df = W) +
+  geom_t_fill(df = W, a = test_stat) +
+  geom_t_fill(df = W, b = -test_stat)
+```
+
