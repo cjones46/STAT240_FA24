@@ -1,0 +1,142 @@
+---
+output: html_document
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE,
+                      warning = FALSE,
+                      error = TRUE, fig.height = 3,
+                      fig.width = 4)
+
+library(tidyverse)
+
+source("../../scripts/ggprob.R")
+```
+
+### Read the Boston Marathon Data
+
+```{r}
+bm_orig = read_table("../../data/TIM.txt",
+                col_types = cols(.default = col_double()))
+
+bm = bm_orig %>% 
+  filter(!is.na(`K40-Fin`)) %>% 
+  filter(Year < 2013) %>% 
+  arrange(Year, BibNum) %>% 
+  select(-starts_with("Start"), -HalfMar, -Age2014) %>% 
+  mutate(Sex = case_when(
+    Gender1F2M == 1 ~ "female",
+    Gender1F2M == 2 ~ "male")) %>% 
+  mutate(Time = pmap_dbl(select(., starts_with("K")), sum)) %>% 
+  mutate(age1 = case_when(
+    Age < 35 ~ 18,
+    Age >= 80 ~ 80,
+    TRUE ~ floor(Age/5)*5),
+    age2 = case_when(
+      Age < 35 ~ 34,
+      TRUE ~ age1 + 4),
+    Age_Range = case_when(
+      age1 == 80 ~ "80 and older",
+      TRUE ~ str_c(age1,"-",age2))) %>% 
+  select(-Gender1F2M, -age1, -age2) %>% 
+  relocate(BibNum, Year, Sex, Age, Age_Range, Time)
+```
+
+### Sample data for women, aged 18-34 in 2010
+
+```{r}
+fem_18_34 = bm %>% 
+  filter(Sex == "female", Age_Range == "18-34", Year == 2010)
+
+bm_summary = fem_18_34 %>% 
+  summarize(averageTime = mean(Time), sdTime = sd(Time), n = n())
+
+bm_summary
+```
+
+```{r}
+xbar = bm_summary$averageTime
+s = bm_summary$sdTime
+n = bm_summary$n
+```
+
+### Graph the data
+
+```{r}
+ggplot(fem_18_34, aes(x = Time)) +
+  geom_density(fill = "hotpink") +
+  geom_hline(yintercept = 0)
+```
+
+### Confidence Interval
+
+```{r}
+se = s / sqrt(n)
+se
+
+C = 0.95
+
+t_crit = qt(C + (1-C)/2, df = n - 1)
+t_crit
+
+moe = t_crit * se
+moe
+
+left = xbar - moe
+right = xbar + moe
+
+c(left, right)
+```
+
+### Using t.test()
+
+```{r}
+times = bm %>%
+  filter(Sex == "female" & 
+           Age_Range == "18-34" & 
+           Year == 2010) %>%
+  pull(Time)
+```
+
+```{r}
+t.test(times)
+```
+
+### Hypothesis test using t.test()
+
+```{r}
+### two-sided test, H_0: mu = 240
+t.test(times, mu = 240)
+
+### H_A: mu < 240
+t.test(times, mu = 240, alternative = "less")
+
+### H_A: mu > 240
+t.test(times, mu = 240, alternative = "greater")
+```
+
+## Inference for Difference in Pop means
+
+### Confidence Intervals
+
+```{r}
+bm_two_means =  bm %>% 
+  filter(Sex == "female", Age_Range == "18-34")
+
+
+bm_twomeans_summary = bm %>% 
+  filter(Sex == "female", Age_Range == "18-34") %>% 
+  group_by(Year) %>% 
+  summarize(avgTime = mean(Time), sdTime = sd(Time), n = n())
+
+bm_twomeans_summary
+```
+
+#### Graphical comparison
+
+```{r}
+ggplot(bm_two_means, aes(x = Time, color = as.factor(Year))) +
+  geom_density() +
+  geom_hline(yintercept = 0)
+```
+
