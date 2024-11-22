@@ -1,0 +1,665 @@
+---
+title: "week12-inferenceMeans"
+output: html_document
+date: "2024-11-18"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+bm_orig = read_table("~/Desktop/STAT 240/data/TIM.txt",
+                col_types = cols(.default = col_double()))
+
+bm = bm_orig %>% 
+  filter(!is.na(`K40-Fin`)) %>% 
+  filter(Year < 2013) %>% 
+  arrange(Year, BibNum) %>% 
+  select(-starts_with("Start"), -HalfMar, -Age2014) %>% 
+  mutate(Sex = case_when(
+    Gender1F2M == 1 ~ "female",
+    Gender1F2M == 2 ~ "male")) %>% 
+  mutate(Time = pmap_dbl(select(., starts_with("K")), sum)) %>% 
+  mutate(age1 = case_when(
+    Age < 35 ~ 18,
+    Age >= 80 ~ 80,
+    TRUE ~ floor(Age/5)*5),
+    age2 = case_when(
+      Age < 35 ~ 34,
+      TRUE ~ age1 + 4),
+    Age_Range = case_when(
+      age1 == 80 ~ "80 and older",
+      TRUE ~ str_c(age1,"-",age2))) %>% 
+  select(-Gender1F2M, -age1, -age2) %>% 
+  relocate(BibNum, Year, Sex, Age, Age_Range, Time)
+
+bm
+```
+
+
+# Sec 006 Monday 11/18
+
+```{r}
+bm_summary = bm %>% 
+  filter(Sex == "female", Age_Range == "18-34", Year == 2010) %>% 
+  summarize(averageTime = mean(Time), sdTime = sd(Time), n = n())
+
+bm_summary
+```
+
+```{r}
+x_bar <- 236
+s <- 36.2  
+n <- 3557
+```
+
+- 95% confidence interval for $\bar{x}$,
+
+$$\bar{x} \pm qt(C+(1-C)/2, n-1)*\frac{s}{\sqrt{n}}$$
+
+```{r}
+c = 0.95
+cv <- qt(c + (1-c)/2, n-1)
+cv
+s.e <- s/sqrt(n)
+
+x_bar + c(-1,1)*cv*s.e
+```
+
+# Sec 003 Monday 11/18
+
+```{r}
+bm_summary = bm %>% 
+  filter(Sex == "female", Age_Range == "18-34", Year == 2010) %>% 
+  summarize(averageTime = mean(Time), sdTime = sd(Time), n = n())
+
+bm_summary
+```
+
+- 95% confidence interval for $\bar{x}$,
+
+$$\bar{x} \pm qt(C+(1-C)/2, n-1)*\frac{s}{\sqrt{n}}$$
+
+```{r}
+x_bar <- 235.5062
+s <- 36.2
+n <- 3557
+
+s.e <- s/sqrt(n)
+s.e
+
+cv <- qt(0.975, n-1)
+cv
+
+#qnorm(0.975)
+
+x_bar + c(-1,1)*cv*s.e
+```
+
+
+# Sec005 Monday 11/18
+
+95% Confidence Interval: 
+
+$$(\bar{x} - qt(c+(1-c)/2, n-1)*\frac{s}{\sqrt{n}}, \bar{x} - qt(c+(1-c)/2, n-1)*\frac{s}{\sqrt{n}})$$
+
+
+```{r}
+bm_summary = bm %>% 
+  filter(Sex == "female", Age_Range == "18-34", Year == 2010) %>% 
+  summarize(averageTime = mean(Time), sdTime = sd(Time), n = n())
+
+bm_summary
+```
+
+```{r}
+n <- 3557
+x_bar <- 235.5062
+s <- 36.2
+
+s.e <- s/sqrt(n)
+s.e
+cv <- qt(0.975, n-1)
+cv
+
+# qnorm(0.975)
+
+x_bar + c(-1,1)*cv*s.e
+```
+
+
+# Sec 006 Wednesday 11/20 
+
+```{r}
+times = bm %>% filter(Sex == "female" & Age_Range == "18-34" & Year == 2010) %>% pull(Time)
+
+#times = bm %>% filter(Sex == "female" & Age_Range == "18-34" & Year == 2010) %>% select(Time)
+
+times
+
+t.test(times, conf.level = 0.99) 
+```
+## Hypothesis Testing for single mean
+
+- Model Statement:
+
+$$X \sim D(\mu, \sigma)$$
+- State the hypothesis
+
+$$H_0: \mu = 240, H_{\alpha} \neq 240$$
+- Test statistic and the null distribution
+
+$$t = \frac{\bar{x}-\mu_{Null}}{s/\sqrt{n}} \sim t(n-1) $$
+- Calculate the values from the dataset
+
+
+```{r}
+x_bar <- 235.5062	
+s <- 36.1675
+n <- 3557
+t <- (x_bar- 240)/(s/sqrt(n))
+t
+```
+
+- Calculate the p-value
+
+```{r}
+pt(t,n-1)
+p_val <- 2*pt(t,n-1)
+p_val
+```
+
+- Comparing the p-val with $\alpha = 0.05$
+
+We reject the null hypothesis, that is the true average of female runners in the age group 18-34 is different from 240 
+
+```{r}
+t.test(times, mu = 240, alternative = "two.sided")
+```
+
+```{r}
+t.test(times, mu = 240, alternative = "less")
+```
+
+```{r}
+bm_twomeans_summary = bm %>% 
+  filter(Sex == "female", Age_Range == "18-34") %>% 
+  group_by(Year) %>% 
+  summarize(avgTime = mean(Time), sdTime = sd(Time), n = n())
+
+bm_twomeans_summary
+```
+
+```{r}
+x_bar_1 <- 235.5062	
+x_bar_2 <- 235.2337
+s1 <- 36.16750	
+s2 <- 36.59875	
+n1 <- 3557
+n2 <- 3580
+
+w <- (s1^2/n1 + s2^2/n2)^2 / (s1^4/(n1^2*(n1-1)) + s2^4/(n2^2*(n2-1))) # degrees of freedom
+w
+
+cv <- qt(0.975, w)
+cv
+
+(x_bar_1 - x_bar_2) + c(-1,1)*cv*sqrt((s1)^2/n1 + (s2)^2/n2)
+```
+
+
+```{r}
+times_2010 = bm %>% filter(Sex == "female" & Age_Range == "18-34" & Year == 2010) %>% pull(Time)
+
+times_2011 = bm %>% filter(Sex == "female" & Age_Range == "18-34" & Year == 2011) %>% pull(Time)
+
+t.test(times_2010, times_2011)
+```
+
+$$H_0: \mu_1 - \mu_2 =0, H_{\alpha}: \mu_1-\mu_2 > 0 $$
+
+# Sec 003 Wednesday 11/20
+
+```{r}
+times = bm %>% filter(Sex == "female" & Age_Range == "18-34" & Year == 2010) %>% pull(Time)
+
+#times = bm %>% filter(Sex == "female" & Age_Range == "18-34" & Year == 2010) %>% select(Time)
+
+times
+
+t.test(times)
+
+t.test(times, conf.level = 0.80)
+
+?t.test
+```
+## Hypothesis Testing
+
+- Step 1: Model Statement
+
+$$X \sim D(\mu, \sigma)$$
+$\mu$ is the true average time taken to complete the boston marathon by a female participant in the age group of 18-34.
+
+Assumption: The data points are independent of each other
+
+- Step 2: State the hypothesis:
+
+
+$$H_0: \mu = 240, H_{\alpha}: \mu \neq 240 $$
+- Step 3: Test statistic and the null distribution
+
+$$t = \frac{\bar{x}- \mu_{null}}{s.e(\bar{x})} = \frac{\bar{x}- \mu_{null}}{s/\sqrt{n}} \sim t(n-1) $$
+
+- Step 4: Evidence from the data set for the alternative hypothesis
+
+```{r}
+x_bar <- 235.5062	
+s <- 36.1675	
+n <- 3557
+
+t = (x_bar - 240)/(s/sqrt(n))
+t
+```
+
+
+- Step 5: Calculate the p-value
+
+```{r}
+pt(t, n-1)
+
+p_val <- 2*pt(t, n-1)
+p_val
+```
+
+- Step 6: Compare p-value with $\alpha$
+
+$$\alpha = 0.05$$
+
+Since p-value is less than $\alpha$ we reject $H_0$.
+
+
+```{r}
+t.test(times, mu = 240)
+
+t.test(times, mu = 240, alternative = "less")
+```
+
+## Confidence interval for difference of means
+
+$$(\bar{x}_1-\bar{x}_2) \pm qt(C+(1-c)/2, W)*\sqrt{\frac{s_1^2}{n_1}+\frac{s_2^2}{n_2}}$$
+
+```{r}
+times_2010 = bm %>% filter(Sex == "female" & Age_Range == "18-34" & Year == 2010) %>% pull(Time)
+
+times_2011 = bm %>% filter(Sex == "female" & Age_Range == "18-34" & Year == 2011) %>% pull(Time)
+
+t.test(times_2010, times_2011)
+```
+```{r}
+x_bar_1 <- 235.5062	
+x_bar_2 <- 235.2337
+s1 <- 36.16750	
+s2 <- 36.59875	
+n1 <- 3557
+n2 <- 3580
+
+w <- (s1^2/n1 + s2^2/n2)^2 / (s1^4/(n1^2*(n1-1)) + s2^4/(n2^2*(n2-1)))
+cv <- qt(0.975, w)
+cv
+
+(x_bar_1 - x_bar_2) + c(-1,1)*cv*sqrt((s1)^2/n1 + (s2)^2/n2)
+```
+
+
+# Sec 005 Wednesday 11/20
+
+```{r}
+times = bm %>% filter(Sex == "female" & Age_Range == "18-34" & Year == 2010) %>% select(Time)
+
+times
+
+t.test(times)
+
+?t.test
+
+t.test(times, conf.level = 0.80)
+```
+## Hypothesis testing for the single mean
+
+- Step 1: Model Statement:
+
+$$X \sim D(\mu, \sigma)$$
+Assumption: Assume that time taken by individual participants is independent of each other.
+
+- Step 2: State hypothesis:
+
+$$H_0: \mu = 240, H_{\alpha}: \mu \neq 240 $$
+- Step 3: Identify test statistic and null distribution
+
+$$t = \frac{\bar{x}-\mu_{null}}{s.e(\bar{x})} = \frac{\bar{x}-\mu_{null}}{s/\sqrt{n}} \sim t(n-1) $$
+
+- Step 4: Evidence for the alternative hypothesis from the dataset
+
+```{r}
+x_bar <- 235.5062	
+s <- 36.1675	
+n <- 3557
+
+t = (x_bar - 240)/(s/sqrt(n))
+t
+
+```
+
+- Step 5: Calculate p-value
+
+```{r}
+p_val <- 2*pt(t, n-1) # we multiply by two because this is a two sided test
+p_val
+```
+
+- Step 6: Conclusion depending on $\alpha$
+
+$$\alpha = 0.05$$
+
+Since p-value is les than alpha, we reject $H_0$. We have enough evidence that $\mu$ is not equal to 240, in fact it is less than 240.
+
+```{r}
+t.test(times, mu = 240, alternative = "less")
+t.test(times, mu = 240)
+```
+
+## Confidence interval for $\mu_1 - \mu_2$
+
+
+```{r}
+x_bar_1 <- 235.5062	
+x_bar_2 <- 235.2337
+s1 <- 36.16750	
+s2 <- 36.59875	
+n1 <- 3557
+n2 <- 3580
+
+w = (s1^2/n1 + s2^2/n2)^2 / (s1^4/(n1^2*(n1-1)) + s2^4/(n2^2*(n2-1)))
+w
+
+cv <- qt(0.975, w)
+cv
+
+(x_bar_1 - x_bar_2 ) + c(-1, 1)*cv*sqrt((s1)^2/n1 + (s2)^2/n2)
+```
+
+```{r}
+times_2010 = bm %>% filter(Sex == "female" & Age_Range == "18-34" & Year == 2010) %>% pull(Time)
+
+times_2011 = bm %>% filter(Sex == "female" & Age_Range == "18-34" & Year == 2011) %>% pull(Time)
+
+t.test(times_2010, times_2011)
+```
+## Hypothesis testing for difference of means
+
+- Step 1: $$X_1 \sim D_1(\mu_1, \sigma_1), X_2 \sim D_2(\mu_2, \sigma_2)$$
+
+Assumption: All the observations of $X_1$ and $X_2$ are independent.
+
+
+- Step 2: State the hypothesis
+
+$$H_0: \mu_1=\mu_2, H_{\alpha}: \mu_1 \neq \mu_2  $$
+
+- Step 3: Identify test statistic and null distribution
+
+
+
+# Sec 006 Friday 11/22
+
+- Step 1: Model Statement:
+
+$$X \sim D_x (\mu_x, \sigma_x)$$
+where, $\mu_x$ is the true average time taken by the female participants in the age group 18-34 in 2010 Boston marathon 
+
+$$Y \sim D_y(\mu_y, \sigma_y)$$
+where, $\mu_y$ is the true average time taken by the female participants in the age group 18-34 in 2011 Boston marathon 
+
+Assumption: The variable $X$ and $Y$ are independent 
+
+- Step 2: State the hypothesis
+
+$$H_0: \mu_1 - \mu_2 =0, H_{\alpha}: \mu_1-\mu_2 \neq 0 $$
+
+- Step 3: Identify test statistic and the null distribution
+
+$$t = \frac{(\bar{x}-\bar{y})- (\mu_x - \mu_y)}{\sqrt{\frac{s_x^2}{n_x}+\frac{s_y^2}{n_y}}} \sim t(n-1) $$
+
+- Step 4: Calculate the test statistic
+
+```{r}
+bm_twomeans_summary = bm %>% 
+  filter(Sex == "female", Age_Range == "18-34") %>% 
+  group_by(Year) %>% 
+  summarize(avgTime = mean(Time), sdTime = sd(Time), n = n())
+
+bm_twomeans_summary
+
+
+x_bar_1 <- 235.5062	
+x_bar_2 <- 235.2337
+s1 <- 36.16750	
+s2 <- 36.59875	
+n1 <- 3557
+n2 <- 3580
+
+t = (x_bar_1 - x_bar_2)/(sqrt(s1^2/n1 + s2^2/n2))
+t
+```
+
+- Step 5: Calculate p- value
+
+```{r}
+w = (s1^2/n1 + s2^2/n2)^2 / (s1^4/(n1^2*(n1-1)) + s2^4/(n2^2*(n2-1)))
+w
+
+p_val <- 2*(1 - pt(t,w))
+p_val
+```
+
+
+- Step 6: Compare with $\alpha$ and make a conclusion
+
+$$\alpha = 0.05$$
+
+We have enough evidence that the true average time taken by the female (18-34) participants of 2010 and 2011 Boston marathon is the same.
+
+```{r}
+times_2010 = bm %>%
+  filter(Sex == "female", Age_Range == "18-34", Year == 2010) %>% 
+  pull(Time)
+
+times_2011 = bm %>%
+  filter(Sex == "female", Age_Range == "18-34", Year == 2011) %>% 
+  pull(Time)
+
+t.test(times_2010, times_2011)
+```
+
+## Paired t.test()
+
+
+```{r}
+thirteen = c(44.1, 59.0, 65.9, 58.7, 49.3)
+fourteen = c(46.3, 60.5, 68.2, 59.4, 50.6)
+```
+
+
+We want to compare the mean of the heights at 13 and 14. Since the variables are dependent, we consider doing the paired t-test
+
+```{r}
+growth <- fourteen - thirteen
+growth
+
+t.test(growth)
+t.test(fourteen-thirteen, alternative = "greater")
+```
+
+```{r}
+t.test(fourteen, thirteen) # for difference of means which is an unpaired t.test.
+
+t.test(fourteen, thirteen, paired = TRUE)
+```
+
+
+# Sec 003 Friday 11/22
+
+- Step 1: Model statement
+
+$$X \sim D_x(\mu_x, \sigma_x)$$
+$$Y \sim D_y(\mu_y, \sigma_y)$$
+
+where, $\mu_x$ and $\mu_y$ is the true average time taken by the female (18-34) participants in 2010 and 2011, resp. 
+
+
+Assumption: $X$ and $Y$ are independent random variables.
+
+- Step 2: State the hypothesis
+
+$$H_0: \mu_x = \mu_y \implies \mu_x - \mu_y = 0 \\
+H_{\alpha}: \mu_x \neq \mu_y \implies \mu_x-\mu_y \neq 0$$
+
+- Step 3: Identify test statistic and null distribution
+
+- Step 4: Calculate the test statistic for the data
+
+```{r}
+x_bar <- 235.5062	
+y_bar <- 235.2337
+sx <- 36.16750	
+sy <- 36.59875	
+nx <- 3557
+ny <- 3580
+
+t = (x_bar - y_bar)/(sqrt(sx^2/nx + sy^2/ny))
+t 
+```
+
+
+- Step 5: Calculate the p-value
+
+```{r}
+w = (sx^2/nx + sy^2/ny)^2 / (sx^4/(nx^2*(nx-1)) + sy^4/(ny^2*(ny-1)))
+w
+
+p_val <- 2*pt(- abs(t), w)
+2*(1- pt(t, w))
+
+p_val
+```
+
+- Step 6: Compare $\alpha = 0.05$
+
+```{r}
+times_2010 = bm %>%
+  filter(Sex == "female", Age_Range == "18-34", Year == 2010) %>% 
+  pull(Time)
+
+times_2011 = bm %>%
+  filter(Sex == "female", Age_Range == "18-34", Year == 2011) %>% 
+  pull(Time)
+t.test(times_2010, times_2011)
+```
+
+
+
+```{r}
+thirteen = c(44.1, 59.0, 65.9, 58.7, 49.3)
+fourteen = c(46.3, 60.5, 68.2, 59.4, 50.6)
+t.test(fourteen, thirteen, alternative = "less")
+```
+```{r}
+growth <- thirteen - fourteen
+t.test(growth, alternative = "less")
+t.test(thirteen-fourteen, alternative = "less")
+t.test(thirteen, fourteen, paired = T, alternative = "less")
+```
+
+# Sec 005 Friday 11/22
+
+- Step 1: Model Statement:
+
+$$X = \text{time taken by a female participant in 2010 Bm} \sim D_x(\mu_x, \sigma_x)$$
+$$Y = \text{time taken by a female participant in 2011 Bm} \sim D_y(\mu_y, \sigma_y)$$
+where, $\mu_x$ and $\mu_y$ are the true average time taken by female participants in 2010 and 2011 Boston marathon, resp.
+
+Assumption: $X$ and $Y$ are independent rv
+
+- Step 2: State the hypothesis
+
+$$H_0: \mu_x = \mu_y \implies \mu_x-\mu_y = 0 \\
+H_{\alpha}:  \mu_x \neq \mu_y \implies \mu_x-\mu_y \neq 0$$
+
+
+- Step 3: Identify the test statistic and the null distribution  
+
+- Step 4: Calculate the test statitic from the data set
+
+```{r}
+x_bar <- 235.5062	
+y_bar <- 235.2337
+sx <- 36.16750	
+sy <- 36.59875	
+nx <- 3557
+ny <- 3580
+
+t = (x_bar - y_bar)/(sqrt(sx^2/nx + sy^2/ny))
+t
+```
+
+
+- Step 5: Calculate the p-value
+
+```{r}
+w = (sx^2/nx + sy^2/ny)^2 / (sx^4/(nx^2*(nx-1)) + sy^4/(ny^2*(ny-1)))
+
+p_value <- 2*pt(-abs(t), w) 
+p_value
+
+2*(1 - pt(t, w))
+```
+
+
+- Step 6: Compare p-value with $\alpha = 0.05$
+
+We fail to reject that there is no difference in the true average time taken by female participants in the age group of 18-34 from the 2010 and 2011 Boston marathon  
+
+```{r}
+times_2010 = bm %>%
+  filter(Sex == "female", Age_Range == "18-34", Year == 2010) %>% 
+  pull(Time)
+
+times_2011 = bm %>%
+  filter(Sex == "female", Age_Range == "18-34", Year == 2011) %>% 
+  pull(Time)
+
+t.test(times_2010, times_2011)
+```
+```{r}
+thirteen = c(44.1, 59.0, 65.9, 58.7, 49.3)
+fourteen = c(46.3, 60.5, 68.2, 59.4, 50.6)
+t.test(thirteen, fourteen, alternative = "greater")
+```
+
+
+```{r}
+z <- fourteen - thirteen
+t.test(z, alternative = "greater")
+t.test(fourteen-thirteen, alternative = "greater")
+t.test(fourteen, thirteen, paired = T, alternative = "greater")
+```
+
+
+
+
+
+
+
+
+
+
+
+
