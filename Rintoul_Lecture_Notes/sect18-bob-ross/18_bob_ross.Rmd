@@ -1,0 +1,452 @@
+---
+title: "STAT 240: The Bob Ross Case Study"
+author: "Cameron Jones, Miranda Rintoul"
+date: "Fall 2024"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
+                      error = TRUE, fig.height = 4)
+library(tidyverse)
+source("../../scripts/ggprob.R")
+
+theme_set(theme_minimal())
+
+```
+
+# Overview
+
+## Learning Outcomes
+
+* The purpose of this case study is to **review** the principles we have learned and to **practice** interactively on a real case study.  There may be a few new functions.
+
+* Another purpose of this case study is to **celebrate** how much you all have learned this semester! 
+    
+## Preliminaries
+
+* You will need the `tidyverse` package which you should have from previous lectures.
+
+* Files to download to `STAT240/lecture/sect18-bob-ross`:
+    - `18_bob_ross.Rmd`
+    - `18_bob_ross_HINTS.Rmd`
+    - `18_bob-ross_solutions.Rmd` (later, when posted)
+    
+* Files to download to `STAT240/data`
+    - `elements-by-episode.csv`
+    - `bob_ross_paintings.csv`
+    
+* Files to download to `STAT240/scripts` (*You likely have this from previous lectures*)
+    - `ggprob.R`
+    
+    
+# Background
+
+Inspiration and a dataset for this case study comes from FiveThirtyEight's 2014 article, [A Statistical Analysis of the Work of Bob Ross](https://fivethirtyeight.com/features/a-statistical-analysis-of-the-work-of-bob-ross/).
+
+---
+
+* *"The Joy of Painting"* (TJOP) was a PBS show which ran from 1983 to 1994, for a total of 403 episodes. It was primarily hosted by Bob Ross.
+
+* Each episode [(example)](https://www.youtube.com/watch?v=lLWEXRAnQd0&list=PLAEQD0ULngi67rwmhrkNjMZKvyCReqDV4) was half an hour, over which Bob (or the guest host) would guide the viewer through their process of painting a nature scene. 
+
+* Bob Ross became well known for his slow, soothing voice, the gentle positivity of his shows, and his iconic catchphrases (such as "happy little trees", and "there are no mistakes, just happy accidents").
+
+
+# 1. Elements by Episode
+
+* Our first dataset, `elements-by-episode.csv`, is courtesy of FiveThirtyEight, and can be found [here](https://github.com/fivethirtyeight/data/tree/master/bob-ross).
+    - This is the dataset used in the background article cited above.
+    - The authors of the FiveThirtyEight article manually watched and coded all 403 episodes of *The Joy Of Painting* to generate this dataset.
+
+> Each of the 403 rows of `elements-by-episode.csv` represents one painting. This is equivalent to representing one episode, since there was exactly one painting each episode.
+
+
+```{r}
+all_elements <- read_csv("../../data/elements-by-episode.csv")
+head(all_elements)
+```
+
+* There are **69** columns in `all_elements`. `EPISODE` is a unique identifier for each episode, and takes on values like `S01E02` to indicate "first season, second episode".
+
+* `TITLE` is the name of the painting/episode, e.g. `"MT. MCKINLEY"`. Note that the values of `TITLE` have quotes on either side built into them. That might be annoying later. We also hesitate to say if `TITLE` is a unique identifier, as they may be repeated (as we are about to investigate).
+
+* The other 67 columns are potential features of the painting, such as `BARN`, `BEACH`, or `BRIDGE` which have value `0` if that painting did NOT contain that feature, and value `1` if that painting DID contain that feature.
+    - Some features are redundant with each other.
+    - For example, `TREE` indicates the presence of any tree, while `CONIFER`, `DECIDUOUS`, and `PALM_TREES` indicate more specific types of tree.
+
+
+## 1.1 Are Any Titles Repeated?
+
+* Knowing which variables  **uniquely identify** each row of your dataframe is crucial for many data operations, including `join`s, which we will eventually use.
+
+* Is the variable `TITLE` a unique identifier?
+
+```{r}
+# Write code to determine if which values of TITLE, if any, appear multiple times.
+
+```
+
+* "LAKESIDE CABIN" (S08E02, S10E13) and "MOUNTAIN WATERFALL" (S02E12, S05E01) are used twice.
+
+* `TITLE` is NOT a unique identifier, but `EPISODE` is.
+
+
+## 1.2 Which Features Appear The Most?
+
+* Now, let's investigate which features appear the most.
+
+* The [data description](https://github.com/fivethirtyeight/data/blob/master/bob-ross/README.md) doesn't tell you what each column is... which can be an issue since **not every column in the dataframe represents a feature of the painting itself**. 
+    - Some of them are the type of frame the host eventually puts the painting in, e.g. `APPLE_FRAME` and `CIRCLE_FRAME`. All of these variables contain the phrase `FRAME`.
+    - Some of them indicate the host if it wasn't Bob Ross; `DIANE_ANDRE`, his son `STEVE_ROSS`, or the more general guest, which is 0 when Bob hosts and 1 when someone else hosts.
+    
+* What are the features that appear in the paintings made by Bob Ross himself?
+    
+```{r}
+# Write code here to remove the frame and host columns and filter to Bob Ross' episodes. 
+# Save this dataframe, which has just EPISODE, TITLE, and the painting-based features, to painting_elements.
+
+
+# painting_elements should have 381 rowsand 50 columns. 
+#dim(painting_elements)
+```
+
+* Write code which produces a dataframe indicating the percentage of paintings in which each feature appears. 
+
+* We have 48 features (each with their own column) to summarize, too many to manually list out! We'll explore **two ways** around this issue: one using `across()` and another solution using pivoting and grouping.
+
+
+##### A Brief Sidenote on `across()`
+
+*You will NOT be tested on `across()`, nor any new material that shows up in these Bob Ross lectures.*
+
+- `across()` is for use within `dplyr` functions that make edits to columns; e.g. `mutate` and `summarize`. Rather than give `mutate` or `summarize` a list of expressions in the form `newColumnName = expression`, you give it just a single call to `across(columns, function)`, and it will apply `function` to every column you tell it to.
+
+> `across()` is helpful for applying the same function to many more columns than it is reasonable to manually list out.
+
+* The first argument can be an explicit vector of column frames, e.g. `c(columnName1, columnName2, ...)`, a sequence of columns, e.g. `columnName1:columnName4`, or a logical selector function like `starts_with()`, `ends_with()`, or `contains()`. 
+    - See all the selection helper functions with `?starts_with`.
+
+- Second, the NAME of a function. You are not calling the function with parentheses at the end, as in `sum()`, you are just passing in the name, like `sum`.
+
+- For example, to apply the `mean` function to each of the columns whose names contain the characters "FRAME", 
+
+```{r}
+all_elements %>% 
+  summarize(across(contains("FRAME"), mean))
+```
+
+```{r, eval = FALSE}
+# Equivalent to:
+all_elements %>% 
+  summarize(APPLE_FRAME = mean(APPLE_FRAME),
+            CIRCLE_FRAME = mean(CIRCLE_FRAME),
+            DOUBLE_OVAL_FRAME = mean(DOUBLE_OVAL_FRAME),
+            and so on...)
+```
+
+
+##### Back to Painting Features
+
+```{r}
+# Approach 1: Using across()
+
+```
+
+* Before we took that detour, we were determining which painting feature occurs most often in Bob Ross' paintings.
+
+* There were too many to do manually, so we first explored `across()`. However, there is a second approach with pivoting and group_by which does the same computations in a slightly different way.
+
+```{r}
+# Approach 2: Using pivoting, and then group_by
+
+# We want to have each row be a different painting-feature combination.
+# There should be a column for the feature and a column for whether or not it appears.
+
+
+
+# We should end up with 381 Bob Ross episodes x 48 features = 18,288 rows.
+```
+
+```{r}
+# Now, we can sum up the "appeared" column separately for each different "feature".
+
+```
+
+
+## 1.3 Visualization
+
+We will try to replicate a visualization of painting elements from FiveThirtyEight.
+
+![A horizontal bar chart from FiveThirtyEight's article at https://fivethirtyeight.com/features/a-statistical-analysis-of-the-work-of-bob-ross/.](https://fivethirtyeight.com/wp-content/uploads/2014/04/hickey-ross-tags-1.png?resize=665,1024)
+
+* Our visualization will be slightly different than FiveThirtyEight's; theirs includes frames, and makes some modifications to the column names for clarity.
+
+Important features of the graph to recreate include:
+
+- Title and subtitle, axis labels
+- The ordering of the bars
+- The feature names are not in all caps
+- The percentages are included as text to the right of each bar
+- The purposeful lack of axes and grid markings
+- Only features which appear at least 2% of the time are shown
+
+* You are encouraged to do this problem in steps:
+
+```{r}
+# Graph base: features on the left, with horizontal bars for percentages
+
+```
+
+```{r}
+# Take out all the very rare features and reorder bars
+
+```
+
+```{r}
+# Add the percentage labels through geom_text()
+
+```
+
+```{r, fig.height = 5, fig.width = 3}
+# From here it's all purely visual modifications
+
+
+# new command: ggsave! Saves the last ggplot you created.
+# ggsave("MyBobRossPlot.png")
+```
+
+
+# 2. Colors by Episode
+
+* Our second dataset, `bob_ross_paintings.csv`, is courtesy of TwoInchBrush.com courtesy of GitHub user `jwilber`, and can be found [here](https://github.com/jwilber/Bob_Ross_Paintings).
+    - TwoInchBrush.com is a website dedicated to *The Joy of Painting*, including a database of information on each one, and GitHub user `jwilber` scraped and collected the data into one file.
+
+Each of the 403 rows of `bob_ross_paintings.csv` represents one painting. Just like in the first dataset, this is equivalent to representing one episode, since there was exactly one painting each episode.
+
+```{r}
+painting_colors <- read_csv("../../data/bob_ross_paintings.csv")
+
+nrow(painting_colors)
+```
+
+```{r}
+painting_colors %>% 
+  head()
+```
+
+* When we first read in the data, there are 28 columns giving information about the episode and the painting, with particular emphasis on the colors, but only a few we'll be interested in:
+    - `painting_title`, the title of the painting
+    - `season` and `episode`, which together uniquely identify each row,
+    - `num_colors`, the number of how many different colors the host uses,
+    - and 18 columns at the end with names ranging from `Black_Gesso` to `Alizarin_Crimson` which take on values 0 if that color does not appear in that painting, and 1 if it does.
+    
+    
+## 2.1 Visualization
+
+* Create a plot visualizing the distribution of the number of colors used, `num_colors`.
+
+---
+
+* There is an underlying consideration to be made here; should we treat `num_colors` as a discrete variable or a continuous one?
+    - It is most easily considered a discrete variable. It can only take on integers, and it happens to only take on integers in a relatively small range.
+    - However, we could treat it as a continuous one. To do so would be to overlook the fundamental nature of its values, but it would allow us to conduct means and regression inference on it.
+
+* This is a very common situation in real data science where the line is blurred between a discrete and continuous variable, and we often have to switch our thinking from one type to the other.
+
+> When we **visualize** `num_colors`, we will stay true to its discrete nature, but we will treat it as a continuous variable for inference purposes. 
+
+---
+
+```{r}
+# Write code here to visualize the distribution of num_colors.
+
+```
+
+
+## 2.2 What's that Outlier?
+
+It looks like there's one painting that just has one color in it. Is it real data or a data entry error? If it is real, what was going on with that observation?
+
+
+* Do some in-class investigation into the outlier - look at the painting and the video, links in the dataset!
+
+```{r}
+# Investigate outlier here!
+
+```
+
+![The Joy of Painting, Season 16, Episode 6: "A Contemplative Lady".](https://www.twoinchbrush.com/images/painting89.webp)
+
+That doesn't look like something Bob would make! Let's spend a minute watching the [video](https://www.youtube.com/embed/gnp6WE7Ql-s) to see what's up.
+
+This is a real painting that appeared on the show, made by Bob's instructor, John Thamm!  We have information on guest hosts in the other dataset, `all_elements`, but not this one.
+
+
+# 3. Joining the Two Datasets
+
+We are interested in comparing the color features from the `painting_colors` dataframe to various features of the FiveThirtyEight `all_elements` dataframe.
+
+We need to join the two datasets together, However, the dataframes don't share a variable or variables that we can join by...
+
+```{r}
+all_elements %>% 
+  select(EPISODE, TITLE)
+
+painting_colors %>% 
+  select(season, episode, painting_title)
+```
+
+* Write code to create a common variable or variables across the two dataframes, and then join them. Save this joined dataframe as `paintings_joined`.
+
+* There are three potential ways to do this, including:
+    - Combining `episode` and `season` from `painting_colors` into one variable which mimics `EPISODE` from `all_elements`
+    - Separating `EPISODE` into two variables which mimic `episode` and `season`
+    - Making `TITLE` and `painting_title` compatible. (Not a good idea.)
+    
+**Note: This requires string manipulation which we have not taught in this iteration of STAT 240.**
+    
+```{r}
+# Approach 1: format episode and season into EPISODE
+# This combines boolean logic and string manipulation
+
+```
+
+```{r}
+# Approach 2: Split EPISODE into episode and season
+
+```
+
+
+# 4. Statistical Inference
+
+We will use `paintings_joined` to investigate some interesting inference questions.
+
+```{r}
+# Some light cleaning: getting rid of some columns and moving identifying columns to the front
+
+paintings_joined = paintings_joined %>%
+  # neat little trick; you can rename and reorder columns within select!
+  select(ID = EPISODE, season, episode, painting_title, num_colors, AURORA_BOREALIS:WINTER, Black_Gesso:Alizarin_Crimson)
+
+paintings_joined
+```
+
+
+## 4.1 Single Proportion
+
+What is the true probability that a man-made `STRUCTURE` appears in a painting?  This requires a binomial model with the BINS assumptions.
+
+Construct an Agresti-Coull confidence interval for the true percentage/chance that a man-made `STRUCTURE` appears in a given painting.
+
+On board: Form of confidence interval and AC adjustment
+
+
+* Construct a 95% Agresti-Coull confidence interval for the true percentage/chance that a man-made `STRUCTURE` appears in a given painting.  Interpret it in context.
+
+```{r}
+# Write your code here!
+
+```
+
+
+We can also use a hypothesis test approach.
+
+Conduct a two-sided hypothesis test to assess the evidence that the true percentage of a `STRUCTURE` appearing is 20%.
+
+* State hypotheses.
+
+* Identify your test statistic and its sampling distribution.
+
+* Identify which outcomes are less likely than the observed $X = 85$ successes.
+
+```{r}
+# Write code here!
+
+```
+
+* Calculate a p-value and interpret the results in context.
+
+```{r}
+# Write code here!
+
+```
+
+
+## 4.2 Difference in Proportions
+
+* Construct a 90% confidence interval for the difference in true proportions of a manmade structure appearing in episodes hosted by Bob vs. episodes hosted by guests.  Interpret your interval in context.
+
+```{r}
+# Write code here!
+
+```
+
+* Conduct a hypothesis test at the 10% level to assess the evidence that the probability of a manmade structure appearing is DIFFERENT between episodes hosted by Bob Ross and episodes hosted by guests.
+
+```{r}
+# Write code here!
+
+```
+
+
+## 4.3 Single Mean
+
+* Compute a 95% confidence interval for the true average number of colors (`num_colors`) used in a TJOP painting.  Interpret your interval in context.
+
+```{r}
+# Write code here!
+
+```
+
+* Conduct a hypothesis test to assess the evidence for the true average number of colors used in a TJOP painting being exactly 8.  Interpret your results in context.
+
+```{r}
+# Write code here!
+
+```
+
+
+## Difference in Means
+
+* Conduct a hypothesis test to assess the evidence for a difference in true average number of colors used in TJOP episodes hosted by Bob Ross versus episodes hosted by guests.  Use $\alpha = 0.05$ and interpret your results in context.
+
+```{r}
+# Write code here!
+
+```
+
+* Compute a 95% confidence interval for the difference in true average number of colors used in TJOP episodes hosted by Bob Ross versus episodes hosted by guests.
+
+```{r}
+# Write code here!
+
+```
+
+
+## Linear Regression
+
+* Conduct a hypothesis test for a POSITIVE linear relationship between the number of features (as Y) in a painting and the number of colors (as X).  Code to create a "number of features" column is provided for you.
+
+```{r}
+total_features_vector <- paintings_joined %>%
+  select(AURORA_BOREALIS:WINTER) %>%
+  select(!contains("FRAME")) %>%
+  rowSums()
+
+paintings_joined <- paintings_joined %>%
+  mutate(num_features = total_features_vector)
+
+# Write code here!
+
+```
+
+* Compute and interpret a 95% confidence interval for the true slope of the line from the hypothesis test.
+
+```{r}
+# Write code here!
+
+```
+
+
+

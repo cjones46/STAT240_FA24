@@ -1,0 +1,100 @@
+---
+title: "Bob Ross Case Study Hints"
+author: "Miranda Rintoul"
+date: "2024-11-23"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# 1. Elements by Episode
+
+## 1.1 Are Any Titles Repeated?
+
+* Is the variable `TITLE` a unique identifier?
+* Use the `count` function to count rows, and `filter` or `arrange` to look for repeats.
+
+## 1.2 Which Features Appear The Most?
+
+* What are the features that appear in the paintings made by Bob Ross himself?
+* The `GUEST` column tells us whether a guest appears or not.
+* We want to `select` only the relevant features.
+
+* Write code which produces a dataframe indicating the percentage of paintings in which each feature appears. 
+* Approach 1: use `across` with the `:` symbol to select a range of columns.
+* Approach 2: `pivot_longer` can be used to make each row a painting-feature combination.
+* Approach 2: After pivoting, we can `group_by` feature and then `summarize`.
+
+## 1.3 Visualization
+
+* `geom_col` should be used instead of `geom_bar` when we are specifying both x and y.
+* `reorder` by percentage needs to be inside `aes`.
+* The percentage labels are a variable aesthetic and they also need to go in `aes`.
+* Try to change color, x scale, remove grid, and add appropriate titles.
+
+
+# 2. Colors by Episode
+
+## 2.1 Visualization
+
+* Create a plot visualizing the distribution of the number of colors used, `num_colors`.
+* Now we can use `geom_bar` because we want to take a count across different values of x.
+
+## 2.2 What's that Outlier?
+
+* Do some in-class investigation into the outlier (the painting with 1 color)
+* Use `filter` get the correct painting and view the links to the painting video and image.
+
+
+# 3. Joining 
+
+* Use `str_c` to combine multiple character vectors into a single character vector
+* Use `str_sub` to extract elements from a string
+* Use `str_remove_all` to remove a certain symbol
+* Use `str_to_upper` to uppercase a character string
+
+
+# 4. Statistical Inference
+
+## 4.1 Single Proportion
+
+* Use `qnorm` to find a Z critical value for a confidence interval.
+* "The true percentage of a structure appearing is 20%" implies a two-sided hyopthesis.
+* A single proportion test uses a binomial null distribution.
+* We need to find outcomes "less likely than 85" in both the lower and upper tail.
+* Use `pbinom` to find a final binomial p-value.
+
+## 4.2 Difference in Proportions
+
+* Use `group_by` and `summarize` to get the relevant group summaries.
+* For the CI, make sure to use the AC adjustment that adds 1 success and failure to each group.
+* For the hypothesis test, you'll need to estimate a common proporion.
+
+## 4.3 Single Mean
+
+* For mean inference we use the T distribution (qt and pt) instead of the normal.
+* You can check your results with `t.test`.
+
+## 4.4 Difference in Means
+
+* The null T distribution uses $w$ degrees of freedom.  The code is given in the section 17 handout.
+* Pay attention to which values are used in both the T test and T CI.
+
+## 4.5 Linear Regression
+
+* Looking for a positive linear relationship implies a one-sided test.
+* You can find the linear model with `lm`.
+* The `summary` output will provide a two-sided test result, but we want a one-sided test.
+* Linear regression inference is also based on the T distribution.
+* You can use the same standard error in your test statistic in your slope CI.
+
+
+
+
+
+
+
+
+
