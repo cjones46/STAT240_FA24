@@ -1,0 +1,235 @@
+---
+title: "Homework 10"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE,
+                      warning = FALSE, error = TRUE,
+                      fig.height = 3)
+library(tidyverse)
+source("../../scripts/ggprob.R")
+```
+
+# Preliminaries
+
+- This file should be in `STAT240/homework/hw10` on your local computer.
+- Download `superbowl_commercials.csv` to `STAT240/data`.
+
+
+# Problem 1
+
+The file `superbowl_commercials.csv` contains a list of advertisements for 10 brands aired during Super Bowls from 2000 to 2020.  Each advertisement is classified according to several characterisitcs.  More information can be found  [here](https://github.com/fivethirtyeight/superbowl-ads).
+
+Transform the data as follows:
+
+- Group the rows by brand
+- Count the number of ads described as "Funny"
+- Count the total number of ads
+- Find the proportion of "Funny" ads for each brand
+- Print the dataset
+
+```{r}
+commercials <- read_csv("../../data/superbowl_commercials.csv")
+```
+
+
+```{r}
+prob1 <- commercials %>%
+  group_by(Brand) %>%
+  summarize(n_funny = sum(Funny), n_tot = n()) %>%
+  mutate(p_funny = n_funny/n_tot)
+
+prob1
+```
+
+
+# Problem 2
+
+Count the total number of ads in the dataset, as well as the total number of "Funny" ads.  Build and interpret a 99% CI for $p_{funny}$, the overall proportion of funny ads across all of the brands.  Use the Agresti-Coull adjustment.
+
+```{r}
+# Total number of ads (number of rows of original data)
+n <- sum(prob1$n_tot)
+
+# Number of funny ads
+x <- sum(prob1$n_funny)
+
+phat_ac <- (x + 2) / (n + 4)
+
+
+# Standard error with AC adjustment
+se_ac <- sqrt(phat_ac*(1 - phat_ac)/(n+4))
+
+# Critical value
+cv <- qnorm(0.995)
+```
+
+> Our point estimate for the proportion of funny ads (after applying the AC adjustment) is 0.688.  This gives a standard error of about 0.029.  Finally, the Z critical value for 99% confidence is $z_{0.005} = 2.576. 
+
+```{r}
+# Find upper and lower bounds of interval
+c(phat_ac - cv*se_ac, phat_ac + cv*se_ac)
+```
+
+> We are 99% confident that the true proportion of funny advertisements is within (0.613, 0.763).
+
+
+# Problem 3
+
+Repeat the analysis in problem 2, but build a 99% CI fo for $p_{funny}$ with the Wald adjustment.  How do the two intervals compare?
+
+> Compared to the interval in 2, we use the same Z critical value, but a different point estimate and standard error.  We are not adding any new observations, just using $\hat{p}$ directly in place of $p$.
+
+```{r}
+# Total number of ads (number of rows of original data)
+n <- sum(prob1$n_tot)
+
+# Number of funny ads
+x <- sum(prob1$n_funny)
+
+phat <- x / n
+
+
+# Standard error with AC adjustment
+se_ac <- sqrt(phat*(1 - phat)/(n+4))
+
+# Find upper and lower bounds of interval
+c(phat - cv*se, phat + cv*se)
+```
+
+The 99% Wald CI is (0.616, 0.766).  The two intervals are very similar, but the AC interval is shifted slightly towards 0.5.
+
+
+# Problem 4
+
+Perform a hypothesis test to determine whether more than half of superbowl ads are funny.  Use hyoptheses
+$$H_0: p_{funny} = 0.5 \quad \text{versus}\quad H_A: p_{funny} > 0.5$$
+and $\alpha = 0.01$.  Interpret your result in context.
+
+> Under $H_0$, the number of funny ads out of 249 is Binom(249, 0.5).  The observed number of funny ads is $x_{obs} = 172$.  To calculate a p-value, we need to find the probability of seeing 172 *or more* ads that are funny, under the null assumption.
+
+```{r}
+1 - pbinom(171, 249, 0.5)
+```
+
+> If one-half of advertisements are funny, the proability of seeing our observed data or something more extreme is very small.  Our p-value is much smaller than $\alpha = 0.01$, so we reject $H_0$.  We have evidence that more than half of ads are funny.
+
+# Problem 5
+
+State the model and assumptions you used to perform inference on $p_{funny}$ in problems 2-4.  State one criticism where reality may differ from the assumptions, potentially leading to misleading conclusions.
+
+> The null distribution in my hypothesis test for $p$ assumes the count of funny ads is binomial with $n = 249$ and some success probability $p$.  We use this result to further assume the proportion of funny ads is approximately normal, which is why we built Z confidence intervals.
+
+> These assumptions rely on the BINS assumptions, but I am skeptical about the "S" or same probability assumption.  The $n = 249$ counts the ads across 10 different companies, and different companies might be more or less likely to advertise their product with humor.
+
+# Problem 6
+
+Now, focus on $p_{H, funny}$, which is the proportion of Hyundai ads that are funny.  Perform a **two-sided** hypothesis test to determine whether or not half of all Hyundai ads are funny.  State your hypotheses, test statistic, null distribution, p-value, and conclusion.
+
+> For a two-sided test, the alternative needs to cover both directions.  We want to find evidence that the proportion is less than half OR greater than half.  We have hypotheses 
+
+> $H_0: p_{H, funny} = 0.5 \quad \text{versus} \quad H_A: p_{H, funny} \neq 0.5$.
+
+> According to the summary table, there are 22 total Hyundai ads, giving a null distribution of Binom(22, 0.5).  We have an observed test statistic of $x_{obs} = 12$, so we need to assess which outcomes on Binom(22, 0.5) are less likely than 12.  We can optionally visualize this as well.
+
+```{r}
+# Probability of 12
+dbinom(12, 22, 0.5)
+
+# Make a table of probabilities
+tibble(
+  x = 8:14,
+  prob = dbinom(x, 22, 0.5),
+  lessThanP57 = prob < dbinom(12, 22, 0.5)
+)
+
+gbinom(22, 0.5, scale = TRUE, col = "black") +
+  geom_vline(xintercept = 12, color = "red", lty = 2) +
+  geom_hline(yintercept = dbinom(12, 22, 0.5), color = "red", lty = 2)
+```
+
+> The outcomes as or less likely than 12 are $X \le 9$ and $X \ge 12$.  Since we are performing a two-sided test, we need to account for all of these possibilities in the p-value.
+
+
+```{r}
+# Two-sided p-value
+pbinom(10, 22, 0.5) + pbinom(11, 22, 0.5, lower.tail = F)
+```
+
+> We get a very large p-value of 0.83, which suggests weak evidence against the null.  We fail to find evidence that $p_{H, funny}$ is different from 0.5.
+
+
+# Problem 7
+
+Consider comparing the proportion of Hyundai ads that are funny to the proportion of Budweiser ads that are funny.  Build a 95% confidence interval on the difference in proportions and use the Agresti-Coffe adjustment.  Interpret your results in context.
+
+```{r}
+# Counts of totals and funny ads
+n_h <- 22
+x_h <- 12
+n_b <- 43
+x_b <- 21
+
+# Make AC adjustment to both groups
+phat_h_ac <- (x_h + 1) / (n_h + 2)
+phat_b_ac <- (x_b + 1) / (n_b + 2)
+
+pt_est <- phat_h_ac - phat_b_ac
+
+# Standard error with AC adjustment
+se_ac <- sqrt(phat_h_ac*(1 - phat_h_ac)/(n_h + 2) + phat_b_ac*(1 - phat_b_ac)/(n_b + 2))
+
+# Critical value
+cv <- qnorm(0.975)
+```
+
+> The point estimate is the observed difference in proportions, after adding 1 success and 1 failure to each group.  This is about 0.053.  The standard error with the AC adjustment is 0.126.  Finally, the Z critical value for 95% confidence is $z_{0.025} = 1.96$.
+
+```{r}
+# Find upper and lower bounds of interval
+c(pt_est - cv*se_ac, pt_est + cv*se_ac)
+```
+
+> We are 95% confident that the difference in the proportion of funny ads for Hyndai and Budweiser is within (-0.194, 0.3).
+
+# Problem 9
+
+Perform a hypothesis test to determine whether a *different* proportion of Hyndai ads than Budweiser ads are funny.  Write appropriate two-sided hypotheses and draw a conclusion with $\alpha = 0.05$.
+
+> Our two-sided hypotheses are 
+
+> $$H_0: p_{H, funny} = p_{B, funny} \quad \text{versus} \quad H_A: p_{H, funny} \neq p_{B, funny}$$
+> or $$H_0: p_{H, funny} - p_{B, funny} = 0 \quad \text{versus} \quad H_A: p_{H, funny} - p_{B, funny} \neq 0$$
+
+> Our point estimate is the difference in proportions *without* the AC adjustment.  We also need to calculate a standard error with a pooled proportion of funny ads, which we estimate with $$\frac{x_h + x_b}{n_h + n_b}$$
+
+```{r}
+# Counts of totals and funny ads
+n_h <- 22
+x_h <- 12
+n_b <- 43
+x_b <- 21
+
+# Unadjusted point estimate of difference
+p_diff <- (x_h / n_h) - (x_b / n_b)
+
+# Common proportion of success
+p_hat <- (x_h + x_b) / (n_h + n_b)
+
+# Standard error with common proportion + group sample sizes
+se <- sqrt(p_hat*(1 - p_hat)*(1/n_h + 1/n_b))
+
+# Test statistic
+z_obs <- p_diff / se
+```
+
+> We get an observed test statistic of $\frac{\hat{p}_{H, funny} - \hat{p}_{B, funny}}{\hat{se}} = 0.436$.  Under $H_0$, this value was drawn from a standard normal curve.  For a two-sided p-value, we need to account for all of the possibilities more extreme than 0.436 in *both directions*.  This is $P(Z < -0.436) + P(Z > 0.436)$.
+
+```{r}
+2*pnorm(0.436, lower.tail = F)
+```
+
+> We get a large p-value of 0.663 and fail to reject $H_0$.  There is no evidence in the difference of the proportion of funny ads ran by Hyundai and Budweiser.
+
+
