@@ -1,0 +1,74 @@
+---
+title: "Discussion 12"
+output: html_document
+---
+
+# Preliminaries
+
+-   This file should be in `STAT240/discussion/ds12` on your local computer.
+
+-   This assignment should be completed in your **assigned Canvas groups**. Only one person has to submit on behalf of the group. You may submit whatever you have at the end of discussion section for full credit.
+
+-   This assignment is to be completed in the first 10-20 mins of the discussion session. The rest of the discussion time the students are to work on the group projects with their discussion groups.
+
+# Present Group Members
+
+Please **write the names of the present group members** here.
+
+> Present Group Members:
+
+> Absent Group Members:
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, 
+                      error = TRUE, 
+                      warning = FALSE, 
+                      message = FALSE)
+library(tidyverse)
+```
+
+## Problems
+
+The questions in this discussion assignment use the boston marathon data set. The data set `bm_sample` contains a random sample of 100 men and 100 women, between the age of 35-39, who ran in and completed the 2010 Boston Marathon. Times are listed in minutes.
+
+```{r}
+# This code is provided for you
+bm_sample = read_csv("../../data/bm_sample.csv")
+```
+
+### Problem 1
+
+Create and display a table with a numerical summary of the data.
+Calculate the sample size, mean time, standard deviation of the times, and standard error of the mean ($s/\sqrt{n}$) separately for each sex. This table will have one row for each sex.
+
+```{r}
+# Write your code here!
+```
+
+### Problem 2
+
+Construct 95% confidence intervals for each sex seperately for the mean time to complete the 2010 Boston Marathon among all competitors of that sex aged 35-39.
+
+
+```{r}
+# Write your code here!
+```
+
+
+### Problem 3
+
+**Part (a)** Perform hypothesis test at 10% significance level for the difference of mean or the two - sample `t.test()` for the mean time to complete the 2010 Boston Marathon for male is less than that for female participants. Write down all the steps of the hypothesis test.
+
+```{r}
+# Write your code here!
+```
+
+
+**Part (b)** Can you support the conclusion made for the hypothesis test based on the confidence interval obtained in the Step 4 and 5?
+
+> Write your answer here!
+
+
+
+
+
