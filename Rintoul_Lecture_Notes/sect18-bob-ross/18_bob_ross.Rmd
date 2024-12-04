@@ -327,7 +327,7 @@ We will use `paintings_joined` to investigate some interesting inference questio
 
 paintings_joined = paintings_joined %>%
   # neat little trick; you can rename and reorder columns within select!
-  select(ID = EPISODE, season, episode, painting_title, num_colors, AURORA_BOREALIS:WINTER, Black_Gesso:Alizarin_Crimson)
+  select(EPISODE, season, episode, painting_title, num_colors, AURORA_BOREALIS:WINTER, Black_Gesso:Alizarin_Crimson)
 
 paintings_joined
 ```
