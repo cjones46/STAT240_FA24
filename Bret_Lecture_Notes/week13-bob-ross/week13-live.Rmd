@@ -1,0 +1,424 @@
+---
+output: html_document
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE,
+                      warning = FALSE,
+                      error = TRUE, fig.height = 3,
+                      fig.width = 4)
+
+library(tidyverse)
+
+source("../../scripts/ggprob.R")
+```
+
+## Bob Ross Analysis
+
+### Elements by Episode
+
+#### Read in the Data
+
+```{r}
+elements_orig = read_csv("../../data/elements-by-episode.csv")
+```
+
+
+```{r}
+elements = elements_orig
+```
+
+#### Are any Titles Repeated?
+
+```{r}
+elements %>% 
+  count(TITLE) %>% 
+  filter(n > 1)
+```
+
+> Yes, two titles are repeated twice each.
+
+#### Use base R `%in%` to filter
+
+```{r}
+## %in% example
+repeated_titles = elements %>% 
+  count(TITLE) %>% 
+  filter(n > 1) %>% 
+  pull(TITLE)
+
+elements %>% 
+  filter(TITLE %in% repeated_titles)
+```
+
+> We see the repeated titles are:
+
+- Season 2 Episode 12 = Season 5 Episode 1
+- Season 8 Episode 2 = Season 10 Episode 13
+
+#### Use `semi_join()` to filter
+
+```{r}
+## semi_join() example
+repeated_titles_df = elements %>% 
+  count(TITLE) %>% 
+  filter(n > 1)
+
+elements %>% 
+  semi_join(repeated_titles_df, by = join_by(TITLE))
+```
+
+
+
+### Bob Ross Only, Painting Only
+
+- Filter to rows only where Bob Ross was the painter
+- Remove columns about the frame
+- Remove columns about guest painters
+
+```{r}
+elements = elements_orig %>% 
+  filter(GUEST == 0) %>% 
+#  select(-contains("FRAME"))
+  select(-FRAMED, -ends_with("_FRAME"), -ends_with("_FRAMED")) %>% 
+  select(-DIANE_ANDRE, -STEVE_ROSS, -GUEST)
+  
+names(elements)
+
+dim(elements)
+
+```
+
+> The reduced data set has 381 rows, one for each episode where Bob Ross was the painter, and 50 columns, one with the episode string, one with the title, and 48 with 0/1 values for non-frame features.
+
+
+### Calculate the % of each feature
+
+```{r}
+### too long and hard and prone to error
+### one row of code needed for each element
+summary = elements %>% 
+  summarize(AURORA_BOREALIS_pct = mean(AURORA_BOREALIS))
+```
+
+- Pivot solution
+  - It is frequently more convenient to work with data in a long format.
+
+```{r}
+elements_long = elements %>% 
+  pivot_longer(AURORA_BOREALIS:WINTER,
+               names_to = "element",
+               values_to = "value")
+
+elements_sum = elements_long %>% 
+  group_by(element) %>% 
+  summarize(n = sum(value),
+            p = mean(value),
+            pct = 100*p)
+
+
+```
+
+### Using across()
+
+- The function `across()` can be used inside of `summarize()` or `mutate()` to apply one or more functions to multiple selected columns.
+
+```{r}
+### calculate the mean for multiple columns
+elements_sum2 = elements %>% 
+  summarize(across(AURORA_BOREALIS:WINTER,
+                   mean))
+
+elements_sum2
+
+### demonstrate more than one function
+### list(name = function, ...)
+elements_sum3 = elements %>% 
+  summarize(across(AURORA_BOREALIS:WINTER,
+                   list(m = mean, s = sd)))
+
+elements_sum3
+```
+
+#### Visualization
+
+- This code, created iteratively, partially reproduces the target figure.
+
+- See the solutions .Rmd file for a longer solution which matches more features.
+
+```{r}
+elements_sum %>% 
+  filter(pct > 2) %>% 
+  mutate(element = str_to_sentence(element)) %>% 
+  mutate(element = reorder(element, pct)) %>% 
+
+ggplot(aes(x = pct, y = element)) +
+  geom_col(fill = "lightblue") +
+  geom_text(aes(label = round(pct)),
+            size = 1,
+            nudge_x = 2) +
+  
+  ### eliminate the x axis
+  scale_x_continuous(breaks = NULL) +
+    # Get rid of the grid and x axis labels, make the background all light gray
+  theme(
+    panel.grid = element_blank(),
+    axis.text.x = element_blank(),
+    plot.background = element_rect(fill = "gray96", color = "gray96"),
+    plot.title.position = "plot",
+    plot.title = element_text(face = "bold")
+  ) +
+  
+  # Add plot labels and take away axis titles
+  labs(
+    title = "The Paintings of Bob Ross",
+    subtitle = "Percentage containing each element",
+    x = "",
+    y = ""
+  )
+
+```
+
+
+
+## New Data
+
+- Read in the file with the colors used for each painting.
+
+```{r}
+painting_colors = read_csv("../../data/bob_ross_paintings.csv")
+
+nrow(painting_colors)
+```
+
+### Visualize the number of colors
+
+```{r}
+ggplot(painting_colors, aes(x = num_colors)) +
+  geom_bar(fill = "blue")
+
+ggplot(painting_colors, aes(x = num_colors)) +
+  geom_histogram(center = 0, binwidth = 1,
+                 fill = "blue", color = "black")
+```
+
+- What's going on with the painting with one color?
+
+```{r}
+outlier = painting_colors %>% 
+  filter(num_colors == 1)
+```
+
+- We see one painting by a guest artist has only one color and is quite different from the others by Bob Ross himself.
+
+### Join our two data sets
+
+Unlike in the notes, we join the two data sets to keep only those by Bob Ross.
+
+- We eliminate some columns we do not want.
+- 
+
+
+```{r}
+## keep the columns of painting_colors that we want to retain
+pc = painting_colors %>% 
+  select(painting_title, season, episode, num_colors, Black_Gesso:Alizarin_Crimson)
+
+
+## Note the usage of str_sub() to extract sub strings by position in each value in EPISODE
+
+elements = elements %>% 
+#  select(-season) %>% 
+  mutate(season = as.numeric(str_sub(EPISODE, 2, 3)),
+         episode = as.numeric(str_sub(EPISODE, 5, 6))) %>% 
+  relocate(season, episode, .after = EPISODE)
+
+ross = elements %>% 
+  left_join(pc, by = join_by(season, episode)) %>% 
+  relocate(painting_title, .after = TITLE) %>% 
+  relocate(num_colors, .after = painting_title) %>% 
+  rename(ID = EPISODE) %>% 
+  select(-TITLE)
+
+dim(ross)
+```
+
+## Inference
+
+### CI for the population proportion of paintings with a structure.
+
+```{r}
+ross %>% 
+  summarize(n = n(),
+            x = sum(STRUCTURE),
+            phat = x/n)
+```
+
+### 95% CI for p
+
+```{r}
+x = 84
+n = 381
+
+n_tilde = n + 4
+p_tilde = (x+2) / n_tilde
+p_tilde
+
+z_crit = qnorm(0.975)
+z_crit
+
+se = sqrt( p_tilde * (1 - p_tilde) / n_tilde)
+se
+
+ci = p_tilde + c(-1,1) * z_crit * se
+ci
+
+round(ci, 3)
+
+
+```
+
+> We are 95% confident that the proportion of Bob Ross paintings with a manmade structure in the imaginary world where the series never ended is between 18.2% and 26.5%.
+
+### Hypothesis Test
+
+- Still assume the binomial model, $X \sim \text{Binomial}(381, p)$.
+
+
+#### State Hypotheses
+
+$H_0: p = 0.2$    
+$H_a: p \neq 0.2$
+
+#### Test Statistic
+
+$X$
+
+#### Null Distribution of $X$
+
+- If $H_0$ is true, then
+    - $X \sim \text{Binomial}(381, 0.2)$
+    - $\mu = 381 \times 0.2 = `r 381*0.2` = 76.2$
+
+#### p-value
+
+- 84 is 7.8 (= 84 - 76.2) above the mean
+- The same distance below the mean is 76.2 - 7.8 = 68.4
+
+- The p-value is $P(X \ge 84) + P(X \le 68)$.
+
+```{r}
+1 - pbinom(83, 381, 0.2) + pbinom(68, 381, 0.2)
+```
+
+#### Interpret
+
+> There is lack of evidence that the population proportion of paintings with a manmade structure is different from 0.2 (p-value = 0.336, two-sided binomial test)
+
+
+## Difference in proportions
+### Different Test than the notes
+
+Population 1 = Bob Ross paintings that include grass
+Population 2 = Bob Ross paintings that do not include grass
+
+$p_1$ is the proportion in population 1 (with grass) with a man-made structure
+
+$p_2$ is the proportion in population 2 with a man-made structure
+
+#### Summary Statistics
+
+```{r}
+ross_sum = ross %>% 
+  summarize(n1 = sum(GRASS),
+            n2 = n() - n1,
+            x1 = sum(GRASS*STRUCTURE),
+            x2 = sum((1 - GRASS) * STRUCTURE),
+            phat1 = x1/n1,
+            phat2 = x2/n2)
+
+ross_sum
+```
+
+> Test if the population proportions of paintings with a structure differ between paintings with grass or without grass.
+
+
+
+### State Hypotheses
+
+$H_0: p_1 = p_2$
+
+$H_a: p_1 \neq p_2$
+
+### Test Statistic
+
+- z is standard normal
+- p-value is area in two tails
+- **Note that we pool the data for a single numerical estimate to use for both p1 and p2 when computing the SE**
+
+$$
+z = \frac{(\hat{p}_1 - \hat{p}_2) - 0}{\text{SE}}
+$$
+
+```{r}
+ross_sum %>% 
+  summarize(
+    p_pooled = (x1 + x2) / (n1 + n2),
+    se = sqrt( p_pooled * (1 - p_pooled) / n1 +
+               p_pooled * (1 - p_pooled) / n2 ),
+    z = (phat1 - phat2) / se,
+    pvalue = 2*pnorm(-abs(z))
+  )
+```
+
+We have a p-value of 0.0.64.
+
+> There is insufficient evidence to conclude that there is a difference in the population proportion of Bob Ross paintings that contain a man-made structure between painting with and without grass (p = 0.064, two-sided z-test for differences in population proportions).
+
+## Inference for a single mean
+
+> Estimate the population mean number of colors in Bob Ross paintings
+
+- point estimate $\pm$ critical_quantile $\times$ SE
+
+> Find a 95% CI for $\mu$
+
+```{r}
+ross %>% 
+  summarize(n = n(),
+            xbar = mean(num_colors),
+            s = sd(num_colors),
+            se = s / sqrt(n),
+            t_crit = qt(0.975, n-1),
+            me = t_crit*se,
+            low = xbar - me,
+            high = xbar + me) %>% 
+  as.data.frame()
+```
+
+### Interpret
+
+> I am 95% confident that the population mean of the number of colors in a Bob Ross painting is between 10.53 and 11.00. 
+
+## Difference in Means
+
+mu1 = mean # colors in paintings with grass
+mu2 = mean # colors in paintings without grass
+
+- use `t.test()`
+
+```{r}
+grass = ross %>% 
+  filter(GRASS == 1) %>% 
+  pull(num_colors)
+
+nograss = ross %>% 
+  filter(GRASS == 0) %>% 
+  pull(num_colors) 
+
+t.test(grass, nograss)
+```
+
+> We are 95% confident that the population mean number of colors in Bob Ross paintings with grass is between 1.04 and 1.85 larger than the mean in paintings without grass.
+
+> There is overwhelming evidence that the mean number of colors in Bob Ross paintings with grass is larger than the mean number in paintings without grass (p = 0, two-sided t-test for difference in means).
