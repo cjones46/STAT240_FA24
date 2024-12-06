@@ -1,0 +1,226 @@
+---
+title: "STAT 240: The Mario Kart Case Study"
+author: "Cameron Jones"
+date: "Fall 2024"
+output: rmdformats::readthedown
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
+                      error = TRUE, fig.height = 4)
+
+library(tidyverse)
+library(readxl)
+library(ggridges)
+
+```
+
+# Overview
+
+## Learning Outcomes
+
+* There may be a few new functions and tricks in these lectures, but the purpose of this case study is not to convey new material. The purpose is to **review** the principles we have learned and to **practice** interactively on a real case study.
+
+## Preliminaries
+
+* **You will need to install the `readxl` and `ggridges` packages.**
+
+* Files to download to `COURSE/lecture/week14-extraReview`:
+    - `week14-MarioKart.Rmd`
+    - `week14-MarioKart.html`
+    - `week14-MarioKart-solutions.Rmd`
+    - `week14-MarioKart-solutions.html`
+    
+* Files to download to `COURSE/data`
+    - `CombinedMKScores.xlsx`
+    - `MKGhostTimes.csv`
+    
+# Background & Data
+
+* As mentioned in the learning outcomes, the purpose of this case study is not to convey new material. The purpose is to **review** the principles we have learned and **practice** interactively on a real case study.
+
+---
+
+* **Mario Kart 8 Deluxe** is a popular racing video game released for the Nintendo Switch in 2017.
+
+* Players can choose from a number of characters from the Mario franchise and race on many pre-made racetracks.
+
+* See an [example race here](https://www.youtube.com/watch?v=IpDu9A_ulYo).
+
+## The Dataset
+
+* This dataset was collected and created by STAT 240 instructor Cameron Jones.
+
+* Cameron and his friends loved playing Mario Kart and often disagreed on which racetracks were the most enjoyable to play, so Cameron set out to collect some data and investigate.
+
+* Cameron asked each of his friends to **score every track in the game on a scale from 0 to 10**, where 0 represents a track that is no fun at all, and 10 represents a track that is completely and extremely fun.
+
+```{r}
+# You need to install and load the readxl package to read this dataset.
+
+scores = read_excel("../../data/CombinedMKScores.xlsx")
+head(scores)
+```
+
+> Each row of the dataset represents a single person scoring a single track. 
+
+* The `Score` column is a number from 0 to 10 indicating how fun that `Person` thought that `Course` was.
+
+* `Course` is the name of the racetrack. *Even though some courses have similar names such as "Mario Circuit (New)" and "Mario Circuit (DS)", they are in fact different tracks.*
+
+---
+
+Less importantly to the primary aim of finding out which tracks they score as the most enjoyable:
+
+* `Cup` refers to a mechanic within the game that groups 4 tracks together to be played in a row; for example, the `Mushroom` Cup contains the courses Mario Kart Stadium, Water Park, Sweet Sweet Canyon, and Thwomp Ruins.
+
+* `Origin` refers to the fact that there have been many Mario Kart games before Mario Kart 8 Deluxe, and some tracks from previous games carry over to the newer games. For example, the `Origin` value "Wii" refers to a track that was introduced in Mario Kart Wii. 
+  - "New" tracks are making their debut in Mario Kart 8 Deluxe.
+
+* `Person` is a letter A through G indicating which of Cameron and his friends is scoring the given `Course`. (Cameron is Person A, friends are B-G.)
+
+# Exploratory Data Analysis
+
+Below are some exploratory data analysis tasks to explore with this dataset.
+
+### Distribution of Scores
+
+> Create a visualization that shows each unique `Person`'s distribution of `Score`s.
+
+Visualization choices to consider:
+- Should we use a histogram or a density plot?
+- If we do use a histogram, where should the bars start and stop?
+
+- Should we facet by Person or just use different colors within one plot?
+
+```{r}
+# Write your code here!
+
+```
+
+- Try using `geom_density_ridges()` within the `ggridges` package! (You will need to install it first with `install.packages("ggridges"))`.
+
+```{r}
+# Write your code here!
+
+```
+
+### Course Superlatives
+
+- By average `Score`, what are the 3 highest rated tracks?
+
+```{r}
+# Write your code here!
+
+```
+
+- By standard deviation of `Score`, what are the 3 most controversial tracks?
+
+```{r}
+# Write your code here!
+
+```
+
+- Some friends were less familiar with Mario Kart and decided to not score some courses. How many courses did each `Person` choose not to rate?
+
+```{r}
+# Write your code here!
+
+```
+
+- Which single course has the largest difference between Person A's score and Person B's score (in either direction)?
+
+*Hint: We would love to be able to reference the two scores from separate columns, like A - B; but right now the data is not in the right format to do that! How can we reshape the data for that to be possible?*
+
+```{r}
+# Write your code here!
+
+```
+
+# Ghost Times
+
+- After that exploratory data analysis, Cameron had another research question of interest.
+
+> Is there a relationship between the length of a racetrack and its average score by Cameron and friends?
+
+- The "length" of a racetrack is difficult to define in the game, since many tracks have multiple possible paths.
+
+- However, there is a mode within the game in which you can race against a pre-determined, built-in **"ghost racer"** for each course, which completes the course in an average amount of time. 
+
+* See an [example ghost racer here](https://www.youtube.com/watch?v=eEqnfGbaeh8).
+
+- We will use the time it takes the built-in ghost racer to complete each course as a proxy (an imperfect, but passable substitute) for its length.
+
+- The ghost times are [found online here](https://mario.fandom.com/wiki/List_of_Mario_Kart_8_Deluxe_Staff_Ghosts%27_statistics) and collected & cleaned into `MKGhostTimes.csv`. 
+
+*Note: At the time Cameron collected the scores data above, there were only 80 tracks in the game. Since then, there were 16 tracks added, which are present in the ghosts data below.*
+
+```{r}
+ghosts = read_csv("../../data/MKGhostTimes.csv")
+```
+
+- This file has a lot of information about each ghost racer, but we really only care about `Course` and `Time`.
+
+```{r}
+ghosts %>% 
+  select(Course, Time) %>% 
+  glimpse()
+```
+
+*Note that the `Time` variable was automatically read in as a `<time>` variable; tidyverse's `read_csv` tries to choose intelligent data types like `<time>` and `<date>` for you, whereas base R's `read.csv` would just read time in as a character column, which would be really annoying.*
+
+```{r}
+# notice: read.csv instead of read_csv
+read.csv("../../data/MKGhostTimes.csv") %>% 
+  select(Course, Time) %>% 
+  glimpse()
+```
+
+- The time variable is suitable for plotting and modeling as it is; `lm()` and `ggplot()` will understand how to handle it. 
+
+- It will treat it as its numeric value in milliseconds, which we can see with `as.numeric()`.
+
+```{r}
+ghosts %>% 
+  mutate(Time = as.numeric(Time)) %>% 
+  select(Course, Time) %>% 
+  glimpse()
+```
+
+---
+
+## Joining
+
+> From the `scores` and `ghosts` dataset, create a new dataset with one row per `Course`, and information about its average score and ghost time. Only include courses that have a known average score and ghost time.
+
+```{r}
+# Write your code here!
+
+```
+
+## Regression Practice
+
+> Use `lm()` to run a hypothesis test to assess if the "length" (ghost time) of each racetrack affects Cameron and friends' average score of that track. Interpret in context.
+
+```{r}
+# Write your code here!
+
+```
+
+**Interpret in context!**
+
+> Create a residual plot and asssess the linear regression assumptions.
+
+```{r}
+# Write your code here!
+
+```
+
+**Assess the assumptions!**
+
+> If time, replicate point estimate, test statistic, and p-value by hand.
+
+```{r}
+# Write your code here!
+
+```
