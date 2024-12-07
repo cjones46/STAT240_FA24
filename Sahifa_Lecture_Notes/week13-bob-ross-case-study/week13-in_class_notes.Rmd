@@ -1,0 +1,673 @@
+---
+title: "Bob-Ross"
+output: html_document
+date: "2024-11-25"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library("tidyverse")
+```
+
+# Sec 006 Monday 11/25
+
+```{r}
+all_elements <- read_csv("~/Desktop/Stat240/FA24_STAT 240/data/elements-by-episode.csv")
+```
+
+```{r}
+head(all_elements)
+```
+```{r}
+all_elements %>% count(TITLE) %>% filter(n>1)
+```
+```{r}
+painting_elements <- all_elements %>% filter(GUEST==0) %>% select(-c(DIANE_ANDRE, STEVE_ROSS, GUEST, contains("FRAME")))
+
+painting_elements
+```
+```{r}
+painting_elements %>% 
+  summarize(across(AURORA_BOREALIS:WINTER, mean))
+```
+```{r}
+all_elements %>% summarise(across(contains("FRAME"), mean))
+```
+```{r}
+graph <- painting_elements %>% 
+  pivot_longer(-c(EPISODE, TITLE), 
+               names_to = "feature", values_to = "appeared") %>% group_by(feature) %>% summarise(mean = round(mean(appeared)*100)) %>% arrange(desc(mean))
+
+graph                      
+```
+
+```{r}
+graph %>% filter(mean > 2) %>%  ggplot(mapping = aes(x = mean, y = feature)) + geom_col(  fill = "skyblue")
+
+graph %>% filter(mean > 2) %>% ggplot(mapping = aes(x = mean, y = reorder(feature, mean))) + geom_col(  fill = "skyblue")
+
+graph %>% filter(mean >= 2) %>% ggplot(mapping = aes(x = mean, y = reorder(feature, mean))) + geom_col(  fill = "skyblue") + geom_text(aes(label = mean), hjust = "left")
+```
+```{r}
+graph %>% filter(mean > 0.02) %>% ggplot(mapping = aes(x = mean, y = reorder(feature, mean))) + 
+  geom_col(  fill = "dodgerblue") +
+  geom_text(aes(label = round(mean*100)), hjust = "left") +
+  labs(
+    title = "The Paintings of Bob Ross",
+    subtitle = "Percentage containing each element",
+    x = "",
+    y = ""
+  ) +
+  theme(
+    panel.grid = element_blank(),
+    axis.text.x = element_blank(),
+    plot.background = element_rect(fill = "gray96", color = "gray96"),
+    plot.title.position = "plot",
+    plot.title = element_text(face = "bold")
+  )
+
+```
+
+
+# Sec 003 Monday 11/25
+
+```{r}
+library("tidyverse")
+```
+
+
+```{r}
+all_elements <- read_csv("~/Desktop/Stat240/FA24_STAT 240/data/elements-by-episode.csv")
+```
+
+```{r}
+all_elements %>% count(TITLE) %>% filter(n>1) 
+all_elements %>% filter(TITLE == "\"LAKESIDE CABIN\"" | TITLE == "\"MOUNTAIN WATERFALL\"")
+```
+
+```{r}
+painting_elements <- all_elements %>% filter(GUEST==0) %>%  select(- c(DIANE_ANDRE, STEVE_ROSS, GUEST, contains("FRAME")))
+
+painting_elements
+```
+
+```{r}
+painting_elements %>% summarise(across(AURORA_BOREALIS:WINTER,mean))
+```
+
+```{r}
+graph <- painting_elements %>% 
+  pivot_longer(-c(EPISODE, TITLE), 
+               names_to = "feature", values_to = "appeared") %>% group_by(feature) %>% summarise(mean = round(mean(appeared)*100)) %>% arrange(desc(mean))
+graph
+```
+
+
+```{r}
+graph %>% filter(mean>=2) %>% ggplot(mapping = aes(y = feature, x = mean)) + geom_col()
+
+graph %>% filter(mean>=2) %>% ggplot(mapping = aes(y = reorder(feature, mean), x = mean)) + 
+  geom_col(fill = "dodgerblue") + geom_text(aes(label = mean), hjust = "left") +
+  labs(title = "The Paintings of Bob Ross", subtitle = "Percentage containing each element", x = "",
+    y = "") +
+  theme(
+    panel.grid = element_blank(),
+    axis.text.x = element_blank(),
+    plot.background = element_rect(fill = "gray96", color = "gray96"),
+    plot.title.position = "plot",
+    plot.title = element_text(face = "bold")
+  )
+```
+
+
+# Sec 005 Monday 11/25
+
+
+```{r}
+library("tidyverse")
+
+all_elements <- read_csv("~/Desktop/Stat240/FA24_STAT 240/data/elements-by-episode.csv")
+```
+```{r}
+all_elements %>% count(TITLE) %>% filter(n>1)
+
+all_elements %>% filter(TITLE == "\"LAKESIDE CABIN\"" | TITLE == "\"MOUNTAIN WATERFALL\"") %>% select(EPISODE, TITLE)
+```
+
+```{r}
+painting_elements <- all_elements %>% filter(GUEST == 0) %>% select(-c(DIANE_ANDRE, STEVE_ROSS, GUEST, contains("FRAME")))
+
+painting_elements
+```
+
+```{r}
+painting_elements %>% summarise(across(AURORA_BOREALIS:WINTER, mean))
+```
+
+```{r}
+graph <- painting_elements %>% 
+  pivot_longer(-c(EPISODE, TITLE), 
+               names_to = "feature", values_to = "appeared") %>% group_by(feature) %>% summarise(mean = round(mean(appeared)*100)) %>% arrange(desc(mean))
+graph
+```
+
+```{r}
+graph %>% filter(mean >= 2) %>% ggplot(mapping = aes(y = feature, x = mean)) + geom_col()
+
+graph %>% filter(mean >= 2) %>% ggplot(mapping = aes(y = reorder(feature, mean), x = mean)) + geom_col(fill = "dodgerblue") + geom_text(aes(label = mean)) + labs(title = "The Paintings of Bob Ross", subtitle = "Percentage containing each element", x = "",
+    y = "") +
+  theme(
+    panel.grid = element_blank(),
+    axis.text.x = element_blank(),
+    plot.background = element_rect(fill = "gray96", color = "gray96"),
+    plot.title.position = "plot",
+    plot.title = element_text(face = "bold")
+  )
+```
+
+# Sec 006 Monday 12/02
+
+```{r}
+painting_colors <- read_csv("~/Desktop/Stat240/FA24_STAT 240/data/bob_ross_paintings.csv")
+```
+```{r}
+ggplot(data = painting_colors) + geom_bar(aes(x = num_colors))
+```
+
+
+```{r}
+painting_colors %>% 
+  filter(num_colors == 1) %>% 
+  relocate(img_src, youtube_src, season, episode, painting_title)
+```
+
+```{r}
+painting_colors %>%
+  mutate(seasonChar = ifelse(season < 10, str_c("S0", season), str_c("S", season)),
+         episodeChar = ifelse(episode < 10, str_c("E0", episode), str_c("E", episode)),
+         EPISODE = str_c(seasonChar, episodeChar)) %>% 
+  select(season, episode, seasonChar, episodeChar, EPISODE)
+
+
+joined <- painting_colors %>%
+  mutate(seasonChar = ifelse(season < 10, str_c("S0", season), str_c("S", season)),
+         episodeChar = ifelse(episode < 10, str_c("E0", episode), str_c("E", episode)),
+         EPISODE = str_c(seasonChar, episodeChar)) %>% 
+  full_join(all_elements, join_by(EPISODE)) %>% select(ID = EPISODE, painting_title, num_colors, AURORA_BOREALIS:WINTER, Black_Gesso:Alizarin_Crimson)
+```
+
+
+## Single proportion for man-made structures
+
+```{r}
+structure_summary = joined %>% 
+  summarize(structures = sum(STRUCTURE),
+    n = n())
+
+structure_summary
+```
+
+```{r}
+p_hat_AC <- (85+2)/(403+4)
+
+cv <- qnorm(0.975)
+se <- sqrt((p_hat_AC*(1-p_hat_AC))/(403+4))
+
+p_hat_AC + c(-1,1)*cv*se
+```
+
+```{r}
+p_hat <- 85/403
+cv <- qnorm(0.975)
+se <- sqrt((p_hat*(1-p_hat))/(403))
+
+p_hat + c(-1,1)*cv*se
+```
+
+# Sec 003 Monday 12/02
+
+```{r}
+painting_colors <- read_csv("~/Desktop/Stat240/FA24_STAT 240/data/bob_ross_paintings.csv")
+```
+
+```{r}
+ggplot(data = painting_colors) + geom_bar(aes(x = num_colors)) + scale_x_continuous(breaks = 0:15)
+```
+
+
+```{r}
+painting_colors %>% filter(num_colors == 1)
+```
+
+```{r}
+
+```
+
+```{r}
+joined <- painting_colors %>%
+  mutate(seasonChar = ifelse(season < 10, str_c("S0", season), str_c("S", season)),
+         episodeChar = ifelse(episode < 10, str_c("E0", episode), str_c("E", episode)),
+         EPISODE = str_c(seasonChar, episodeChar)) %>% 
+  full_join(all_elements, join_by(EPISODE))
+
+head(joined)
+```
+
+## Single proportion:
+
+What is the true proportion of man made structures in the paintings?
+
+```{r}
+structure_summary = joined %>% 
+  summarize(structures = sum(STRUCTURE),
+    n = n())
+
+structure_summary
+```
+95% Wald confidence interval
+
+```{r}
+p_hat <- 85/403
+cv <- qnorm(0.975)
+se <- sqrt(p_hat*(1 - p_hat)/403)
+
+p_hat + c(-1,1)*cv*se
+```
+
+95% Agrestti-Coull CI
+
+```{r}
+p_hat_AC <- (85+2)/(403+4)
+cv <- qnorm(0.975)
+se <- sqrt((p_hat_AC*(1-p_hat_AC))/(403+4))
+
+p_hat_AC + c(-1,1)*cv*se
+```
+
+# Sec 005 Monday 12/2
+
+```{r}
+painting_colors <- read_csv("~/Desktop/Stat240/FA24_STAT 240/data/bob_ross_paintings.csv")
+```
+
+```{r}
+painting_colors %>% ggplot(aes(x = num_colors)) + geom_bar() + scale_x_continuous(breaks = 0:15)
+```
+
+
+```{r}
+painting_colors %>% filter(num_colors == 1)
+```
+
+```{r}
+joined <- painting_colors %>% mutate(seasonChar = ifelse(season<10, str_c("S0", season), str_c("S",season)), episodeChar = ifelse(episode<10, str_c("E0", episode), str_c("E",episode)), EPISODE = str_c(seasonChar, episodeChar)) %>% full_join(all_elements, join_by(EPISODE))
+```
+
+
+## Single proportion
+
+What is the true proportion of TJOP episodes featuring a man-made structure
+
+```{r}
+joined %>% summarise(x = sum(STRUCTURE), n = n())
+```
+
+$X = \text{number of times the TJOP episode has a man-made structure} \\ X \sim Binom(403, p)$
+
+95% Confidence Interval:
+
+```{r}
+cv <- qnorm(0.975)
+```
+
+
+Wald Adjustment
+
+```{r}
+p_hat <- 85/403
+se <- sqrt(p_hat*(1-p_hat)/403)
+
+p_hat + c(-1,1)*cv*se
+```
+
+Agrestti-Coull Adjustment:
+
+```{r}
+p_hat_AC <- (85+2)/(403+4)
+cv <- qnorm(0.975)
+se <- sqrt((p_hat_AC*(1-p_hat_AC))/(403+4))
+
+p_hat_AC + c(-1,1)*cv*se
+```
+
+
+# Sec 006 Wednesday 12/4
+
+- Hypothesis testing
+
+- Step 2: State the hypothesis:
+
+$$H_0: p=0.2, H_{\alpha}: p \neq 0.2$$
+- Step 3: Test statistic and null distribution
+
+$$X_{H_0} \sim Binom(403, 0.2)$$
+- Step 4: Calculate the p-value
+
+```{r}
+p_hat <- 85/403
+p_hat
+
+t <- (p_hat - 0.2)/sqrt(0.2*0.8/403)
+t
+2*(1-pnorm(t)) # upper tail p-value
+
+
+x <- 85
+1-pbinom(85-1, 403, 0.2) + pbinom(75, 403, 0.2)
+```
+- Step 6: Given that $\alpha = 0.05$, what conclusion can you make?
+
+
+## Difference of proportion
+
+Is there a significant difference in the proportion of times Bob paints a man-made structure compared to a guest painting a man-made structure
+
+```{r}
+joined %>% group_by(GUEST) %>% summarise(n = n(), x = sum(STRUCTURE))
+```
+
+
+- 95% Agrestti-Coull Confidence Interval
+
+```{r}
+x1 <- 84
+n1 <- 381
+x2 <- 1
+n2 <- 22
+
+p1_hat_AC <- (x1+1)/(n1+2)
+p2_hat_AC <- (x2+1)/(n2+2)
+
+(p1_hat_AC-p2_hat_AC) + c(-1,1)*(qnorm(0.975))*(sqrt(p1_hat_AC*(1-p1_hat_AC)/(n1+2)+p2_hat_AC*(1-p2_hat_AC)/(n2+2)))
+```
+
+
+```{r}
+p_value <- 2*(1-pnorm(1.956527)) # 2*(pnorm(-1.956527))
+p_value
+```
+
+
+# Sec 006
+
+- Step 2: State the hypothesis
+
+$$H_0: p= 0.2, H_{\alpha}: p\neq 0.2 $$
+
+- Step 3: Test statistic and null distrubition
+
+$$X_{H_0} \sim Binom(403,0.2)$$
+
+```{r}
+p_hat <- 85/403
+
+z <- (p_hat - 0.2)/sqrt(0.2*0.8/403)
+z
+
+2*(1-pnorm(z)) # p value using the test statistic 
+
+x <- 85
+pbinom(85-1, 403, 0.2, lower.tail = F) + pbinom(75, 403, 0.2) # p value using the null distribution of X
+```
+
+
+## Difference of proportion
+
+The propotion of painting with a man-made structure when we had a guest or no guest.
+
+
+```{r}
+joined %>% group_by(GUEST) %>% summarise(n = n(), x = sum(STRUCTURE))
+```
+- Build a 95% Agrestti-Coull Confidence Interval
+
+```{r}
+p1_hat_AC <- (84+1)/(381+2)
+p2_hat_AC <- (1+1)/(22+2)
+
+se <- sqrt(p1_hat_AC*(1-p1_hat_AC)/(n1+2) + p2_hat_AC*(1-p2_hat_AC)/(n2+2))
+
+(p1_hat_AC-p2_hat_AC) + c(-1,1)*qnorm(0.975)*se
+```
+
+
+- Hypothesis Testing
+
+```{r}
+2*(1-pnorm(1.956527))
+```
+
+# Sec 005 Wednesday 12/4
+
+- Step 2: State the hypothesis:
+
+$$H_0: p= 0.2, H_{\alpha}: p\neq 0.2 $$
+- Step 3: Test Statistic and the null distribution
+
+```{r}
+z <- (85/403 - 0.2)/sqrt(0.2*0.8/403)
+z
+
+2*(1- pnorm(z))
+
+x <- 85
+pbinom(85-1, 403, 0.2, lower.tail = F) + pbinom(75, 403, 0.2) # p value using the distribution of X
+```
+
+$\alpha = 0.05$
+
+Conclusion: p=0.2
+
+
+## Difference of proportion
+
+Is there difference in the proportion of paintings with man-made structure when Bob is painiting vs a guest is painting
+
+```{r}
+joined %>% group_by(GUEST) %>% summarise(x = sum(STRUCTURE), n = n())
+```
+
+```{r}
+p1_hat <- 84/381
+p2_hat <- 1/22
+```
+
+- 95% Confidence interval using the Agrestti-Coull adjustment.
+
+- Hypothesis testing:
+
+```{r}
+z <- 1.956527
+
+2*(1-pnorm(z))
+
+2*pnorm(-z)
+```
+
+
+```{r}
+t.test(painting_colors$num_colors, mu = 10.5)
+t.test(painting_colors$num_colors, mu = 10.5, alternative = "greater")
+```
+
+- Hypothesis testing for difference of means
+
+```{r}
+joined %>% group_by(GUEST) %>% summarize(xbar = mean(num_colors), sd = sd(num_colors), n = n())
+```
+
+```{r}
+guest = joined %>% filter(GUEST==1)
+bob = joined %>%filter(GUEST==0)
+
+t.test(bob$num_colors, guest$num_colors, conf.level = 0.90)
+
+t.test(num_colors~GUEST, joined)
+```
+
+```{r}
+total_features_vector = joined %>%
+  select(AURORA_BOREALIS:WINTER) %>%
+  select(!contains("FRAME")) %>%
+  rowSums()
+
+paintings_joined = joined %>%
+  mutate(num_features = total_features_vector)
+
+model <- lm(num_features ~ num_colors, paintings_joined)
+
+summary(model)
+```
+
+```{r}
+residual <- resid(model)
+
+x <- paintings_joined$num_colors
+
+ggplot(mapping = aes(x = x, y = residual)) + geom_point() + geom_smooth()
+```
+
+$$H_0: \beta_1 = 0, H_{\alpha}: beta_1 >0$$
+
+```{r}
+beta_hat_1 <- -0.04366
+se = 0.04748
+n = nrow(paintings_joined)
+test_stat = (beta_hat_1 - 0)/se
+test_stat
+
+1 - pt(test_stat, n-2)
+```
+
+
+# Sec 003 Friday 12/6
+
+Hypothesis testing 
+
+$$H_0: \mu = 10.5, H_{\alpha}: \mu \neq 10.5$$
+
+```{r}
+t.test(joined$num_colors, mu = 10.5)
+t.test(joined$num_colors, mu = 10.5, alternative = "greater")
+```
+
+- Difference of means
+
+```{r}
+joined %>% group_by(GUEST) %>% summarize(n = n(), xbar = mean(num_colors), sd = sd(num_colors))
+```
+
+- Hypothesis testing:
+
+$$H_0: \mu_{Bob} = \mu_{guest}, H_{\alpha}: \mu_{Bob}>\mu_{guest}$$
+```{r}
+bob = joined %>% filter(GUEST==0)
+guest = joined %>% filter(GUEST==1)
+t.test(bob$num_colors, guest$num_colors, alternative = "greater")
+```
+```{r}
+total_features_vector = joined %>%
+  select(AURORA_BOREALIS:WINTER) %>%
+  select(!contains("FRAME")) %>%
+  rowSums()
+
+paintings_joined = joined %>%
+  mutate(num_features = total_features_vector)
+
+model = lm(paintings_joined$num_features~paintings_joined$num_colors)
+```
+
+
+```{r}
+summary(model)
+```
+
+```{r}
+se = 0.04748
+n = nrow(paintings_joined)
+test_stat = (-0.04366 - 0)/se
+
+pt(test_stat, df = n - 2, lower.tail = FALSE) # greater than 
+pt(test_stat, df = n - 2) # less than
+2*pt(test_stat, df = n - 2) # two sided
+```
+
+# Sec 005 Friday 12/6
+
+Hypothesis testing
+
+$$H_0: \mu = 10.5, H_{\alpha}: \mu \neq 10.5$$
+
+```{r}
+t.test(joined$num_colors, mu = 10.5)
+```
+```{r}
+joined %>% group_by(GUEST) %>% summarise(n = n(), xbar = mean(num_colors), sd = sd(num_colors))
+```
+
+- Difference of means: 
+
+$$H_0: \mu_{Bob} = \mu_{guest}, H_{\alpha}: \mu_{Bob} > \mu_{guest}} $$
+
+
+```{r}
+bob = joined %>% filter(GUEST==0)
+guest = joined %>% filter(GUEST==1)
+
+t.test(bob$num_colors, guest$num_colors)
+t.test(num_colors~GUEST, joined)
+```
+
+```{r}
+total_features_vector = joined %>%
+  select(AURORA_BOREALIS:WINTER) %>%
+  select(!contains("FRAME")) %>%
+  rowSums()
+
+paintings_joined = joined %>%
+  mutate(num_features = total_features_vector)
+
+ model = lm(paintings_joined$num_features~paintings_joined$num_colors)
+```
+
+
+```{r}
+summary(model)
+```
+
+$$H_{alpha}: \beta_1>0$$
+
+```{r}
+t = -0.04366/0.04748
+t
+
+1 - pt(t, 401)
+pt(t, 401)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
