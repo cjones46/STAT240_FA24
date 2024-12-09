@@ -1,0 +1,158 @@
+---
+output: html_document
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE,
+                      warning = FALSE,
+                      error = TRUE, fig.height = 3,
+                      fig.width = 4)
+
+library(tidyverse)
+
+source("../../scripts/ggprob.R")
+```
+
+### Madison weather
+
+> Is it getting warmer in the summer in Madison?
+
+### Get the Data
+
+```{r}
+mw = read_csv("../../data/madison-weather-official-1869-2023.csv")
+```
+
+### Calculate average summer temperature by year
+
+```{r}
+mw = mw %>% 
+  mutate(year = year(date),
+         month = month(date, label = TRUE),
+         .after = date)
+```
+
+- filter to only summer months (June, July, August)
+- calculate the average daily temperature by year
+
+```{r}
+summer = mw %>% 
+  filter(month == "Jun" | month == "Jul" | month == "Aug") %>% 
+  drop_na(tavg) %>% 
+  group_by(year) %>% 
+  summarize(n = n(),
+            tavg = mean(tavg))
+  
+summer %>% 
+  filter(n != 92)
+```
+
+### Graph the data
+
+```{r}
+ggplot(summer, aes(x = year, y = tavg)) +
+  geom_line() +
+  geom_point() +
+  geom_smooth(se = FALSE) +
+  geom_smooth(se = FALSE, color = "red", method = "lm")
+```
+
+- linear model may not be appropriate for entire time period
+- perhaps more clear increase from about 1975 to the present
+
+### Linear Regression
+
+- Fit a model
+- Do some inference
+- Do some model checking
+
+#### fit the model
+
+```{r}
+summer_lm = lm(tavg ~ year, data = summer)
+coef(summer_lm)
+
+summary(summer_lm)
+```
+
+### Write the fitted regression line
+
+$$
+(\text{Avg Temp}) = 76.1 - 0.00325 \times (\text{Year})
+$$
+
+### Inference and Interpretation
+
+> What is the value of the residual standard error and how can I interpret this?
+
+$\hat{\sigma}$ is about 2 (2.017). This is the size of a typical deviation between the observed average temperature in a year and the predicted temperature with the regression line.
+
+> Find and interpret a 95% confidence interval for the slope of the line
+
+```{r}
+slope = coef(summer_lm)[2]
+slope
+
+t_crit = qt(0.975, 153)
+t_crit
+
+ci = slope + c(-1,1) * t_crit * 0.003621
+ci
+```
+
+> We are 95% confident that the long-term summer average temperature in Madison is changing from between a decrease of $-0.0104$ and an increase of 0.0039 degrees each year.
+
+### Hypothesis test
+
+t = -0.897 = -003249 / 0.003621
+
+p-value = 0.371,  not small
+
+> We lack evidence to proclaim that there is a change in the average summer temperature in Madison over the past 155 years (p = 0.371, two-sided t-test for regression)
+
+
+### Examine assumptions
+
+- Make a residual plot
+
+```{r}
+summer = summer %>% 
+  mutate(residual = residuals(summer_lm))
+
+ggplot(summer, aes(x = year, y = residual)) +
+  geom_point() +
+  geom_hline(yintercept = 0) +
+  geom_smooth()
+```
+
+> There is some evidence against the linearity assumption.
+
+If average summer temperature in Madison was changing linearly over time, we would expect that there would be little pattern in the residual plot. However, we see a bit of a dip in the years around 1960--1980, and a steep increase since then.
+
+The horizontal line does not stay within the ribbon around the smooth curve of the residuals.
+
+For comparison's sake, here is a residual plot from simulated data where the linear model is correct.
+
+```{r}
+fake = summer %>% 
+  select(year) %>% 
+  mutate(duration = fitted(summer_lm) + rnorm(nrow(summer), 0, sigma(summer_lm)))
+
+fake_lm = lm(duration ~ year, data = fake)
+
+fake = fake %>% 
+  mutate(residual = residuals(fake_lm))
+
+ggplot(fake, aes(x = year, y = residual)) +
+  geom_point() +
+  geom_hline(yintercept = 0) +
+  geom_smooth()
+```
+
+We see some unevenness in the smooth trend line, but the horizontal line remains within the ribbon.
+
+This is just a single simulated data set. We might want to look at several to gain some understanding of how unusual the residual plot is we have for the real data to better understand how strong the evidence against linearity is.
+> There is no reason to be concerned about non-normality nor non-constant variance.
+
+There is no obvious skewness in the residuals or strong size dependence as the year changes.
+
